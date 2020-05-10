@@ -1,0 +1,43 @@
+{
+  "name": "example-zs-lint",
+  "version": "0.9.0",
+  "description": "Example repo demonstrating zettel linting",
+  "main": "./lib/index.js",
+  "bin": {
+    "zettel-lint": "./lib/index.js"
+  },
+  "scripts": {
+    "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
+    "create": "npm run build && npm run test",
+    "build": "tsc -p .",
+    "test": "sudo npm i -g && zettel-lint",
+    "refresh": "rm -rf ./node_modules ./package-lock.json && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zettel-lint/example.git"
+  },
+  "keywords": [
+    "zettel",
+    "lint",
+    "javascript"
+  ],
+  "author": "Craig Nicol",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zettel-lint/example/issues"
+  },
+  "homepage": "https://github.com/zettel-lint/example#readme",
+  "dependencies": {
+    "clear": "^0.1.0",
+    "commander": "^5.1.0",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "@types/node": "^13.13.5",
+    "eslint": "^7.0.0",
+    "nodemon": "^2.0.3",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.8.3"
+  }
+}
