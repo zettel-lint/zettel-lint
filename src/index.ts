@@ -5,6 +5,9 @@ import chalk from "chalk";
 import figlet from "figlet";
 import path from "path";
 import program from "commander";
+import glob from "glob";
+import SimpleMarkdown from "simple-markdown";
+import fs from "fs";
 
 clear();
 console.log(
@@ -22,3 +25,16 @@ program
 if (!process.argv.slice(2).length) {
    program.outputHelp();
 }
+
+// options is optional
+glob("**/*.md", {ignore: "**/node_modules/**"}, function (er, files) {
+    // files is an array of filenames.
+    // If the `nonull` option is set, and nothing
+    // was found, then files is ["**/*.js"]
+    // er is an error object or null.
+    files.forEach(file => {
+        // TODO : switch to async/await
+        const markdownContent = fs.readFileSync(file).toString();
+        console.log(file, SimpleMarkdown.defaultBlockParse(markdownContent));        
+    });
+})
