@@ -7,7 +7,7 @@
     "zettel-lint": "./lib/index.js"
   },
   "scripts": {
-    "start": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
+    "start": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
     "test": "sudo npm i -g && zettel-lint",
