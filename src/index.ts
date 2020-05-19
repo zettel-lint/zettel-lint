@@ -7,7 +7,7 @@ import path from "path";
 import program from "commander";
 import glob from "glob";
 import SimpleMarkdown from "simple-markdown";
-import fs from "fs";
+import {promises as fs} from "fs";
 
 clear();
 console.log(
@@ -20,25 +20,34 @@ program
   .version('0.9.0')
   .description("A linter/compiler for Zettel markdown repositories")
   .option('-d, --daily', "Create daily entry if it doesn't exist")
-  .option('-r, --root', "Root path for search", "bob");
+  .option('-r, --root <path>', "Root path for search", ".")
+  .option('--no-wiki', "use [[wiki style]] links")
+  ;
 
 program
   .parse(process.argv);
 
-const root = program.root ? program.root : ".";
-
-console.log("Looking for notes in " + root);
+console.log("Looking for notes in " + program.root);
 console.log((program.daily ? "" : "NOT ") + "creating dailies");
 
+async function readMarkdown(filename: string) {
+  const markdownContent = await fs.readFile(filename).toString();
+  console.log(filename, SimpleMarkdown.defaultBlockParse(markdownContent));
+}
+
+async function readWikiLinks(filename: string) {
+  const wikiLink = /\[\d{8,14}\]/;
+  const contents = await fs.readFile(filename, "utf8");
+  console.log(filename + ":" + wikiLink.exec(contents));
+}
+
 // options is optional
-glob(root + "/**/*.md", {ignore: root + "/**/node_modules/**"}, function (er, files) {
+glob(program.root + "/**/*.md", {ignore: program.root + "/**/node_modules/**"}, async function (er, files) {
     // files is an array of filenames.
     // If the `nonull` option is set, and nothing
     // was found, then files is ["**/*.js"]
     // er is an error object or null.
-    files.forEach(file => {
-        // TODO : switch to async/await
-        const markdownContent = fs.readFileSync(file).toString();
-        console.log(file, SimpleMarkdown.defaultBlockParse(markdownContent));        
-    });
+    for await (const file of files) {
+      await readWikiLinks(file)
+    };
 })
