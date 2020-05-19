@@ -20,14 +20,18 @@ program
   .version('0.9.0')
   .description("A linter/compiler for Zettel markdown repositories")
   .option('-d, --daily', "Create daily entry if it doesn't exist")
+  .option('-r, --root', "Root path for search", "bob");
+
+program
   .parse(process.argv);
 
-if (!process.argv.slice(2).length) {
-   program.outputHelp();
-}
+const root = program.root ? program.root : ".";
+
+console.log("Looking for notes in " + root);
+console.log((program.daily ? "" : "NOT ") + "creating dailies");
 
 // options is optional
-glob("**/*.md", {ignore: "**/node_modules/**"}, function (er, files) {
+glob(root + "/**/*.md", {ignore: root + "/**/node_modules/**"}, function (er, files) {
     // files is an array of filenames.
     // If the `nonull` option is set, and nothing
     // was found, then files is ["**/*.js"]

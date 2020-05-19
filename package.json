@@ -11,7 +11,8 @@
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
     "test": "sudo npm i -g && zettel-lint",
-    "refresh": "rm -rf ./node_modules ./package-lock.json && npm install"
+    "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
+    "zl": "ts-node src/index.ts"
   },
   "repository": {
     "type": "git",
