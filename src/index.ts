@@ -35,10 +35,22 @@ async function readMarkdown(filename: string) {
   console.log(filename, SimpleMarkdown.defaultBlockParse(markdownContent));
 }
 
+function idFromFilename(filename: string) {
+  const nameOnly = filename.split("/").pop();
+  const withoutExt = nameOnly?.split(".")[0];
+  return withoutExt?.split("-")[0];
+}
+
 async function readWikiLinks(filename: string) {
-  const wikiLink = /\[\d{8,14}\]/;
+  const wikiLink = /\[\d{8,14}\]/g;
   const contents = await fs.readFile(filename, "utf8");
-  console.log(filename + ":" + wikiLink.exec(contents));
+  var matches = [];
+  var next : RegExpExecArray | null;
+  do {
+    next = wikiLink.exec(contents);
+    matches.push(next);
+  } while (next);
+  console.log(idFromFilename(filename) +  " = " + filename + ":" + matches);
 }
 
 // options is optional
