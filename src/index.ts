@@ -10,13 +10,6 @@ import SimpleMarkdown from "simple-markdown";
 import {promises as fs} from "fs";
 import { Stream } from "stream";
 
-clear();
-console.log(
-    chalk.red(
-      figlet.textSync('zettel-lint', { horizontalLayout: 'full' })
-    )
-  );
-
 program
   .version('0.9.0')
   .description("A linter/compiler for Zettel markdown repositories")
@@ -32,6 +25,12 @@ program
   .parse(process.argv);
 
 if (program.verbose) {
+  clear();
+  console.log(
+      chalk.red(
+        figlet.textSync('zettel-lint', { horizontalLayout: 'full' })
+      )
+    );
   console.log("Looking for notes in " + program.root);
   console.log((program.daily ? "" : "NOT ") + "creating dailies");
   console.log("Ignoring dirs: " + program.ignoreDirs);
@@ -58,7 +57,7 @@ async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefin
     next = wikiLink.exec(contents);
     matches.push(next);
   } while (next);
-  const message = idFromFilename(filename) +  " = " + filename + ":" + matches;
+  const message = idFromFilename(filename) +  " = " + filename.split("/").pop() + ":" + matches;
   if (outfile) {
     await outfile.write(message);
   }
@@ -70,23 +69,30 @@ if (program.ignoreDirs) {
   ignoreList.push(program.ignoreDirs);
 }
 
-var outputStream: fs.FileHandle | undefined;
+async function parseFiles() {
+  var outputStream: fs.FileHandle | undefined;
 
-if (program.outputFile) {
-  outputStream = await fs.open(program.outputFile, "w");
+  if (program.outputFile) {
+    outputStream = await fs.open(program.outputFile, "w");
+  }
+
+  // options is optional
+  glob(program.root + "/**/*.md", {ignore: ignoreList}, async function (er, files) {
+      // files is an array of filenames.
+      // If the `nonull` option is set, and nothing
+      // was found, then files is ["**/*.js"]
+      // er is an error object or null.
+      for await (const file of files) {
+        await readWikiLinks(file, outputStream)
+      };
+  })
+
+  if (outputStream) {
+    outputStream.close();
+  }
 }
 
-// options is optional
-glob(program.root + "/**/*.md", {ignore: ignoreList}, async function (er, files) {
-    // files is an array of filenames.
-    // If the `nonull` option is set, and nothing
-    // was found, then files is ["**/*.js"]
-    // er is an error object or null.
-    for await (const file of files) {
-      await readWikiLinks(file, outputStream)
-    };
-})
-
-if (outputStream) {
-  outputStream.close();
-}
+parseFiles().then(
+  () => console.log("Updated"),
+  () => console.log("Error")
+)
