@@ -53,7 +53,7 @@ function idFromFilename(filename: string) {
 
 async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefined) {
   const wikiLink = /\[\d{8,14}\]/g;
-  const brokenWikiLink = /\[.*[a-zA-Z\[\] ]{2,}.*\]/g;
+  const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
   const contents = await fs.readFile(filename, "utf8");
   var matches : string[] = [];
   var orphans : string[] = [];
