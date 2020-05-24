@@ -14,9 +14,10 @@ program
   .version('0.9.0')
   .description("A linter/compiler for Zettel markdown repositories")
   .option('-d, --daily', "Create daily entry if it doesn't exist")
-  .option('-r, --root <path>', "Root path for search", ".")
+  .option('-p, --path <path>', "Root path for search", ".")
   .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
-  .option('-o, --output-file <path>', "Path to output md")
+  .option('-r, --reference-file <path>', "Path to output reference.md")
+  .option('-o, --show-orphans', "Output list of orphaned links to console")
   .option('--no-wiki', "use [[wiki style]] links")
   .option('-v, --verbose', "Verbose")
   ;
@@ -31,10 +32,10 @@ if (program.verbose) {
         figlet.textSync('zettel-lint', { horizontalLayout: 'full' })
       )
     );
-  console.log("Looking for notes in " + program.root);
+  console.log("Looking for notes in " + program.path);
   console.log((program.daily ? "" : "NOT ") + "creating dailies");
   console.log("Ignoring dirs: " + program.ignoreDirs);
-  console.log("Outputting to " + program.outputFile)
+  console.log("Outputting references to " + program.referenceFile)
 }
 
 async function readMarkdown(filename: string) {
@@ -48,23 +49,36 @@ function idFromFilename(filename: string) {
   return withoutExt?.split("-")[0];
 }
 
+
+
 async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefined) {
   const wikiLink = /\[\d{8,14}\]/g;
+  const brokenWikiLink = /\[.*[a-zA-Z\[\] ]{2,}.*\]/g;
   const contents = await fs.readFile(filename, "utf8");
-  var matches = [];
+  var matches : string[] = [];
+  var orphans : string[] = [];
   var next : RegExpExecArray | null;
   do {
     next = wikiLink.exec(contents);
-    matches.push(next);
+    if (next) {
+      matches.push(next?.toString());
+    }
   } while (next);
-  const message = idFromFilename(filename) +  " = " + filename.split("/").pop() + ":" + matches;
-  if (outfile) {
-    await outfile.write(message);
-  }
-  console.log(message);
+  do {
+    next = brokenWikiLink.exec(contents);
+    if (next) {
+      orphans.push(next?.toString());
+    }
+  } while (next);
+  return {
+    id : idFromFilename(filename),
+    filename : filename.split("/").pop(),
+    matches,
+    orphans
+  };
 }
 
-var ignoreList = [program.root + "/**/node_modules/**"]
+var ignoreList = [program.path + "/**/node_modules/**"]
 if (program.ignoreDirs) {
   ignoreList.push(program.ignoreDirs);
 }
@@ -77,13 +91,20 @@ async function parseFiles() {
   }
 
   // options is optional
-  glob(program.root + "/**/*.md", {ignore: ignoreList}, async function (er, files) {
+  glob(program.path + "/**/*.md", {ignore: ignoreList}, async function (er, files) {
       // files is an array of filenames.
       // If the `nonull` option is set, and nothing
       // was found, then files is ["**/*.js"]
       // er is an error object or null.
       for await (const file of files) {
-        await readWikiLinks(file, outputStream)
+        const wikiLinks = await readWikiLinks(file, outputStream)
+        if (program.verbose) {
+          console.log(wikiLinks);
+        }
+        if (program.showOrphans && wikiLinks.orphans.length > 0) {
+          console.log(wikiLinks.filename + " (orphans) : " + wikiLinks.orphans);
+        }
+        outputStream?.appendFile(wikiLinks);
       };
   })
 
