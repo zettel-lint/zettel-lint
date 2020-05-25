@@ -8,7 +8,6 @@ import program from "commander";
 import {promise as glob} from "glob-promise";
 import SimpleMarkdown from "simple-markdown";
 import {promises as fs} from "fs";
-import { Stream } from "stream";
 
 program
   .version('0.9.0')
@@ -52,34 +51,40 @@ function idFromFilename(filename: string) {
 class fileWikiLinks {
   id: string | undefined;
   filename: string | undefined;
+  fullpath: string | undefined;
   matches: string[] = [];
   orphans: string[] = [];
+  tags: string[] = [];
+}
+
+function collectMatches(contents: string, regex: RegExp) : string[] {
+  var result : string[] = [];
+  var next : RegExpExecArray | null;
+  do {
+    next = regex.exec(contents);
+    if (next) {
+      result.push(next?.toString());
+    }
+  } while (next);
+ return result;
 }
 
 async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefined) : Promise<fileWikiLinks> {
   const wikiLink = /\[\d{8,14}\]/g;
   const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
+  const tagLink = / [+#][a-zA-z0-9]+/g;
+
   const contents = await fs.readFile(filename, "utf8");
-  var matches : string[] = [];
-  var orphans : string[] = [];
-  var next : RegExpExecArray | null;
-  do {
-    next = wikiLink.exec(contents);
-    if (next) {
-      matches.push(next?.toString());
-    }
-  } while (next);
-  do {
-    next = brokenWikiLink.exec(contents);
-    if (next) {
-      orphans.push(next?.toString());
-    }
-  } while (next);
+  var matches = collectMatches(contents, wikiLink);
+  var orphans = collectMatches(contents, brokenWikiLink);
+  var tags = collectMatches(contents, tagLink);
   return {
     id : idFromFilename(filename),
     filename : filename.split("/").pop(),
+    fullpath : filename,
     matches,
-    orphans
+    orphans,
+    tags
   };
 }
 
@@ -108,7 +113,22 @@ async function parseFiles() {
   };
 
   if (program.referenceFile) {
-    const formattedReferences = "# References\n\n" + references.map(r => "* " + r.id + " = " + r.filename + ":" + r.matches).join("\n");
+    const header = "---" +
+    "\ncreated: " + (new Date()).toISOString() +
+    "\nmodified: " + (new Date()).toISOString() +
+    "\ntitle: References" +
+    "\n---" +
+    "\n\n# References\n\n## Links\n\n";
+    const formattedReferences = header + 
+      references.map(r => "* " + r.id + " = " + r.filename + ":" + r.matches).join("\n") +
+      "\n\n## Tags\n\n" +
+      references
+        .filter(r => r.tags.length > 0)
+        .map(r => "* " + r.id + " = " + r.filename + ":" + r.tags).join("\n") +
+      "\n\n## Backlinks\n\n" +
+      references.map(r => "[" + r.id + "]: file:" + r.fullpath).join("\n")
+      ;
+
     console.log("references :" + formattedReferences);
     fs.writeFile(program.referenceFile, formattedReferences);
   };
