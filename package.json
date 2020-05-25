@@ -36,6 +36,7 @@
     "figlet": "^1.4.0",
     "fs": "0.0.1-security",
     "glob": "^7.1.6",
+    "glob-promise": "^3.4.0",
     "path": "^0.12.7",
     "simple-markdown": "^0.7.2"
   },

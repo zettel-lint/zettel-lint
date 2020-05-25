@@ -5,7 +5,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import path from "path";
 import program from "commander";
-import glob from "glob";
+import {promise as glob} from "glob-promise";
 import SimpleMarkdown from "simple-markdown";
 import {promises as fs} from "fs";
 import { Stream } from "stream";
@@ -49,9 +49,14 @@ function idFromFilename(filename: string) {
   return withoutExt?.split("-")[0];
 }
 
+class fileWikiLinks {
+  id: string | undefined;
+  filename: string | undefined;
+  matches: string[] = [];
+  orphans: string[] = [];
+}
 
-
-async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefined) {
+async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefined) : Promise<fileWikiLinks> {
   const wikiLink = /\[\d{8,14}\]/g;
   const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
   const contents = await fs.readFile(filename, "utf8");
@@ -84,34 +89,30 @@ if (program.ignoreDirs) {
 }
 
 async function parseFiles() {
-  var outputStream: fs.FileHandle | undefined;
-
-  if (program.outputFile) {
-    outputStream = await fs.open(program.outputFile, "w");
-  }
+  var references : fileWikiLinks[] = [];
 
   // options is optional
-  glob(program.path + "/**/*.md", {ignore: ignoreList}, async function (er, files) {
-      // files is an array of filenames.
-      // If the `nonull` option is set, and nothing
-      // was found, then files is ["**/*.js"]
-      // er is an error object or null.
-      for await (const file of files) {
-        const wikiLinks = await readWikiLinks(file, outputStream)
-        if (program.verbose) {
-          console.log(wikiLinks);
-        }
-        if (program.showOrphans && wikiLinks.orphans.length > 0) {
-          console.log(wikiLinks.filename + " (orphans) : " + wikiLinks.orphans);
-        }
-        outputStream?.appendFile(wikiLinks);
-      };
-  })
+  const files = await glob(program.path + "/**/*.md", {ignore: ignoreList});
 
-  if (outputStream) {
-    outputStream.close();
-  }
-}
+  for await (const file of files) {
+    const wikiLinks = await readWikiLinks(file);
+    if (program.referenceFile && !program.referenceFile.endsWith(wikiLinks.filename)) {
+      references.push(wikiLinks);
+    }
+    if (program.verbose) {
+      console.log(wikiLinks);
+    }
+    if (program.showOrphans && wikiLinks.orphans.length > 0) {
+      console.log(wikiLinks.filename + " (orphans) : " + wikiLinks.orphans);
+    }
+  };
+
+  if (program.referenceFile) {
+    const formattedReferences = "# References\n\n" + references.map(r => "* " + r.id + " = " + r.filename + ":" + r.matches).join("\n");
+    console.log("references :" + formattedReferences);
+    fs.writeFile(program.referenceFile, formattedReferences);
+  };
+};
 
 parseFiles().then(
   () => console.log("Updated"),
