@@ -50,6 +50,7 @@ function idFromFilename(filename: string) {
 
 class fileWikiLinks {
   id: string | undefined;
+  title: string | undefined;
   filename: string | undefined;
   fullpath: string | undefined;
   matches: string[] = [];
@@ -73,18 +74,22 @@ async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefin
   const wikiLink = /\[\d{8,14}\]/g;
   const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
   const tagLink = / [+#][a-zA-z0-9]+/g;
+  const titleReg = /^title: .*$/g
 
   const contents = await fs.readFile(filename, "utf8");
   var matches = collectMatches(contents, wikiLink);
   var orphans = collectMatches(contents, brokenWikiLink);
   var tags = collectMatches(contents, tagLink);
+  var title = collectMatches(contents, titleReg).join();
+
   return {
     id : idFromFilename(filename),
     filename : filename.split("/").pop(),
     fullpath : filename,
     matches,
     orphans,
-    tags
+    tags,
+    title
   };
 }
 
@@ -126,7 +131,7 @@ async function parseFiles() {
         .filter(r => r.tags.length > 0)
         .map(r => "* " + r.id + " = " + r.filename + ":" + r.tags).join("\n") +
       "\n\n## Backlinks\n\n" +
-      references.map(r => "[" + r.id + "]: file:" + r.fullpath).join("\n")
+      references.map(r => "[" + r.id + "]: file:" + r.fullpath + (r.title ? " (" + r.title + ")" : "")).join("\n")
       ;
 
     console.log("references :" + formattedReferences);
