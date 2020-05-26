@@ -131,7 +131,7 @@ async function parseFiles() {
         .filter(r => r.tags.length > 0)
         .map(r => "* " + r.id + " = " + r.filename + ":" + r.tags).join("\n") +
       "\n\n## Backlinks\n\n" +
-      references.map(r => "[" + r.id + "]: file:" + r.fullpath + (r.title ? " (" + r.title + ")" : "")).join("\n")
+      references.map(r => "[" + r.id + "]: file:" + r.filename + (r.title ? " (" + r.title + ")" : "")).join("\n")
       ;
 
     console.log("references :" + formattedReferences);
