@@ -8,6 +8,7 @@ import program from "commander";
 import {promise as glob} from "glob-promise";
 import SimpleMarkdown from "simple-markdown";
 import {promises as fs} from "fs";
+import { networkInterfaces } from "os";
 
 program
   .version('0.9.0')
@@ -56,40 +57,43 @@ class fileWikiLinks {
   matches: string[] = [];
   orphans: string[] = [];
   tags: string[] = [];
+  tasks: string[] = [];
 }
 
-function collectMatches(contents: string, regex: RegExp) : string[] {
+function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true) : string[] {
   var result : string[] = [];
   var next : RegExpExecArray | null;
   do {
     next = regex.exec(contents);
     if (next) {
-      result.push(next?.toString());
+      if (useCaptureGroup && next[1]) {
+        result.push(next[1]);
+      } else {
+        result.push(next.toString());
+      }
     }
   } while (next);
  return result;
 }
 
-async function readWikiLinks(filename: string, outfile?: fs.FileHandle | undefined) : Promise<fileWikiLinks> {
-  const wikiLink = /\[\d{8,14}\]/g;
+async function readWikiLinks(filename: string) : Promise<fileWikiLinks> {
+  const wikiLink = /\[\d{8,14}\]|[ ^]+\d{8,14}/g;
   const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
-  const tagLink = / [+#][a-zA-z0-9]+/g;
-  const titleReg = /^title: .*$/g
+  const tagLink = /[ ^](#[a-zA-z0-9]+)/g;
+  const titleReg = /^title: (.*)$/gm;
+  const todo = /^[\s\*]*\[ \].*$/gm;
 
   const contents = await fs.readFile(filename, "utf8");
-  var matches = collectMatches(contents, wikiLink);
-  var orphans = collectMatches(contents, brokenWikiLink);
-  var tags = collectMatches(contents, tagLink);
-  var title = collectMatches(contents, titleReg).join();
 
   return {
     id : idFromFilename(filename),
     filename : filename.split("/").pop(),
     fullpath : filename,
-    matches,
-    orphans,
-    tags,
-    title
+    matches : collectMatches(contents, wikiLink),
+    orphans : collectMatches(contents, brokenWikiLink),
+    tags : collectMatches(contents, tagLink),
+    title : collectMatches(contents, titleReg).join(),
+    tasks : collectMatches(contents, todo)
   };
 }
 
@@ -130,11 +134,23 @@ async function parseFiles() {
       references
         .filter(r => r.tags.length > 0)
         .map(r => "* " + r.id + " = " + r.filename + ":" + r.tags).join("\n") +
+      "\n\n## Tasks" +
+      references
+        .filter(r => r.tasks.length)
+        .map(r => "\n\n### " + r.title + " (" + r.filename + ")\n\n* " + r.tasks.join("\n* ")) +
+      (program.showOrphans ?
+        "\n\n## Orphans\n\n" +
+        references
+          .filter(r => r.orphans.length > 0)
+          .map(r => "* " + r.filename + ": " + r.orphans.join()).join("\n")
+        : "") +
       "\n\n## Backlinks\n\n" +
       references.map(r => "[" + r.id + "]: file:" + r.filename + (r.title ? " (" + r.title + ")" : "")).join("\n")
       ;
 
-    console.log("references :" + formattedReferences);
+    if(program.verbose) {
+      console.log("references :" + formattedReferences);
+    }
     fs.writeFile(program.referenceFile, formattedReferences);
   };
 };
