@@ -67,9 +67,9 @@ function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolea
     next = regex.exec(contents);
     if (next) {
       if (useCaptureGroup && next[1]) {
-        result.push(next[1]);
+        result.push(next[1].trim());
       } else {
-        result.push(next.toString());
+        result.push(next.toString().trim());
       }
     }
   } while (next);
@@ -137,7 +137,7 @@ async function parseFiles() {
       "\n\n## Tasks" +
       references
         .filter(r => r.tasks.length)
-        .map(r => "\n\n### " + r.title + " (" + r.filename + ")\n\n* " + r.tasks.join("\n* ")) +
+        .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + "):\n\n* " + r.tasks.join("\n* ")) +
       (program.showOrphans ?
         "\n\n## Orphans\n\n" +
         references
@@ -145,7 +145,7 @@ async function parseFiles() {
           .map(r => "* " + r.filename + ": " + r.orphans.join()).join("\n")
         : "") +
       "\n\n## Backlinks\n\n" +
-      references.map(r => "[" + r.id + "]: file:" + r.filename + (r.title ? " (" + r.title + ")" : "")).join("\n")
+      references.map(r => "[" + r.id + "]: ./" + r.filename + (r.title ? " (" + r.title + ")" : "")).join("\n")
       ;
 
     if(program.verbose) {
