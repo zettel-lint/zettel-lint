@@ -77,11 +77,12 @@ function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolea
 }
 
 async function readWikiLinks(filename: string) : Promise<fileWikiLinks> {
-  const wikiLink = /\[\d{8,14}\]|[ ^]+\d{8,14}/g;
+  const wikiLink = /\[\d{8,14}\]/g;
   const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
   const tagLink = /[ ^](#[a-zA-z0-9]+)/g;
   const titleReg = /^title: (.*)$/gm;
   const todo = /^[\s\*]*\[ \].*$/gm;
+  const projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
 
   const contents = await fs.readFile(filename, "utf8");
 
@@ -93,7 +94,7 @@ async function readWikiLinks(filename: string) : Promise<fileWikiLinks> {
     orphans : collectMatches(contents, brokenWikiLink),
     tags : collectMatches(contents, tagLink),
     title : collectMatches(contents, titleReg).join(),
-    tasks : collectMatches(contents, todo)
+    tasks : collectMatches(contents, todo).concat(collectMatches(contents, projectTasks))
   };
 }
 
@@ -129,11 +130,11 @@ async function parseFiles() {
     "\n---" +
     "\n\n# References\n\n## Links\n\n";
     const formattedReferences = header + 
-      references.map(r => "* " + r.id + " = " + r.filename + ":" + r.matches).join("\n") +
+      references.map(r => "* [" + r.id + "] = " + r.filename + ":" + r.matches).join("\n") +
       "\n\n## Tags\n\n" +
       references
         .filter(r => r.tags.length > 0)
-        .map(r => "* " + r.id + " = " + r.filename + ":" + r.tags).join("\n") +
+        .map(r => "* [" + r.id + "] = " + r.filename + ":" + r.tags).join("\n") +
       "\n\n## Tasks" +
       references
         .filter(r => r.tasks.length)
