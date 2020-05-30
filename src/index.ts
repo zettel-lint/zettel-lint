@@ -60,6 +60,21 @@ class fileWikiLinks {
   tasks: string[] = [];
 }
 
+class extractor {
+  matcher!: RegExp;
+  formatter!: (i: fileWikiLinks[]) => string;
+}
+
+const formatters: extractor[] = [
+  {
+    matcher: /[ ^](#[a-zA-z0-9]+)/g,
+    formatter: (references) => "## Tags\n\n" +
+    (references
+      .filter(r => r.tags.length > 0)
+      .map(r => "* [" + r.id + "] = " + r.filename + ":" + r["tags"]).join("\n"))
+  }
+]
+
 function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true) : string[] {
   var result : string[] = [];
   var next : RegExpExecArray | null;
@@ -128,13 +143,12 @@ async function parseFiles() {
     "\nmodified: " + (new Date()).toISOString() +
     "\ntitle: References" +
     "\n---" +
-    "\n\n# References\n\n## Links\n\n";
-    const formattedReferences = header + 
+    "\n\n# References";
+    const formattedReferences = header  + 
+      "\n\n## Links\n\n" + 
       references.map(r => "* [" + r.id + "] = " + r.filename + ":" + r.matches).join("\n") +
-      "\n\n## Tags\n\n" +
-      references
-        .filter(r => r.tags.length > 0)
-        .map(r => "* [" + r.id + "] = " + r.filename + ":" + r.tags).join("\n") +
+      "\n\n" +
+      formatters[0].formatter(references) +
       "\n\n## Tasks" +
       references
         .filter(r => r.tasks.length)
