@@ -18,6 +18,7 @@ program
   .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
   .option('-r, --reference-file <path>', "Path to output reference.md")
   .option('-o, --show-orphans', "Output list of orphaned links to console")
+  .option('--json-debug-output', "Output JSON intermediate representations")
   .option('--no-wiki', "use [[wiki style]] links")
   .option('-v, --verbose', "Verbose")
   ;
@@ -129,7 +130,7 @@ async function parseFiles() {
     if (program.referenceFile && !program.referenceFile.endsWith(wikiLinks.filename)) {
       references.push(wikiLinks);
     }
-    if (program.verbose) {
+    if (program.jsonDebugOutput) {
       console.log(wikiLinks);
     }
     if (program.showOrphans && wikiLinks.orphans.length > 0) {
@@ -163,7 +164,7 @@ async function parseFiles() {
       references.map(r => "[" + r.id + "]: ./" + r.filename + (r.title ? " (" + r.title + ")" : "")).join("\n")
       ;
 
-    if(program.verbose) {
+    if(program.jsonDebugOutput) {
       console.log("references :" + formattedReferences);
     }
     fs.writeFile(program.referenceFile, formattedReferences);
