@@ -22,7 +22,7 @@ export default function indexerCommand() {
   return idxer;
 }
 
-function indexer(program: any): void {
+function printHeader(program: any): void {
   if (program.verbose) {
     clear();
     console.log(
@@ -35,77 +35,80 @@ function indexer(program: any): void {
     console.log("Ignoring dirs: " + program.ignoreDirs);
     console.log("Outputting references to " + program.referenceFile)
   }
+}
 
+function idFromFilename(filename: string) {
+  const nameOnly = filename.split("/").pop();
+  const withoutExt = nameOnly?.split(".")[0];
+  return withoutExt?.split("-")[0];
+}
 
-  function idFromFilename(filename: string) {
-    const nameOnly = filename.split("/").pop();
-    const withoutExt = nameOnly?.split(".")[0];
-    return withoutExt?.split("-")[0];
+class fileWikiLinks {
+  id: string | undefined;
+  title: string | undefined;
+  filename: string | undefined;
+  fullpath: string | undefined;
+  matches: string[] = [];
+  orphans: string[] = [];
+  tags: string[] = [];
+  tasks: string[] = [];
+}
+
+class extractor {
+  matcher!: RegExp;
+  formatter!: (i: fileWikiLinks[]) => string;
+}
+
+const formatters: extractor[] = [
+  {
+    matcher: /[ ^](#[a-zA-z0-9]+)/g,
+    formatter: (references) => "## Tags\n\n" +
+      (references
+        .filter(r => r.tags.length > 0)
+        .map(r => "* [" + r.id + "] = " + r.filename + ":" + r["tags"]).join("\n"))
   }
+]
 
-  class fileWikiLinks {
-    id: string | undefined;
-    title: string | undefined;
-    filename: string | undefined;
-    fullpath: string | undefined;
-    matches: string[] = [];
-    orphans: string[] = [];
-    tags: string[] = [];
-    tasks: string[] = [];
-  }
-
-  class extractor {
-    matcher!: RegExp;
-    formatter!: (i: fileWikiLinks[]) => string;
-  }
-
-  const formatters: extractor[] = [
-    {
-      matcher: /[ ^](#[a-zA-z0-9]+)/g,
-      formatter: (references) => "## Tags\n\n" +
-        (references
-          .filter(r => r.tags.length > 0)
-          .map(r => "* [" + r.id + "] = " + r.filename + ":" + r["tags"]).join("\n"))
-    }
-  ]
-
-  function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
-    var result: string[] = [];
-    var next: RegExpExecArray | null;
-    do {
-      next = regex.exec(contents);
-      if (next) {
-        if (useCaptureGroup && next[1]) {
-          result.push(next[1].trim());
-        } else {
-          result.push(next.toString().trim());
-        }
+function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
+  var result: string[] = [];
+  var next: RegExpExecArray | null;
+  do {
+    next = regex.exec(contents);
+    if (next) {
+      if (useCaptureGroup && next[1]) {
+        result.push(next[1].trim());
+      } else {
+        result.push(next.toString().trim());
       }
-    } while (next);
-    return result;
-  }
+    }
+  } while (next);
+  return result;
+}
 
-  async function readWikiLinks(filename: string): Promise<fileWikiLinks> {
-    const wikiLink = /\[\d{8,14}\]/g;
-    const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
-    const tagLink = /[ ^](#[a-zA-z0-9]+)/g;
-    const titleReg = /^title: (.*)$/gm;
-    const todo = /^[\s\*]*\[ \].*$/gm;
-    const projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
+async function readWikiLinks(filename: string): Promise<fileWikiLinks> {
+  const wikiLink = /\[\d{8,14}\]/g;
+  const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
+  const tagLink = /[ ^](#[a-zA-z0-9]+)/g;
+  const titleReg = /^title: (.*)$/gm;
+  const todo = /^[\s\*]*\[ \].*$/gm;
+  const projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
 
-    const contents = await fs.readFile(filename, "utf8");
+  const contents = await fs.readFile(filename, "utf8");
 
-    return {
-      id: idFromFilename(filename),
-      filename: filename.split("/").pop(),
-      fullpath: filename,
-      matches: collectMatches(contents, wikiLink),
-      orphans: collectMatches(contents, brokenWikiLink),
-      tags: collectMatches(contents, tagLink),
-      title: collectMatches(contents, titleReg).join(),
-      tasks: collectMatches(contents, todo).concat(collectMatches(contents, projectTasks))
-    };
-  }
+  return {
+    id: idFromFilename(filename),
+    filename: filename.split("/").pop(),
+    fullpath: filename,
+    matches: collectMatches(contents, wikiLink),
+    orphans: collectMatches(contents, brokenWikiLink),
+    tags: collectMatches(contents, tagLink),
+    title: collectMatches(contents, titleReg).join(),
+    tasks: collectMatches(contents, todo).concat(collectMatches(contents, projectTasks))
+  };
+}
+
+function indexer(program: any): void {
+  printHeader(program);
 
   var ignoreList = [program.path + "/**/node_modules/**"]
   if (program.ignoreDirs) {
