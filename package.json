@@ -2,17 +2,17 @@
   "name": "example-zettel-lint",
   "version": "0.9.0",
   "description": "Example repo demonstrating zettel linting",
-  "main": "./lib/index.js",
+  "main": "./lib/zl.js",
   "bin": {
-    "zettel-lint": "./lib/index.js"
+    "zettel-lint": "./lib/zl.js"
   },
   "scripts": {
-    "start": "nodemon --watch 'src/**/*.ts' --exec ts-node src/index.ts",
+    "start": "nodemon --watch 'src/**/*.ts' --exec ts-node src/zl.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
     "test": "sudo npm i -g && zettel-lint",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
-    "zl": "ts-node src/index.ts"
+    "zl": "ts-node src/zl.ts"
   },
   "repository": {
     "type": "git",
