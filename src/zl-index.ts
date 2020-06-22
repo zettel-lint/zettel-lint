@@ -85,6 +85,28 @@ function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolea
   return result;
 }
 
+class Collector
+{
+
+}
+
+abstract class RegexCollector extends Collector
+{
+  readonly abstract regex = / /g;
+  /**
+   * collect
+   */
+  public collect(content: string): string[] {
+      return collectMatches(content, this.regex);
+  }
+}
+
+
+class WikiCollector extends RegexCollector
+{
+  readonly regex = /\[\d{8,14}\]/g;
+}
+
 async function readWikiLinks(filename: string): Promise<fileWikiLinks> {
   const wikiLink = /\[\d{8,14}\]/g;
   const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
