@@ -112,7 +112,7 @@ async function readWikiLinks(filename: string): Promise<fileWikiLinks> {
   const brokenWikiLink = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
   const tagLink = /[ ^](#[a-zA-z0-9]+)/g;
   const titleReg = /^title: (.*)$/gm;
-  const todo = /^[\s\*]*\[ \].*$/gm;
+  const todo = /^[\s\*]*((?:(?:\[ \])|(?:\([A-Z]\))).*)$/gm;
   const projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
 
   const contents = await fs.readFile(filename, "utf8");
