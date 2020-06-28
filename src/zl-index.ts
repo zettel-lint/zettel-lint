@@ -134,10 +134,26 @@ class OrphanCollector extends RegexCollector
 class TagCollector extends RegexCollector
 {
   protected format(references: formatData[]): string {
+    var tagList : {[tag:string]: string[]} = {}
+
+    references.forEach(ref => {
+      const tags = ref.data;
+      tags.forEach(tag => {
+        if(tagList[tag] === undefined) {
+          tagList[tag] = [];
+        }
+        tagList[tag].push("[" + ref.id + "]");
+      })
+    });
+
+    var result : string = "";
+    Object.keys(tagList).forEach(tag => {
+      result += "* " + tag + " : " + tagList[tag].join() + "\n";
+    });
+
     return "## Tags\n\n" +
-      references
-      .filter(r => r.data.length > 0)
-      .map(r => "* [" + r.id + "] = " + r.filename + ":" + r.data).join("\n") };
+      result
+    };
   readonly dataName = "tags";
   readonly regex = /[ ^](#[a-zA-z0-9]+)/g;
 }
@@ -161,7 +177,7 @@ class TaskCollector extends RegexCollector
 
 const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new TagCollector, new TaskCollector];
 
-async function readWikiLinks(filename: string): Promise<fileWikiLinks> {
+async function collectFromFile(filename: string): Promise<fileWikiLinks> {
   const titleReg = /^title: (.*)$/gm;
 
   const contents = await fs.readFile(filename, "utf8");
@@ -195,7 +211,7 @@ function indexer(program: any): void {
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
 
     for await (const file of files) {
-      const wikiLinks = await readWikiLinks(file);
+      const wikiLinks = await collectFromFile(file);
       if (program.referenceFile && !program.referenceFile.endsWith(wikiLinks.filename)) {
         references.push(wikiLinks);
       }
