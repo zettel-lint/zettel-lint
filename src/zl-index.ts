@@ -116,7 +116,7 @@ class WikiCollector extends RegexCollector
   protected format(references: formatData[]): string {
     var backList : {[target:string]: string[]} = invertDictionary(references);
 
-    return references.map(r => "* [" + r.id + "] = `" + r.filename + "`:\n  * " + (r.data.length > 0 ? r.data : "No links") + "\n  * " + (backList["[" + (r.id ?? "") + "]"] ?? "No backlinks")).join("\n");
+    return references.map(r => "* " + formatLink(r) + " = `" + r.filename + "`:\n  * " + (r.data.length > 0 ? r.data : "No links") + "\n  * " + (backList["[" + (r.id ?? "") + "]"] ?? "No backlinks")).join("\n");
   }
   readonly dataName = "Links";
   readonly regex = /\[\d{8,14}\]/g;
@@ -127,7 +127,7 @@ class OrphanCollector extends RegexCollector
   protected format(references: formatData[]): string {
     return references
         .filter(r => r.data.length > 0 && r.id !== undefined)
-        .map(r => "* [" + r.id + "] `" + r.filename + "`: " + r.data.join()).join("\n");
+        .map(r => "* " + formatLink(r) + " `" + r.filename + "`: " + r.data.join()).join("\n");
   }
   readonly dataName = "Orphans";
   readonly regex = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
@@ -193,10 +193,14 @@ function invertDictionary(references: formatData[]) {
       if (tagList[tag] === undefined) {
         tagList[tag] = [];
       }
-      tagList[tag].push("[" + ref.id + "]");
+      tagList[tag].push(formatLink(ref));
     });
   });
   return tagList;
+}
+
+function formatLink(ref: formatData): string {
+  return "["+ref.title+"][" + ref.id + "]";
 }
 
 async function collectFromFile(filename: string): Promise<fileWikiLinks> {
@@ -209,11 +213,13 @@ async function collectFromFile(filename: string): Promise<fileWikiLinks> {
     matchData[element.dataName] = element.collect(contents);
   });
 
+  const name = filename.split("/").pop();
+
   return {
     id: idFromFilename(filename),
-    filename: filename.split("/").pop(),
+    filename: name,
     fullpath: filename,
-    title: collectMatches(contents, titleReg).join(),
+    title: collectMatches(contents, titleReg).join() ?? name,
     matchData
   };
 }
