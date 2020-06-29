@@ -91,7 +91,7 @@ abstract class Collector
     };
   };
   public formatter(references: fileWikiLinks[]): string {
-    return "## " + this.dataName + "\n\n<details>\n\n" +
+    return "## " + this.dataName + "\n\n<details>\n<summary>Show "+ this.dataName + "</summary>\n\n" +
     this.format(
       references
       .map(r => this.extractData(r)))
@@ -171,7 +171,7 @@ class TaskCollector extends RegexCollector
     return "" +
       references
       .filter(r => r.data.length > 0)
-      .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + "):\n\n* " + r.data.join("\n* "))
+      .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + "):\n\n<details>\n\n* " + r.data.join("\n* ")+"\n\n</details>").join("\n")
   }
   readonly dataName = "Tasks";
   readonly regex = /^[\s\*]*((?:(?:\[ \])|(?:\([A-Z]\))).*)$/gm;
