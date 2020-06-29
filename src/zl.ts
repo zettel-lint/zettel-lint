@@ -5,6 +5,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import program from "commander";
 import indexerCommand from "./zl-index";
+import importerCommand from "./zl-import";
 
 program
   .version('0.9.0')
@@ -12,6 +13,7 @@ program
   .command("cron <cron-mode-args>", "Create daily entry if it doesn't exist")
   ;
 program.addCommand(indexerCommand());
+program.addCommand(importerCommand());
 program
   .parse(process.argv);
 
