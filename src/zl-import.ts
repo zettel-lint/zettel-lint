@@ -3,12 +3,10 @@
 import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
-import { promise as glob } from "glob-promise";
-import { promises as fs } from "fs";
 import commander from "commander";
 
 export default function importerCommand() {
-  const idxer = new commander.Command('index');
+  const idxer = new commander.Command('import');
   idxer
     .description("Import once from a 3rd party")
     .requiredOption('-s, --source <name>', "Source *e.g. Trello, CSV, etc...*")
