@@ -91,9 +91,11 @@ abstract class Collector
     };
   };
   public formatter(references: fileWikiLinks[]): string {
-    return this.format(
+    return "## " + this.dataName + "\n\n<details>\n\n" +
+    this.format(
       references
-      .map(r => this.extractData(r)));
+      .map(r => this.extractData(r)))
+      +"\n\n</details>";
   };
   protected abstract format(references: formatData[]): string;
 }                                                
@@ -112,61 +114,66 @@ abstract class RegexCollector extends Collector
 class WikiCollector extends RegexCollector
 {
   protected format(references: formatData[]): string {
-    return "## Links\n\n" +
-    references.map(r => "* [" + r.id + "] = " + r.filename + ":" + r.data).join("\n");
+    var backList : {[target:string]: string[]} = invertDictionary(references);
+
+    return references.map(r => "* [" + r.id + "] = " + r.filename + ":\n  * " + (r.data.length > 0 ? r.data : "No links") + "\n  * " + (backList[r.id ?? ""] ?? "No backlinks")).join("\n");
   }
-  readonly dataName = "wiki";
+  readonly dataName = "Links";
   readonly regex = /\[\d{8,14}\]/g;
 }
 
 class OrphanCollector extends RegexCollector
 {
   protected format(references: formatData[]): string {
-    return "## Orphans\n\n" +
-      references
-        .filter(r => r.data.length > 0)
+    return references
+        .filter(r => r.data.length > 0 && r.id !== undefined)
         .map(r => "* " + r.filename + ": " + r.data.join()).join("\n");
   }
-  readonly dataName = "orphans";
+  readonly dataName = "Orphans";
   readonly regex = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
 }
 
 class TagCollector extends RegexCollector
 {
   protected format(references: formatData[]): string {
-    var tagList : {[tag:string]: string[]} = {}
-
-    references.forEach(ref => {
-      const tags = ref.data;
-      tags.forEach(tag => {
-        if(tagList[tag] === undefined) {
-          tagList[tag] = [];
-        }
-        tagList[tag].push("[" + ref.id + "]");
-      })
-    });
+    var tagList : {[tag:string]: string[]} = invertDictionary(references);
 
     var result : string = "";
     Object.keys(tagList).forEach(tag => {
       result += "* " + tag + " : " + tagList[tag].join() + "\n";
     });
 
-    return "## Tags\n\n" +
-      result
+    return result
     };
-  readonly dataName = "tags";
+  readonly dataName = "Tags";
   readonly regex = /[ ^](#[a-zA-z0-9]+)/g;
+}
+
+class ContextCollector extends RegexCollector
+{
+  protected format(references: formatData[]): string {
+    var tagList: { [tag: string]: string[]; } = invertDictionary(references);
+
+    var result : string = "";
+    Object.keys(tagList).forEach(tag => {
+      result += "* " + tag + " : " + tagList[tag].join() + "\n";
+    });
+
+    return result
+    };
+  readonly dataName = "Contexts";
+  readonly regex = /[ ^](\@[a-zA-z0-9]+)/g;
 }
 
 class TaskCollector extends RegexCollector
 {
   protected format(references: formatData[]): string {
-    return "\n\n## Tasks" +
+    return "" +
       references
       .filter(r => r.data.length > 0)
       .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + "):\n\n* " + r.data.join("\n* "))
   }
-  readonly dataName = "tasks";
+  readonly dataName = "Tasks";
   readonly regex = /^[\s\*]*((?:(?:\[ \])|(?:\([A-Z]\))).*)$/gm;
   readonly projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
   
@@ -175,7 +182,22 @@ class TaskCollector extends RegexCollector
   }
 }
 
-const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new TagCollector, new TaskCollector];
+const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new ContextCollector, new TagCollector, new TaskCollector];
+
+function invertDictionary(references: formatData[]) {
+  var tagList: { [tag: string]: string[]; } = {};
+
+  references.forEach(ref => {
+    const tags = ref.data;
+    tags.forEach(tag => {
+      if (tagList[tag] === undefined) {
+        tagList[tag] = [];
+      }
+      tagList[tag].push("[" + ref.id + "]");
+    });
+  });
+  return tagList;
+}
 
 async function collectFromFile(filename: string): Promise<fileWikiLinks> {
   const titleReg = /^title: (.*)$/gm;
@@ -233,7 +255,7 @@ function indexer(program: any): void {
         collectors
           .filter(c => program.showOrphans || c.dataName !== "orphans")
           .map(c => c.formatter(references)).join("\n\n") +
-        "\n\n## Backlinks\n\n" +
+        "\n\n## References\n\n" +
         references.map(r => "[" + r.id + "]: ./" + r.filename + (r.title ? " (" + r.title + ")" : "")).join("\n")
         ;
 
