@@ -214,12 +214,13 @@ async function collectFromFile(filename: string): Promise<fileWikiLinks> {
   });
 
   const name = filename.split("/").pop();
+  const capturedTitle = collectMatches(contents, titleReg).join();
 
   return {
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
-    title: collectMatches(contents, titleReg).join() ?? name,
+    title: capturedTitle.length > 0 ? capturedTitle : name?.split(".")[0],
     matchData
   };
 }
