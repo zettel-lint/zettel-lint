@@ -4,13 +4,15 @@ import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
 import commander from "commander";
+import TrelloImport from "./trello-import";
+import { ErrorResponse } from "./base-importer";
 
 export default function importerCommand() {
   const idxer = new commander.Command('import');
   idxer
     .description("Import once from a 3rd party")
-    .requiredOption('-s, --source <name>', "Source *e.g. Trello, CSV, etc...*")
-    .option('-p, --path <path>', "Root path for search", ".")
+    .requiredOption('-s, --source <name>', "Source *e.g. trello, csv, etc...*")
+    .requiredOption('-p, --path <path>', "Search path, supports wildcards", ".")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('-v, --verbose', "Additional output")
     .action((cmdObj) => { importer(cmdObj) })
@@ -34,9 +36,16 @@ function importer(program: any): void {
     printHeader(program);
   
     async function parseFiles() {
+        var response: ErrorResponse;
+
         switch (program.source) {
+            case "trello": response = await (new TrelloImport).importAsync(program.path); break;
             default:
-                console.error("Unknown source " + program.source);
+                response = { success: false, message: "Unknown source " + program.source };
+        }
+
+        if ((response !== undefined) && (program.verbose || !response.success)) {
+          console.error(response.message);
         }
     };
   

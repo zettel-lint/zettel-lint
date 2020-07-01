@@ -4,10 +4,6 @@ export class ErrorResponse {
 
 }
 
-interface BaseImporter {
-    /**
-     * import */
-    public import(globpattern: string) : ErrorResponse {
-        
-    }
+export interface BaseImporter {
+    importAsync(globpattern: string) : Promise<ErrorResponse>;
 }
