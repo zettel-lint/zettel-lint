@@ -71,11 +71,35 @@ class TrelloBoardInfo {
 }
 
 export default class TrelloImport implements BaseImporter {
-  async extractNotes(filename: string) : Promise<NoteInfo> {
+  async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
     const data : TrelloBoardInfo = JSON.parse(contents);
 
-    return {count: data.cards.length};
+    return data;
+  }
+
+  async writeCard(card: TrelloCardInfo) {
+    const outputFilename :string = "../trello/" + card.id + "-" + this.sanitiseName(card) + ".md";
+    const header = "---" +
+      "\ncreated: " + card.dateLastActivity +
+      "\nmodified: " + card.dateLastActivity +
+      "\ntitle: " + card.name +
+      "\ntags:" +
+      "\nreferences:" +
+      "\n---" +
+      "\n\n# " + card.name +
+      "\n\n";
+    
+    try {
+      await fs.writeFile(outputFilename, 
+        header + card.desc, { });        
+    } catch (error) {
+      console.error("Could not write file " + outputFilename + " because " + error);
+    }
+  }
+
+  private sanitiseName(card: TrelloCardInfo) {
+    return card.name.replace(/[^A-Za-z0-9]/gm, '-');
   }
 
   async importAsync(globpattern: string): Promise<ErrorResponse> {
@@ -83,7 +107,10 @@ export default class TrelloImport implements BaseImporter {
     var totalNotes = 0;
     for await (const file of files) {
       const notes = await this.extractNotes(file);
-      totalNotes += notes.count;
+      totalNotes += notes.cards.length;
+      for await(const note of notes.cards) {
+        this.writeCard(note);
+      }
     };    
     return {success: true, message:totalNotes + " notes created"};
   }

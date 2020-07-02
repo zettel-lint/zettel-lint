@@ -119,7 +119,7 @@ function indexer(program: any): void {
       if (program.jsonDebugOutput) {
         console.log("references :" + formattedReferences);
       }
-      fs.writeFile(program.referenceFile, formattedReferences);
+      await fs.writeFile(program.referenceFile, formattedReferences);
     };
   };
 
