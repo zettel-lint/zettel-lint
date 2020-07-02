@@ -34,7 +34,7 @@ class TrelloCardInfo {
   readonly idBoard: string = "";
   readonly idChecklists: string[] = [];
   readonly idLabels: string[] = [];
-  readonly idList: string[] = [];
+  readonly idList: string = "";
   readonly isTemplate: boolean = false;
   readonly name: string = "";
   readonly shortUrl: string = "";
@@ -84,15 +84,18 @@ export default class TrelloImport implements BaseImporter {
   }
 
   async writeCard(card: TrelloCardInfo,
-      checklists : { [id: string]: TrelloChecklistInfo; }) {
+      checklists : { [id: string]: TrelloChecklistInfo; },
+      lists : { [id: string]: TrelloListInfo; }) {
     const outputFilename :string = "../trello/" + card.id + "-" + this.sanitiseName(card) + ".md";
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
       "\ntitle: " + card.name +
-      "\ntags: #blogs #trello " +
-      "\nreferences:" +
+      "\ntags: #blogs #trello " + // TODO: Add labels here
+      "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
+      (card.isTemplate ? "\n template: true": "") +
+      "\nlist: " +  lists[card.idList].name +
       "\n---" +
       "\n\n# " + card.name +
       "\n\n";
@@ -117,14 +120,18 @@ export default class TrelloImport implements BaseImporter {
     const files = await glob(globpattern);
     var totalNotes = 0;
     var checklists : { [id: string]: TrelloChecklistInfo; } = {};
+    var lists : { [id: string]: TrelloListInfo; } = {};
     for await (const file of files) {
       const notes = await this.extractNotes(file);
       totalNotes += notes.cards.length;
       notes.checklists.forEach(checklist => {
         checklists[checklist.id] = checklist;
       });
+      notes.lists.forEach(list => {
+        lists[list.id] = list;
+      })
       for await(const note of notes.cards) {
-        this.writeCard(note, checklists);
+        this.writeCard(note, checklists, lists);
       }
     };    
     return {success: true, message:totalNotes + " notes created"};
