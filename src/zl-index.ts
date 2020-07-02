@@ -6,6 +6,14 @@ import figlet from "figlet";
 import { promise as glob } from "glob-promise";
 import { promises as fs } from "fs";
 import commander from "commander";
+import { TaskCollector } from "./TaskCollector";
+import { ContextCollector } from "./ContextCollector";
+import { TagCollector } from "./TagCollector";
+import { OrphanCollector } from "./OrphanCollector";
+import { WikiCollector } from "./WikiCollector";
+import { Collector } from "./Collector";
+import { collectMatches } from "./RegexCollector";
+import { fileWikiLinks } from "./types";
 
 export default function indexerCommand() {
   const idxer = new commander.Command('index');
@@ -43,165 +51,7 @@ function idFromFilename(filename: string) {
   return withoutExt?.split("-")[0];
 }
 
-class fileWikiLinks {
-  id: string | undefined;
-  title: string | undefined;
-  filename: string | undefined;
-  fullpath: string | undefined;
-  matchData: {[collector: string]: string[]} = {};
-}
-
-class formatData {
-  id: string | undefined;
-  title: string | undefined;
-  filename: string | undefined;
-  fullpath: string | undefined;
-  data: string[] = [];
-}
-
-class extractor {
-  matcher!: RegExp;
-  formatter!: (i: fileWikiLinks[]) => string;
-}
-
-function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
-  var result: string[] = [];
-  var next: RegExpExecArray | null;
-  do {
-    next = regex.exec(contents);
-    if (next) {
-      if (useCaptureGroup && next[1]) {
-        result.push(next[1].trim());
-      } else {
-        result.push(next.toString().trim());
-      }
-    }
-  } while (next);
-  return result;
-}
-
-abstract class Collector
-{
-  abstract readonly dataName: string;
-  public abstract collect(content: string): string[];
-  private extractData(ref: fileWikiLinks): formatData {
-    return {
-      ...ref,
-      data: ref.matchData[this.dataName] 
-    };
-  };
-  public formatter(references: fileWikiLinks[]): string {
-    return "## " + this.dataName + "\n\n<details>\n<summary>Show "+ this.dataName + "</summary>\n\n" +
-    this.format(
-      references
-      .map(r => this.extractData(r)))
-      +"\n\n</details>";
-  };
-  protected abstract format(references: formatData[]): string;
-}                                                
-
-abstract class RegexCollector extends Collector
-{
-  readonly abstract regex = / /g;
-  /**
-   * collect
-   */
-  public collect(content: string): string[] {
-      return collectMatches(content, this.regex);
-  }
-}
-
-class WikiCollector extends RegexCollector
-{
-  protected format(references: formatData[]): string {
-    var backList : {[target:string]: string[]} = invertDictionary(references);
-
-    return references.map(r => "* " + formatLink(r) + " = `" + r.filename + "`:\n  * " + (r.data.length > 0 ? r.data : "No links") + "\n  * " + (backList["[" + (r.id ?? "") + "]"] ?? "No backlinks")).join("\n");
-  }
-  readonly dataName = "Links";
-  readonly regex = /\[\d{8,14}\]/g;
-}
-
-class OrphanCollector extends RegexCollector
-{
-  protected format(references: formatData[]): string {
-    return references
-        .filter(r => r.data.length > 0 && r.id !== undefined)
-        .map(r => "* " + formatLink(r) + " `" + r.filename + "`: " + r.data.join()).join("\n");
-  }
-  readonly dataName = "Orphans";
-  readonly regex = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
-}
-
-class TagCollector extends RegexCollector
-{
-  protected format(references: formatData[]): string {
-    var tagList : {[tag:string]: string[]} = invertDictionary(references);
-
-    var result : string = "";
-    Object.keys(tagList).forEach(tag => {
-      result += "* " + tag + " : " + tagList[tag].join() + "\n";
-    });
-
-    return result
-    };
-  readonly dataName = "Tags";
-  readonly regex = /[ ^](#[a-zA-z0-9]+)/g;
-}
-
-class ContextCollector extends RegexCollector
-{
-  protected format(references: formatData[]): string {
-    var tagList: { [tag: string]: string[]; } = invertDictionary(references);
-
-    var result : string = "";
-    Object.keys(tagList).forEach(tag => {
-      result += "* " + tag + " : " + tagList[tag].join() + "\n";
-    });
-
-    return result
-    };
-  readonly dataName = "Contexts";
-  readonly regex = /[ ^](\@[a-zA-z0-9]+)/g;
-}
-
-class TaskCollector extends RegexCollector
-{
-  protected format(references: formatData[]): string {
-    return "" +
-      references
-      .filter(r => r.data.length > 0)
-      .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + "):\n\n<details>\n\n* " + r.data.join("\n* ")+"\n\n</details>").join("\n")
-  }
-  readonly dataName = "Tasks";
-  readonly regex = /^[\s\*]*((?:(?:\[ \])|(?:\([A-Z]\))).*)$/gm;
-  readonly projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
-  
-  public collect(content:string): string[] {
-    return super.collect(content).concat(collectMatches(content, this.projectTasks));
-  }
-}
-
 const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new ContextCollector, new TagCollector, new TaskCollector];
-
-function invertDictionary(references: formatData[]) {
-  var tagList: { [tag: string]: string[]; } = {};
-
-  references.forEach(ref => {
-    const tags = ref.data;
-    tags.forEach(tag => {
-      if (tagList[tag] === undefined) {
-        tagList[tag] = [];
-      }
-      tagList[tag].push(formatLink(ref));
-    });
-  });
-  return tagList;
-}
-
-function formatLink(ref: formatData): string {
-  return "["+ref.title+"][" + ref.id + "]";
-}
 
 async function collectFromFile(filename: string): Promise<fileWikiLinks> {
   const titleReg = /^title: (.*)$/gm;
