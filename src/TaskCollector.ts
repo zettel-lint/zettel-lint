@@ -12,7 +12,6 @@ export class TaskCollector extends RegexCollector {
   readonly regex = /^[\s\*]*((?:(?:\[ \])|(?:\([A-Z]\))).*)$/gm;
   readonly projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
 
-
   public collect(content: string): string[] {
     return super.collect(content).concat(collectMatches(content, this.projectTasks));
   }

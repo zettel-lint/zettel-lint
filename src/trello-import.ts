@@ -34,6 +34,7 @@ class TrelloCardInfo {
   readonly idBoard: string = "";
   readonly idChecklists: string[] = [];
   readonly idLabels: string[] = [];
+  readonly labels: TrelloLabelInfo[] = [];
   readonly idList: string = "";
   readonly isTemplate: boolean = false;
   readonly name: string = "";
@@ -102,7 +103,7 @@ export default class TrelloImport implements BaseImporter {
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
       "\ntitle: " + card.name +
-      "\ntags: #blogs #trello " + // TODO: Add labels here
+      "\ntags: #blogs #trello #" + card.labels.map(l => l.name.replace(/[^a-zA-z0-9]/g, "_")).join(" #") +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
@@ -137,6 +138,7 @@ export default class TrelloImport implements BaseImporter {
     var totalNotes = 0;
     var checklists : { [id: string]: TrelloChecklistInfo; } = {};
     var lists : { [id: string]: TrelloListInfo; } = {};
+    var labels : { [id: string]: TrelloLabelInfo; } = {};
     for await (const file of files) {
       const notes = await this.extractNotes(file);
       totalCards += notes.cards.length;
@@ -145,6 +147,9 @@ export default class TrelloImport implements BaseImporter {
       });
       notes.lists.forEach(list => {
         lists[list.id] = list;
+      });
+      notes.labels.forEach(label => {
+        labels[label.id] = label;
       })
       for await(const note of notes.cards) {
         if(!note.closed && !note.isTemplate && !lists[note.idList].closed && this.writeCard(note, checklists, lists)) {
