@@ -9,10 +9,13 @@ export class TaskCollector extends RegexCollector {
         .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + "):\n\n<details>\n\n* " + r.data.join("\n* ") + "\n\n</details>").join("\n");
   }
   readonly dataName = "Tasks";
-  readonly regex = /^[\s\*]*((?:(?:\[ \])|(?:\([A-Z]\))).*)$/gm;
-  readonly projectTasks = /^.*[ ^]\+\d{8,14}.*$/gm;
+  // Regex:
+  // Find lines starting "[ ]" or "* [ ]" or "(A)" for checklist or todo.txt tasks
+  // OR
+  // Find lines with a todo.txt style +project-reference
+  readonly regex = /(?:^[\s\*]*((?:(?:\[ \])|(?:\([A-Z]\))).*)$)|(?:^.*[ ^]\+\d{8,14}.*$)/gm;
 
   public collect(content: string): string[] {
-    return super.collect(content).concat(collectMatches(content, this.projectTasks));
+    return super.collect(content);
   }
 }
