@@ -74,13 +74,9 @@ function sortableDate(d: Date) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
 
-  // TODO : WTF - card.dateLastActivity is a Date without any date methods.
+  // WTF - card.dateLastActivity is a Date without any date methods.
 
   return ("" + d).replace(/[^0-9]/g,"");
-
-  /* return d.getFullYear() + d.getMonth().toString().padStart(2, "0") + d.getDate().toString().padStart(2, "0") +
-    d.getHours().toString().padStart(2, "0") + d.getMinutes().toString().padStart(2, "0") + d.getSeconds().toString().padStart(2, "0")
-  */
 }
 
 export default class TrelloImport implements BaseImporter {
