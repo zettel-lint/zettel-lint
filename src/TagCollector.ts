@@ -13,5 +13,5 @@ export class TagCollector extends RegexCollector {
     return result;
   };
   readonly dataName = "Tags";
-  readonly regex = /[ ^](#[a-zA-z0-9]+)/g;
+  readonly regex = /[ ^](#[a-zA-z0-9-]+)/g;
 }
