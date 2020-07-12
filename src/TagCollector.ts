@@ -6,7 +6,7 @@ export class TagCollector extends RegexCollector {
     var tagList: { [tag: string]: string[]; } = invertDictionary(references);
 
     var result: string = "";
-    Object.keys(tagList).forEach(tag => {
+    Object.keys(tagList).sort().forEach(tag => {
       result += "* " + tag + " : " + tagList[tag].join() + "\n";
     });
 
