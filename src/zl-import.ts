@@ -13,7 +13,7 @@ export default function importerCommand() {
     .description("Import once from a 3rd party")
     .requiredOption('-s, --source <name>', "Source *e.g. trello, csv, etc...*")
     .requiredOption('-p, --path <path>', "Search path, supports wildcards", ".")
-    .option('-o', '--output-folder', '.')
+    .option('-o, --output-folder', "Folder to save notes to", "./import/")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('-v, --verbose', "Additional output")
     .action((cmdObj) => { importer(cmdObj) })
@@ -28,7 +28,7 @@ function printHeader(program: any): void {
         figlet.textSync('zettel-lint-import', { horizontalLayout: 'full' })
       )
     );
-    console.log("Looking for *" + program.source +"* files to import in " + program.path);
+    console.log("Looking for *" + program.source +"* files to import in " + program.path + " and outputting to " + program.outputFolder);
   }
 }
 
