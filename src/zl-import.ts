@@ -35,7 +35,10 @@ function printHeader(program: any): void {
 
 function importer(program: any): void {
     printHeader(program);
-  
+    if(program.outputFolder === undefined) {
+      program.outputFolder = '../' + program.source + '/'
+    }
+
     async function parseFiles() {
         var response: ErrorResponse;
 
