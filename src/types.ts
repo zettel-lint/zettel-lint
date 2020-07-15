@@ -19,6 +19,12 @@ export function formatLink(ref: formatData): string {
   return "["+ref.title+"][" + ref.id + "]";
 }
 
+export function min(x: number, y: number): number | undefined {
+  if (x == null || y == null) return undefined; // null == undefined
+  if (x < y) return x;
+  return y;
+}
+
 export function invertDictionary(references: formatData[]) {
   var tagList: { [tag: string]: string[]; } = {};
 

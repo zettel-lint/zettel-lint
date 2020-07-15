@@ -1,6 +1,7 @@
 import { BaseImporter, ErrorResponse } from "./base-importer"
 import { promise as glob } from "glob-promise";
 import { promises as fs } from "fs";
+import { min } from "./types";
 
 class NoteInfo {
   readonly count: number = 0;
@@ -130,7 +131,7 @@ export default class TrelloImport implements BaseImporter {
   }
 
   private sanitiseName(card: TrelloCardInfo) {
-    return card.name.replace(/[^A-Za-z0-9]/gm, '-');
+    return card.name.replace(/[^A-Za-z0-9]/gm, '-').slice(0, min(50, card.name.length));
   }
 
   async importAsync(globpattern: string, outputFolder: string): Promise<ErrorResponse> {
