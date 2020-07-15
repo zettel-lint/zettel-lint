@@ -13,6 +13,7 @@ export default function importerCommand() {
     .description("Import once from a 3rd party")
     .requiredOption('-s, --source <name>', "Source *e.g. trello, csv, etc...*")
     .requiredOption('-p, --path <path>', "Search path, supports wildcards", ".")
+    .option('-o', '--output-folder', '.')
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('-v, --verbose', "Additional output")
     .action((cmdObj) => { importer(cmdObj) })
@@ -39,7 +40,7 @@ function importer(program: any): void {
         var response: ErrorResponse;
 
         switch (program.source) {
-            case "trello": response = await (new TrelloImport).importAsync(program.path); break;
+            case "trello": response = await (new TrelloImport).importAsync(program.path, program.outputFolder); break;
             default:
                 response = { success: false, message: "Unknown source " + program.source };
         }

@@ -5,5 +5,5 @@ export class ErrorResponse {
 }
 
 export interface BaseImporter {
-    importAsync(globpattern: string) : Promise<ErrorResponse>;
+    importAsync(globpattern: string, outputFolder: string) : Promise<ErrorResponse>;
 }

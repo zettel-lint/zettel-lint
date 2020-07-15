@@ -93,10 +93,11 @@ export default class TrelloImport implements BaseImporter {
       cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + ci.due.toISOString() : "")).join("\n");
   }
 
-  async writeCard(card: TrelloCardInfo,
+  async writeCard(outputFolder: string,
+      card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
-    const outputFilename :string = "../trello/" + 
+    const outputFilename :string = outputFolder + 
       sortableDate(card.dateLastActivity) + 
       "-" + this.sanitiseName(card) + ".md";
     const header = "---" +
@@ -132,7 +133,7 @@ export default class TrelloImport implements BaseImporter {
     return card.name.replace(/[^A-Za-z0-9]/gm, '-');
   }
 
-  async importAsync(globpattern: string): Promise<ErrorResponse> {
+  async importAsync(globpattern: string, outputFolder: string): Promise<ErrorResponse> {
     const files = await glob(globpattern);
     var totalCards = 0;
     var totalNotes = 0;
@@ -152,7 +153,7 @@ export default class TrelloImport implements BaseImporter {
         labels[label.id] = label;
       })
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && this.writeCard(note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && this.writeCard(outputFolder, note, checklists, lists)) {
           totalNotes++;
         }
       }
