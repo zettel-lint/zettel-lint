@@ -95,6 +95,7 @@ export default class TrelloImport implements BaseImporter {
   }
 
   async writeCard(outputFolder: string,
+      boardName: string,
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
@@ -109,6 +110,7 @@ export default class TrelloImport implements BaseImporter {
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
+      "\nboard: " + boardName + 
       "\nlist: " + lists[card.idList].name +
       "\npublished: " + lists[card.idList].name.includes("Published") +
       "\ntrello-url: " + card.shortUrl +
@@ -154,7 +156,7 @@ export default class TrelloImport implements BaseImporter {
         labels[label.id] = label;
       })
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && this.writeCard(outputFolder, note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && this.writeCard(outputFolder, notes.name, note, checklists, lists)) {
           totalNotes++;
         }
       }
