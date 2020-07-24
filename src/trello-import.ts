@@ -1,6 +1,7 @@
 import { BaseImporter, ErrorResponse } from "./base-importer"
 import { promise as glob } from "glob-promise";
 import { promises as fs } from "fs";
+import axios from "axios";
 import { min } from "./types";
 
 class NoteInfo {
@@ -23,8 +24,23 @@ class TrelloChecklistInfo {
   readonly name: string = "";
 }
 
+class AttachmentInfo {
+  readonly bytes: any = {};
+  readonly date: Date = new Date(Date.now());
+  readonly edgeColor: string = "#000000";
+  readonly idMember: string = "";
+  readonly isUpload: boolean = false;
+  readonly mimeType: string = "";
+  readonly name: string = "";
+  readonly previews: any[] = [];
+  readonly url: string = "";
+  readonly pos: number = 0;
+  readonly fileName: string = "";
+  readonly id: string = "";
+}
+
 class TrelloCardInfo {
-  readonly attachments: any[] = [];
+  readonly attachments: AttachmentInfo[] = [];
   readonly badges: any = {};
   readonly closed: boolean = false;
   readonly cover: any = {};
@@ -94,6 +110,26 @@ export default class TrelloImport implements BaseImporter {
       cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + ci.due.toISOString() : "")).join("\n");
   }
 
+  async saveAttachments(outputFolder: string, attachments: AttachmentInfo[]) : Promise<boolean> {
+    for await (var attachment of attachments) {
+      const outputFilename = outputFolder + attachment.fileName;  
+      // TODO : Add Verbose clause here
+      // console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
+      if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
+        console.error("Invalid attachment " + attachment.id + " points to " + attachment.url);
+      }      
+      try {
+        const response = await axios.get(attachment.url, { responseType: "arraybuffer"});
+        const data: ArrayBuffer = await response.data;
+        await fs.writeFile(outputFilename, data);
+      } catch (error) {
+        console.error("Could not write file " + outputFilename + " because " + error);
+        return false;
+      }
+    }
+    return true;
+  }
+
   async writeCard(outputFolder: string,
       boardName: string,
       card: TrelloCardInfo,
@@ -102,6 +138,12 @@ export default class TrelloImport implements BaseImporter {
     const outputFilename :string = outputFolder + 
       sortableDate(card.dateLastActivity) + 
       "-" + this.sanitiseName(card) + ".md";
+
+    if (!await this.saveAttachments(outputFolder + "attachments/", card.attachments)) {
+      console.error("Could not save attachments for " + outputFilename + ".");
+      return false;
+    }
+
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
