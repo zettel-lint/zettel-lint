@@ -110,24 +110,28 @@ export default class TrelloImport implements BaseImporter {
       cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + ci.due.toISOString() : "")).join("\n");
   }
 
-  async saveAttachments(outputFolder: string, attachments: AttachmentInfo[]) : Promise<boolean> {
+  async saveAttachments(outputFolder: string, attachments: AttachmentInfo[]) : Promise<string[]> {
+    var filenames: string[] = [];
+
     for await (var attachment of attachments) {
       const outputFilename = outputFolder + attachment.fileName;  
       // TODO : Add Verbose clause here
       // console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
-        console.error("Invalid attachment " + attachment.id + " points to " + attachment.url);
+        // It's a URL
+        filenames.push("[" + attachment.name + "](" + attachment.url + ")");
+        continue;
       }      
       try {
         const response = await axios.get(attachment.url, { responseType: "arraybuffer"});
         const data: ArrayBuffer = await response.data;
         await fs.writeFile(outputFilename, data);
+        filenames.push("![" + attachment.name + "](" + outputFilename + ")");
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
-        return false;
       }
     }
-    return true;
+    return filenames;
   }
 
   async writeCard(outputFolder: string,
@@ -139,10 +143,7 @@ export default class TrelloImport implements BaseImporter {
       sortableDate(card.dateLastActivity) + 
       "-" + this.sanitiseName(card) + ".md";
 
-    if (!await this.saveAttachments(outputFolder + "attachments/", card.attachments)) {
-      console.error("Could not save attachments for " + outputFilename + ".");
-      return false;
-    }
+    const filenames = await this.saveAttachments(outputFolder + "attachments/", card.attachments);
 
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
@@ -157,15 +158,17 @@ export default class TrelloImport implements BaseImporter {
       "\npublished: " + lists[card.idList].name.includes("Published") +
       "\ntrello-url: " + card.shortUrl +
       "\n---" +
-      "\n\n# " + card.name +
+      "\n\n## " + card.name +
       "\n\n";
     
     try {
       await fs.writeFile(outputFilename, 
         header + 
         card.desc + 
-        "\n\n## Checklists\n\n" + 
-        card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n")
+        "---\n\n## Checklists\n\n" + 
+        card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") +
+        "---\n\n## Attachments\n\n* " +
+        filenames.join("\n* ")
         , { });
         return true;     
     } catch (error) {
