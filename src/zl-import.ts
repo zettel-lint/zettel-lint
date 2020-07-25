@@ -13,7 +13,7 @@ export default function importerCommand() {
     .description("Import once from a 3rd party")
     .requiredOption('-s, --source <name>', "Source *e.g. trello, csv, etc...*")
     .requiredOption('-p, --path <path>', "Search path, supports wildcards", ".")
-    .option('-o, --output-folder', "Folder to save notes to", "../import/")
+    .option('-o, --output-folder <path>', "Folder to save notes to", "../import/")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('-v, --verbose', "Additional output")
     .action((cmdObj) => { importer(cmdObj) })
