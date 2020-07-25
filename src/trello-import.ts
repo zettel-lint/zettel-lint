@@ -94,7 +94,7 @@ function sortableDate(d: Date) : string {
 
   // WTF - card.dateLastActivity is a Date without any date methods.
 
-  return ("" + d).replace(/[^0-9]/g,"");
+  return ("" + d).replace(/[^0-9]/g,"").substring(0,14);
 }
 
 export default class TrelloImport implements BaseImporter {
