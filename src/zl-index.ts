@@ -83,6 +83,10 @@ function indexer(program: any): void {
     ignoreList.push(program.ignoreDirs);
   }
 
+  function escapeTitle(title: string) : string {
+    return title.replace("(", "\\(").replace(")", "\\)");
+  }
+
   async function parseFiles() {
     var references: fileWikiLinks[] = [];
 
@@ -113,7 +117,7 @@ function indexer(program: any): void {
           .filter(c => program.showOrphans || c.dataName !== "orphans")
           .map(c => c.formatter(references)).join("\n\n") +
         "\n\n## References\n\n" +
-        references.map(r => "[" + r.id + "]: ./" + r.filename + (r.title ? " (" + r.title + ")" : "")).join("\n")
+        references.map(r => "[" + r.id + "]: ./" + r.filename + (r.title ? " (" + escapeTitle(r.title) + ")" : "")).join("\n")
         ;
 
       if (program.jsonDebugOutput) {
