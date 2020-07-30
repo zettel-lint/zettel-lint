@@ -10,7 +10,7 @@
     "start": "nodemon --watch 'src/**/*.ts' --exec ts-node src/zl.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
-    "test": "sudo npm i -g && zettel-lint",
+    "test": "sudo npm i -g && zettel-lint --version && zettel-lint --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "zl": "ts-node src/zl.ts"
   },
