@@ -1,7 +1,7 @@
 {
-  "name": "example-zettel-lint",
+  "name": "zettel-lint",
   "version": "0.9.0",
-  "description": "Example repo demonstrating zettel linting",
+  "description": "Command line zettel linting/indexing",
   "main": "./lib/zl.js",
   "bin": {
     "zettel-lint": "./lib/zl.js"
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zettel-lint/example.git"
+    "url": "git+https://github.com/zettel-lint/zettel-lint.git"
   },
   "keywords": [
     "zettel",
@@ -26,9 +26,9 @@
   "author": "Craig Nicol",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/zettel-lint/example/issues"
+    "url": "https://github.com/zettel-lint/zettel-lint/issues"
   },
-  "homepage": "https://github.com/zettel-lint/example#readme",
+  "homepage": "https://github.com/zettel-lint/zettel-lint#readme",
   "dependencies": {
     "axios": "^0.19.2",
     "chalk": "^4.0.0",
