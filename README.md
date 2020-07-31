@@ -3,10 +3,12 @@
 title: Readme
 references: [00000001]
 notes: YAML top matter is supported
-status: ![Node.js CI](https://github.com/zettel-lint/zettel-lint/workflows/Node.js%20CI/badge.svg)
+
 ---
 
 ## ZL
+
+![Node.js CI](https://github.com/zettel-lint/zettel-lint/workflows/Node.js%20CI/badge.svg)
 
 A linter/compiler for markdown-based Zettelkasten git repositories
 
