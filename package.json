@@ -1,6 +1,6 @@
 {
   "name": "zettel-lint",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "Command line zettel linting/indexing",
   "main": "./lib/zl.js",
   "bin": {
@@ -10,8 +10,7 @@
     "start": "nodemon --watch 'src/**/*.ts' --exec ts-node src/zl.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
-    "test-win": "npm i -g && zettel-lint --version && zettel-lint --help",
-    "test": "sudo npm i -g && zettel-lint --version && zettel-lint --help",
+    "test": "npm run-script zl -- --version && npm run-script zl -- --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "zl": "ts-node src/zl.ts"
   },
