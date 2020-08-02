@@ -28,6 +28,7 @@ jobs:
         with:
           node-version: 12
           registry-url: https://registry.npmjs.org/
+      - run: npm install
       - run: npm run-script create
       - run: npm publish
         env:
