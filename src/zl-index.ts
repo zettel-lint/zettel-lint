@@ -78,13 +78,13 @@ async function collectFromFile(filename: string): Promise<fileWikiLinks> {
 function indexer(program: any): void {
   printHeader(program);
 
-  var ignoreList = [program.path + "/**/node_modules/**"]
+  var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
   if (program.ignoreDirs) {
     ignoreList.push(program.ignoreDirs);
   }
 
   function escapeTitle(title: string) : string {
-    return title.replace("(", "\\(").replace(")", "\\)");
+    return title.replace("(", "{").replace(")", "}");
   }
 
   async function parseFiles() {
