@@ -8,7 +8,7 @@ import indexerCommand from "./zl-index";
 import importerCommand from "./zl-import";
 
 program
-  .version('0.9.0')
+  .version('0.9.3')
   .description("A linter/compiler for Zettel markdown repositories")
   .command("cron <cron-mode-args>", "Create daily entry if it doesn't exist")
   ;
