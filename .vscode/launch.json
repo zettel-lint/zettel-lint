@@ -5,6 +5,14 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "type": "PowerShell",
+      "request": "launch",
+      "name": "index journal",
+      "script": "${workspaceRoot}/local-scripts/journal-index.ps1",
+      "cwd": "${workspaceRoot}/local-scripts/",
+      "preLaunchTask": "npm: create"
+    },
+    {
       "type": "pwa-node",
       "request": "launch",
       "name": "Launch Program",
@@ -19,6 +27,13 @@
       "request": "launch",
       "type": "node-terminal",
       "cwd":"${workspaceFolder}"
-    }    
+    },
+    {
+      "command": "npm run-script create",
+      "name": "create",
+      "request": "launch",
+      "type": "node-terminal",
+      "cwd":"${workspaceFolder}"
+    }            
   ]
 }

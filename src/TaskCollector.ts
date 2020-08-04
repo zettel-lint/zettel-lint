@@ -6,7 +6,8 @@ export class TaskCollector extends RegexCollector {
     return "" +
       references
         .filter(r => r.data.length > 0)
-        .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + "):\n\n<details>\n\n* " + r.data.join("\n* ") + "\n\n</details>").join("\n");
+        .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + ")\n\n" + 
+          "<details>\n\n* " + r.data.join("\n* ") + "\n\n</details>").join("\n");
   }
   readonly dataName = "Tasks";
   // Regex:

@@ -41,7 +41,8 @@ function printHeader(program: any): void {
     console.log("Looking for notes in " + program.path);
     console.log((program.daily ? "" : "NOT ") + "creating dailies");
     console.log("Ignoring dirs: " + program.ignoreDirs);
-    console.log("Outputting references to " + program.referenceFile)
+    console.log("Outputting references to " + program.referenceFile);
+    console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
   }
 }
 
