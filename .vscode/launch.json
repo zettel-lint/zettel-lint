@@ -13,6 +13,14 @@
       "preLaunchTask": "npm: create"
     },
     {
+      "type": "PowerShell",
+      "request": "launch",
+      "name": "lint and fix journal notes",
+      "script": "${workspaceRoot}/local-scripts/journal-notes.ps1",
+      "cwd": "${workspaceRoot}/local-scripts/",
+      "preLaunchTask": "npm: create"
+    },
+    {
       "type": "pwa-node",
       "request": "launch",
       "name": "Launch Program",
