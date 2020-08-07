@@ -1,9 +1,11 @@
 import commander from "commander";
 import { promise as glob } from "glob-promise";
+import { promises as fs } from "fs";
 import { idFromFilename } from "./file-handling";
 import { clear } from "console";
 import chalk from "chalk";
 import figlet from "figlet";
+import { collectMatches } from "./RegexCollector";
 
 export default function notesCommand() {
   const notes = new commander.Command('notes');
@@ -36,30 +38,41 @@ function printHeader(program: any): void {
 }
 
 function lintNotes(program: any): void {
-  var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
+  var ignoreList = [program.path + "/**/node_modules/**", program.path + "/references.md"]; // TODO: This should come from CLI
   if (program.ignoreDirs) {
     ignoreList.push(program.ignoreDirs);
   }
 
-  var links: {[id: string]: string};
+  var links: {[id: string]: string} = {};
 
   function mapWikiLinks(files: string[]) {
+    const root = program.path.replace(/\\/g, "/");
+    console.log("mapWikiLinks", files[0], program.path, root);
     return files.map(f => links["[" + idFromFilename(f) + "]"] =
-       "[[" + f.replace(program.path, '') + "]]");
+       "[[" + f.replace(root, '').replace('.md','') + "]]");
   }
 
+  const linkRegex = /\[\d{8,14}\]/g;
   async function updateLinks(filename: string) {
-
+    var contents = await fs.readFile(filename, "utf8");
+    const matches = collectMatches(contents, linkRegex, false);
+    if(matches.length > 0) { console.log(matches); }
+    if(program.verbose){ matches.forEach(match => console.log("Mapping " + match + " to " + links[match]))};
+    matches.forEach(
+      match => contents = contents.replace(match, links[match])
+    );
+    await fs.writeFile(filename, contents);
   }
 
   async function parseFiles() {
     printHeader(program);
 
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
+    console.log(files.length + " files found");
 
     mapWikiLinks(files);
     if (program.verbose) {
-      console.log(links);
+      console.log("Links: " + links);
     }
 
     for await (const file of files) {
@@ -69,6 +82,6 @@ function lintNotes(program: any): void {
 
   parseFiles().then(
     () => console.log("Updated"),
-    () => console.log("Error")
+    (err) => console.error("Error", err)
   )
 }
