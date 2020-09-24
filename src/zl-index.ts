@@ -23,6 +23,7 @@ export default function indexerCommand() {
     .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
     .option('-r, --reference-file <path>', "Path to output reference.md")
     .option('-o, --show-orphans', "Output list of orphaned links to console")
+    .option('-t, --task-display <format>', "Display tasks? 'none' 'by-file' 'by-priority'", "by-file")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('--no-wiki', "use [[wiki style]] links")
     .option('-v, --verbose', "Additional output")
@@ -43,6 +44,7 @@ function printHeader(program: any): void {
     console.log("Ignoring dirs: " + program.ignoreDirs);
     console.log("Outputting references to " + program.referenceFile);
     console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
+    console.log("Displaying Tasks " + program.taskDisplay)
   }
 }
 
@@ -54,14 +56,14 @@ function idFromFilename(filename: string) {
 
 const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
-async function collectFromFile(filename: string): Promise<fileWikiLinks> {
+async function collectFromFile(filename: string, program: any): Promise<fileWikiLinks> {
   const titleReg = /^title: (.*)$/gm;
 
   const contents = await fs.readFile(filename, "utf8");
 
   var matchData: {[collector: string]: string[]} = {}
   collectors.forEach(element => {
-    matchData[element.dataName] = element.collect(contents);
+    matchData[element.dataName] = element.collector(filename, contents, program);
   });
 
   const name = filename.split("/").pop();
@@ -95,7 +97,7 @@ function indexer(program: any): void {
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
 
     for await (const file of files) {
-      const wikiLinks = await collectFromFile(file);
+      const wikiLinks = await collectFromFile(file, program);
       if (program.referenceFile && !program.referenceFile.endsWith(wikiLinks.filename)) {
         references.push(wikiLinks);
       }

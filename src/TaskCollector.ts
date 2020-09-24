@@ -2,8 +2,17 @@ import { formatData, formatLink, invertDictionary } from "./types";
 import { RegexCollector, collectMatches } from "./RegexCollector";
 
 export class TaskCollector extends RegexCollector {
+  protected shouldCollect(filename: string) : boolean {
+    console.log(" ==> " + this.programArgs.taskDisplay + " ==> " + (this.programArgs.taskDisplay !== "none"))
+    return this.programArgs.taskDisplay !== "none";
+  }
+
   protected format(references: formatData[]): string {
-    return this.formatSortByPriority(references); // TODO : CLI param for this
+    switch (this.programArgs.taskDisplay as string) {
+      case "by-priority": return this.formatSortByPriority(references);
+      case "by-file": return this.formatGroupByFilename(references);
+    }
+    return ""; 
   }
 
   protected getTasks(references: formatData[]): string[] {

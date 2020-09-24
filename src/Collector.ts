@@ -1,8 +1,18 @@
+import { AnyTxtRecord } from "dns";
 import { formatData, fileWikiLinks } from "./types";
 
 export abstract class Collector {
   abstract readonly dataName: string;
-  public abstract collect(content: string): string[];
+  protected programArgs: any;
+  public collector(filename: string, content: string, program: any): string[] {
+    this.programArgs = program;
+    if (this.shouldCollect(filename)) {
+      return this.collect(content);
+    }
+    return [];
+  }
+  protected shouldCollect(filename: string): boolean { return true; }
+  protected abstract collect(content: string): string[];
   private extractData(ref: fileWikiLinks): formatData {
     return {
       ...ref,
