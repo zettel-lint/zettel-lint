@@ -1,8 +1,31 @@
-import { formatData } from "./types";
+import { formatData, formatLink, invertDictionary } from "./types";
 import { RegexCollector, collectMatches } from "./RegexCollector";
 
 export class TaskCollector extends RegexCollector {
   protected format(references: formatData[]): string {
+    return this.formatSortByPriority(references); // TODO : CLI param for this
+  }
+
+  protected getTasks(references: formatData[]): string[] {
+    var tasks: string[] = [];
+
+    references.forEach(ref => {
+      const tags = ref.data;
+      tags.forEach(tag => {
+        tasks.push(tag + " => " + formatLink(ref));
+      });
+    });
+    return tasks;
+  }
+
+  protected formatSortByPriority(references: formatData[]): string {
+    const allTasks = this.getTasks(references).sort();
+    return "" +
+      allTasks
+        .map(r => "\n* " + r).join("\n");
+  }
+
+  protected formatGroupByFilename(references: formatData[]): string {
     return "" +
       references
         .filter(r => r.data.length > 0)
