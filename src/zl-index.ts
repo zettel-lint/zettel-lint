@@ -14,6 +14,7 @@ import { WikiCollector } from "./WikiCollector";
 import { Collector } from "./Collector";
 import { collectMatches } from "./RegexCollector";
 import { fileWikiLinks } from "./types";
+import { idFromFilename } from "./file-handling";
 
 export default function indexerCommand() {
   const idxer = new commander.Command('index');
@@ -48,11 +49,6 @@ function printHeader(program: any): void {
   }
 }
 
-function idFromFilename(filename: string) {
-  const nameOnly = filename.split("/").pop();
-  const withoutExt = nameOnly?.split(".")[0];
-  return withoutExt?.split("-")[0];
-}
 
 const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
