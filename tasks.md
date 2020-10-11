@@ -56,6 +56,8 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (F) Highlight orphaned links and offer to create page 
 * (G) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous 
 * (G) Format Trello boards as Tables of Content, not 2d tables? 
+* (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others 
+* (H) Use first # Title or title: as the title in `zl index` 
 * (H) Create indexer for notes with a list: header for blogging/Trello imports. 
 * (I) Option to generate separate index, tag, orphan, etc. files - each type has a file arg, but all can use references.md for current behaviour
 * (L) Add anchored links from pages with tags to a collection page, and generate tag meta pages alongside references.md `tag-blog.md` for example (can then use these instead of a separate tag section in references?)
@@ -65,18 +67,23 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (C) *-Daily files should have a title like YYYY-MM-DD
 * (C) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous
 * (C) Allow timestamp ids, with or without dashes, and match file that starts with that id, with whatever following content is meaningful
+* (D) Find "Related notes" - grep for note title, tags (without #) and any titles within new notes 
 * (D) accept filename list (e.g. changed since last commit) and only process those
 * (D) Don't try and save file on the fly. collect references then dump in a writefile at the end
 * (D) Find and link dates to dailies 
 * (E) Expand prefix links (e.g. only link to day, not day time) to canonical form if the prefix is unambiguous
 * (E) Turn [Titles] links into [[xxxxxxxxxxxxx]] links
 * (E) Extend classes to support notes
+* (H) Output links to `## Links` section at bottom of each note : only needed if not using wiki-links 
+* (J) Automatically add yaml header to notes 
 * (L) Support pages in a hierarchy, but allow page links to only reference leaf text (use namespacing rules)
 * (P) Automatically generate bi-directional links when saving/committing markdown files
 
 ## `zl cron` Tasks
 
+* **`zl cron` isn't a thing - it should be cronned by external. `zl template` and others instead** 
 * (E) send daily tasks email (todo.txt, waiting.txt, due: ) every night
+* (E) Send "Related notes" email / add to daily for each file recently added 
 * (M) Automatically copy #Recurring #Template into new notes (use `recurrence-frequency:` header?)
 * (M) Templates that can be copied 
 * (X) Automatically generate "today" file in `daily` folder if it doesn't exist 
@@ -95,6 +102,8 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (F) Generate Todo.txt compatible files (is there a `.md` version?) 
 * (F) Allow todo.txt style projects to link to note +project-link
 * (G) Interactive mode : select tasks for daily 
+* (H) Move completed tasks from archive to daily log 
+* (L) Highlight 5 Minute Tasks 
 
 ## `zl import` Tasks
 
@@ -134,12 +143,3 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 
 ## Tasks
 
-* (G) `zl cron` isn't a thing - it should be cronned by external. `zl template` and others instead 
-* (H) Use first # Title or title: as the title in `zl index` 
-* (J) Automatically add yaml header to notes 
-* (E) Send "Related notes" email / add to daily for each file recently added 
-* (H) Output links to `## Links` section at bottom of each note : only needed if not using wiki-links 
-* (D) Find "Related notes" - grep for note title, tags (without #) and any titles within new notes 
-* (L) Highlight 5 Minute Tasks 
-* (H) Move completed tasks from archive to daily log 
-* (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others 
