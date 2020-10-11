@@ -29,7 +29,7 @@ This is a link to a [Page that doesn't exist](404.md)
 
 Tags can use #hashtag or +projectref formats for compatibility with `todo.txt` files
 
-To refesh index:
+To refresh index:
 
 * `cd zle`
 * `npm i`
