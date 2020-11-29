@@ -1,0 +1,1 @@
+npm run-script zl -- notes -v -i \"node_modules/**\" --verbose --show-orphans
