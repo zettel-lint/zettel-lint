@@ -11,6 +11,17 @@ test('empty file has no links', () => {
         .toBe("[20200101120060]");
   });
 
+  test('ignores qualified links', () => {
+    var sut = new WikiCollector();
+    expect(sut.collect("[real-file](a.real.file.md)"))
+        .toHaveLength(0);
+  });
+  test('ignores reference links', () => {
+    var sut = new WikiCollector();
+    expect(sut.collect("[title-text][see-reference-below]"))
+        .toHaveLength(0);
+  });
+
   test('supports wiki links', () => {
     var sut = new WikiCollector();
     expect(sut.collect("[[Wiki-Link]]").toString())
