@@ -3,7 +3,6 @@ import { RegexCollector, collectMatches } from "./RegexCollector";
 
 export class TaskCollector extends RegexCollector {
   protected shouldCollect(filename: string) : boolean {
-    console.log(" ==> " + this.programArgs.taskDisplay + " ==> " + (this.programArgs.taskDisplay !== "none"))
     return this.programArgs.taskDisplay !== "none";
   }
 
