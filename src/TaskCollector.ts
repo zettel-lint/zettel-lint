@@ -20,10 +20,17 @@ export class TaskCollector extends RegexCollector {
     references.forEach(ref => {
       const tags = ref.data;
       tags.forEach(tag => {
-        tasks.push(tag + " +" + ref.id + " => " + formatLink(ref));
+        tasks.push(tag + this.projectFromFilename(ref.filename) + " => " + formatLink(ref));
       });
     });
     return tasks;
+  }
+
+  protected projectFromFilename(filename: string | undefined) : string {
+    if (filename == null || filename.length == 0) {
+      return ""
+    }
+    return " +" + filename.substring(0, filename.lastIndexOf("."))
   }
 
   protected formatSortByPriority(references: formatData[]): string {
