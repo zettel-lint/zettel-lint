@@ -20,7 +20,7 @@ export class TaskCollector extends RegexCollector {
     references.forEach(ref => {
       const tags = ref.data;
       tags.forEach(tag => {
-        tasks.push(tag + " => " + formatLink(ref));
+        tasks.push(tag + " +" + ref.id + " => " + formatLink(ref));
       });
     });
     return tasks;
