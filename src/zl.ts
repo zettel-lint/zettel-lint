@@ -9,7 +9,7 @@ import importerCommand from "./zl-import";
 import notesCommand from "./zl-notes";
 
 program
-  .version('0.9.14')
+  .version('0.9.15')
   .description("A linter/compiler for Zettel markdown repositories")
   .command("cron <cron-mode-args>", "Create daily entry if it doesn't exist")
   ;
