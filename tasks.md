@@ -111,6 +111,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 
 * [Trello import](https://developer.atlassian.com/cloud/trello/rest/#api-cards-id-actions-get)
   * (B) Re-write Trello links as references on import 
+  * (B) Import to import card as note (current default), list as note, or board as note
 * (D) Simplenote import 
 * (E) Evernote import 
 * (F) Wordpress import 
