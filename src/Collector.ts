@@ -16,6 +16,7 @@ export abstract class Collector {
   private extractData(ref: fileWikiLinks): formatData {
     return {
       ...ref,
+      name: this.dataName,
       data: ref.matchData[this.dataName]
     };
   };

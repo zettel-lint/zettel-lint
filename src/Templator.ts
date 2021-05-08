@@ -1,22 +1,37 @@
 import Mustache from 'mustache';
 import { Collector } from './Collector';
-import { formatData } from './types';
+import { fileWikiLinks, formatData, invertData, invertDictionary } from './types';
 
 export class Templator {
-    notes: formatData[] | undefined;
-    collectors: Collector[] | undefined;
+    notes: fileWikiLinks[] | undefined;
+    data: Map<string, Map<string, formatData[]>> = new Map<string, Map<string, formatData[]>>();
 
-    constructor(notes: formatData[] | undefined = undefined, collectors: Collector[] | undefined = undefined) {
-        this.notes = notes;
-        this.collectors = collectors;
+    private extractData(ref: fileWikiLinks, dataName: string): formatData {
+        return {
+          ...ref,
+          name: dataName,
+          data: ref.matchData[dataName]
+        };
+      };
+    constructor(files: fileWikiLinks[] | undefined = undefined,
+        collectors: Collector[] | undefined = undefined) {
+        this.notes = files;
+        if (files != undefined && collectors != undefined) {
+            collectors.forEach(collector =>
+                this.data.set(collector.dataName, 
+                    invertData(files?.map(ref => this.extractData(ref, collector.dataName))))
+            );
+        }
     }
 
     render(template: string): string {
         const view = { 
             modified: new Date(Date.now()).toISOString(), 
             notes: this.notes,
-            collectors: this.collectors
-         }
+            Tasks: [...(this.data.get("Tasks")?.values() ?? [])][0],
+            Tags: [...(this.data.get("Tags")?.values() ?? [])][0],
+            x: { ...this.data.entries()}
+         };
         return Mustache.render(template, view);
     }
 

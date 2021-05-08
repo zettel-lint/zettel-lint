@@ -12,6 +12,7 @@ export class formatData {
   title: string | undefined;
   filename: string | undefined;
   fullpath: string | undefined;
+  name: string | undefined;
   data: string[] = [];
 }
 
@@ -30,12 +31,33 @@ export function invertDictionary(references: formatData[]) {
 
   references.forEach(ref => {
     const tags = ref.data;
-    tags.forEach(tag => {
-      if (tagList[tag] === undefined) {
-        tagList[tag] = [];
-      }
-      tagList[tag].push(formatLink(ref));
-    });
+    if (tags != undefined) {
+      tags.forEach(tag => {
+        if (tagList[tag] === undefined) {
+          tagList[tag] = [];
+        }
+        tagList[tag].push(formatLink(ref));
+      });
+    }
+  });
+  return tagList;
+}
+
+export function invertData(references: formatData[]) {
+  var tagList = new Map<string, formatData[]>();
+
+  if (references == undefined) { return tagList; }
+
+  references.forEach(ref => {
+    const tags = ref.data;
+    if (tags != undefined) {
+      tags.forEach(tag => {
+        var current = tagList.get(tag) ?? [];
+        current.push({...ref, name: tag, data: [formatLink(ref)]});
+
+        tagList.set(tag, current);
+      });
+    }
   });
   return tagList;
 }

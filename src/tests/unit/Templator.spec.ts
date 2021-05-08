@@ -1,3 +1,5 @@
+import { TagCollector } from '../../TagCollector';
+import { TaskCollector } from '../../TaskCollector';
 import { Templator } from '../../Templator';
 
 const full_template = `
@@ -74,6 +76,23 @@ test('templator creates modified date', () => {
   });
 
   test('templator can create reference links', () => {
-    var sut = new Templator([{id: 'README', filename: './README.md', title: 'Readme', fullpath:'', data:[]}], []);
+    var sut = new Templator([{id: 'README', filename: './README.md', title: 'Readme', fullpath:'', matchData:{}}]);
     expect(sut.render("{{#notes}}[{{id}}]: {{{filename}}} ({{title}}){{/notes}}")).toBe("[README]: ./README.md (Readme)");
+  });
+
+  test('templator can create task links', () => {
+    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing"]}}], [new TaskCollector]);
+    expect(sut.render("{{#Tasks}}* {{{name}}} => [{{{title}}}][{{id}}]{{/Tasks}}")).toBe("* (A) Do the thing => [My Project][project]");
+  });
+
+  test('templator can create multiple task links', () => {
+    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
+    expect(sut.render("{{#Tasks}}* {{{name}}} => [{{{title}}}][{{id}}]\n{{/Tasks}}")).toBe("* (A) Do the thing => [My Project][project]\n* (B) Do the other thing => [My Project][project]\n");
+  });
+
+  test('templator can create multiple tag links', () => {
+    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tags": ["#atag", "#btag"]}},
+        {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', matchData:{"Tags": ["#atag"]}}],
+        [new TagCollector]);
+    expect(sut.render("{{#Tags}}\n* {{name}} : {{#notes}}[{{{title}}}][{{id}}],{{/notes}}\n{{/Tags}}")).toBe("* #atag : [My Project][project],[My Work][work],\n* #btag : [My Project][project],\n");
   });
