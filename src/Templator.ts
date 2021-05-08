@@ -28,8 +28,8 @@ export class Templator {
         const view = { 
             modified: new Date(Date.now()).toISOString(), 
             notes: this.notes,
-            Tasks: [...(this.data.get("Tasks")?.values() ?? [])][0],
-            Tags: [...(this.data.get("Tags")?.values() ?? [])][0],
+            Tasks: [...(this.data.get("Tasks")?.values() ?? [])].flat(),
+            Tags: [...(this.data.get("Tags")?.values() ?? [])].flat(),
             x: { ...this.data.entries()}
          };
         return Mustache.render(template, view);
