@@ -94,5 +94,5 @@ test('templator creates modified date', () => {
     var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tags": ["#atag", "#btag"]}},
         {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', matchData:{"Tags": ["#atag"]}}],
         [new TagCollector]);
-    expect(sut.render("{{#Tags}}\n* {{name}} : {{#notes}}[{{{title}}}][{{id}}],{{/notes}}\n{{/Tags}}")).toBe("* #atag : [My Project][project],[My Work][work],\n* #btag : [My Project][project],\n");
+    expect(sut.render("{{#Tags}}\n* {{key}} : {{#value}}[{{{title}}}][{{id}}],{{/value}}\n{{/Tags}}")).toBe("* #atag : [My Project][project],[My Work][work],\n* #btag : [My Project][project],\n");
   });

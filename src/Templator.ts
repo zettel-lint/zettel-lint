@@ -24,12 +24,16 @@ export class Templator {
         }
     }
 
+    listToNamedTuple(input: [string, formatData[]]) {
+        return {key: input[0], value: input[1]};
+    }
+
     render(template: string): string {
         const view = { 
             modified: new Date(Date.now()).toISOString(), 
             notes: this.notes,
             Tasks: [...(this.data.get("Tasks")?.values() ?? [])].flat(),
-            Tags: [...(this.data.get("Tags")?.values() ?? [])].flat(),
+            Tags:  [...this.data.get("Tags")?.entries() ?? []].map(this.listToNamedTuple),
             x: { ...this.data.entries()}
          };
         return Mustache.render(template, view);
