@@ -5,6 +5,8 @@ import { fileWikiLinks, formatData, invertData, invertDictionary } from './types
 export class Templator {
     notes: fileWikiLinks[] | undefined;
     data: Map<string, Map<string, formatData[]>> = new Map<string, Map<string, formatData[]>>();
+    collectors: Collector[] | undefined;
+    viewProps: any | undefined;
 
     private extractData(ref: fileWikiLinks, dataName: string): formatData {
         return {
@@ -13,6 +15,7 @@ export class Templator {
           data: ref.matchData[dataName]
         };
       };
+
     constructor(files: fileWikiLinks[] | undefined = undefined,
         collectors: Collector[] | undefined = undefined) {
         this.notes = files;
@@ -21,7 +24,15 @@ export class Templator {
                 this.data.set(collector.dataName, 
                     invertData(files?.map(ref => this.extractData(ref, collector.dataName))))
             );
+            this.collectors = collectors;
         }
+        this.viewProps = {
+            notes: this.notes,
+        }
+        collectors?.forEach(collector =>
+            Object.defineProperty(this.viewProps, collector.dataName, 
+                {value: [...this.data.get(collector.dataName)?.entries() ?? []].map(this.listToNamedTuple)},
+            ));
     }
 
     listToNamedTuple(input: [string, formatData[]]) {
@@ -29,13 +40,8 @@ export class Templator {
     }
 
     render(template: string): string {
-        const view = { 
-            modified: new Date(Date.now()).toISOString(), 
-            notes: this.notes,
-            Tasks: [...(this.data.get("Tasks")?.values() ?? [])].flat(),
-            Tags:  [...this.data.get("Tags")?.entries() ?? []].map(this.listToNamedTuple),
-            x: { ...this.data.entries()}
-         };
+        const view = this.viewProps ?? {};
+        view.modified = new Date(Date.now()).toISOString();
         return Mustache.render(template, view);
     }
 
