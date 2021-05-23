@@ -39,9 +39,10 @@ export class Templator {
         return {key: input[0], value: input[1]};
     }
 
-    render(template: string): string {
+    render(template: string, created: Date | undefined = undefined, modified: Date | undefined = undefined): string {
         const view = this.viewProps ?? {};
-        view.modified = new Date(Date.now()).toISOString();
+        view.created = new Date(created ?? Date.now()).toISOString();
+        view.modified = new Date(modified ?? Date.now()).toISOString();
         return Mustache.render(template, view);
     }
 

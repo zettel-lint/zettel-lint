@@ -1,6 +1,9 @@
+import { ContextCollector } from '../../ContextCollector';
+import { OrphanCollector } from '../../OrphanCollector';
 import { TagCollector } from '../../TagCollector';
 import { TaskCollector } from '../../TaskCollector';
 import { Templator } from '../../Templator';
+import { WikiCollector } from '../../WikiCollector';
 
 const full_template = `
 ---
@@ -15,7 +18,7 @@ title: References
 <summary>Show Links</summary>
 
 {{#notes}}
-* [{{name}}][{{id}}] = '{{filename}}':
+* [{{title}}][{{id}}] = '{{{filename}}}':
   * {{#links}}[{{id}}], {{/links}}{{^links}}No links{{/links}}  
   * {{#backlinks}}[{{id}}], {{/backlinks}}{{^backlinks}}No backlinks{{/backlinks}}  
 {{/notes}}
@@ -27,8 +30,9 @@ title: References
 <details>
 <summary>Show Orphans</summary>
 
-{{ Not sure orphans are useful/correct? }}
-
+{{#Orphans}}
+* [{{title}}][{{id}}] \`{{{filename}}}\`: 
+{{/Orphans}}
 </details>
 
 ## Contexts
@@ -36,9 +40,9 @@ title: References
 <details>
 <summary>Show Contexts</summary>
 
-{{#contexts}}
-* {{name}} : {{#notes}}[title][id],{{/notes}}
-{{/contexts}}
+{{#Contexts}}
+* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}}
+{{/Contexts}}
 
 </details>
 
@@ -47,9 +51,9 @@ title: References
 <details>
 <summary>Show Tags</summary>
 
-{{#tags}}
-* {{name}} : {{#notes}}[title][id],{{/notes}}
-{{/tags}}
+{{#Tags}}
+* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{^last}}, {{/last}}{{/value}}
+{{/Tags}}
 
 </details>
 
@@ -58,17 +62,81 @@ title: References
 <details>
 <summary>Show Tasks</summary>
 
-{{#tasks}}
-* {{name}} => {{#note}}[title][id],{{/note}}
-{{/tasks}}
+{{#Tasks}}
+* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}}
+{{/Tasks}}
 
 </details>
 
 ## References
 
 {{#notes}}
-[{{id}}]: {{filename}} ({{title}})
+[{{id}}]: {{{filename}}} ({{title}})
 {{/notes}}`
+
+const full_expected = `
+---
+created: 2021-01-01T00:00:00.000Z
+modified: 2021-01-01T00:00:00.000Z
+title: References
+---
+
+## Links
+
+<details>
+<summary>Show Links</summary>
+
+* [My Project][project] = './project-tasks.md':
+  * [work-tasks.md]  
+  * [work-tasks.md]  
+* [My Work][work] = './work-tasks.md':
+  * [project-tasks.md]  
+  * [project-tasks.md]  
+
+</details>
+
+## Orphans
+
+<details>
+<summary>Show Orphans</summary>
+
+* [My work][work] \`work-tasks.md\` : [Not a link], [Orphaned Link]
+
+</details>
+
+## Contexts
+
+<details>
+<summary>Show Contexts</summary>
+
+* @work => [My Project][project]
+
+</details>
+
+## Tags
+
+<details>
+<summary>Show Tags</summary>
+
+* #atag => [My Project][project], [My Work][work], 
+* #btag => [My Project][project], 
+
+</details>
+
+## Tasks
+
+<details>
+<summary>Show Tasks</summary>
+
+* (A) My important task => [My Work][work]
+
+</details>
+
+## References
+
+[project]: ./project-tasks.md (My Project)
+[work]: ./work-tasks.md (My Work)
+`
 
 test('templator creates modified date', () => {
     var sut = new Templator();
@@ -77,7 +145,7 @@ test('templator creates modified date', () => {
 
   test('templator can create reference links', () => {
     var sut = new Templator([{id: 'README', filename: './README.md', title: 'Readme', fullpath:'', matchData:{}}]);
-    expect(sut.render("{{#notes}}[{{id}}]: {{{filename}}} ({{title}}){{/notes}}")).toBe("[README]: ./README.md (Readme)");
+    expect(sut.render("{{#notes}}[{{id}}]: {{{filename}}} ({{title}}){{/notes}}", new Date("2021-01-01"), new Date("2021-01-01"))).toBe("[README]: ./README.md (Readme)");
   });
 
   test('templator can create task links', () => {
@@ -95,4 +163,21 @@ test('templator creates modified date', () => {
         {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', matchData:{"Tags": ["#atag"]}}],
         [new TagCollector]);
     expect(sut.render("{{#Tags}}\n* {{key}} : {{#value}}[{{{title}}}][{{id}}],{{/value}}\n{{/Tags}}")).toBe("* #atag : [My Project][project],[My Work][work],\n* #btag : [My Project][project],\n");
+  });
+
+  test('full template matches reference', () => {
+    var sut = new Templator(
+      [ {id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', 
+          matchData:{
+            "Tags": ["#atag", "#btag"],
+            "Links": ["[work]"],
+            "Orphans": ["[Not a link]"],
+            "Contexts": ["@work"]}},
+        {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', 
+          matchData:{
+            "Tags": ["#atag"],
+            "Links": ["[project]"],
+            "Tasks": ["(A) My important task"]}}],
+        [new TagCollector, new TaskCollector, new WikiCollector, new ContextCollector, new OrphanCollector]);
+    expect(sut.render(full_template, new Date("2021-01-01"), new Date("2021-01-01"))).toBe(full_expected);
   });
