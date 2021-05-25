@@ -36,7 +36,7 @@
     "chalk": "^4.0.0",
     "clear": "^0.1.0",
     "commander": "^5.1.0",
-    "figlet": "^1.4.0",
+    "figlet": "^1.5.0",
     "fs": "0.0.1-security",
     "glob": "^7.1.6",
     "glob-promise": "^3.4.0",
