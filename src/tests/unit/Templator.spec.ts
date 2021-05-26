@@ -17,11 +17,11 @@ title: References
 <details>
 <summary>Show Links</summary>
 
-{{#notes}}
-* [{{title}}][{{id}}] = '{{{filename}}}':
-  * {{#links}}[{{id}}], {{/links}}{{^links}}No links{{/links}}  
-  * {{#backlinks}}[{{id}}], {{/backlinks}}{{^backlinks}}No backlinks{{/backlinks}}  
-{{/notes}}
+{{#Links}}
+* {{#value}}[{{title}}][{{id}}] {{/value}}= '{{{key}}}':
+  * {{#value}}{{#data}}{{.}}, {{/data}}{{^data}}No links{{/data}}{{/value}}  
+  * {{#value}}{{#bag}}[{{id}}], {{/bag}}{{^bag}}No backlinks{{/bag}}{{/value}}  
+{{/Links}}
 
 </details>
 
@@ -88,11 +88,11 @@ title: References
 <summary>Show Links</summary>
 
 * [My Project][project] = './project-tasks.md':
-  * [work-tasks.md]  
-  * [work-tasks.md]  
+  * [work], 
+  * [work], 
 * [My Work][work] = './work-tasks.md':
-  * [project-tasks.md]  
-  * [project-tasks.md]  
+  * [project], 
+  * [project], 
 
 </details>
 

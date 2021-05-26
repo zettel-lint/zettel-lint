@@ -14,6 +14,7 @@ export class formatData {
   fullpath: string | undefined;
   name: string | undefined;
   data: string[] = [];
+  bag: any;
 }
 
 export function formatLink(ref: formatData): string {
