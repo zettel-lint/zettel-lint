@@ -37,4 +37,6 @@ To refresh index:
 * `npm i`
 * `npm run-script zl -- -r ../ -i "../zle/**" -r ../references.md`
 
+This will use the `references.md.mustache` as the template for the references file.
+
 See [example journal](https://github.com/zettel-lint/example) for the style of repo this could be used on.

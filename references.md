@@ -1,6 +1,6 @@
 ---
-created: 2021-05-28T23:47:21.920Z
-modified: 2021-05-28T23:47:21.920Z
+created: 2021-05-28T23:47:51.901Z
+modified: 2021-05-28T23:47:51.901Z
 title: References
 ---
 
@@ -46,7 +46,7 @@ title: References
 <details>
 <summary>Show Tags</summary>
 
-* #hashtag => [Readme][README], 
+* #hashtag => [Readme][README], [Readme][README], 
 * #Recurring => [tasks][tasks], 
 * #Template => [tasks][tasks], 
 * #ToDo => [tasks][tasks], 
@@ -58,8 +58,8 @@ title: References
 <details>
 <summary>Show Tasks</summary>
 
-* [ ] This is a task => [Readme][README]
-* [ ] Also supports tasks in a bullet list => [Readme][README]
+* [ ] This is a task => [Readme][README][Readme][README]
+* [ ] Also supports tasks in a bullet list => [Readme][README][Readme][README]
 * (E) See [FOAM](https://foambubble.github.io/foam/) for VS Code-based solution => [tasks][tasks]
 * (C) Should take seconds to run, at most, on 10000 file example repo => [tasks][tasks]
 * (E) Add tests for regex => [tasks][tasks]
@@ -140,6 +140,7 @@ title: References
 
 ## References
 
+[README]: README.md (Readme)
 [README]: README.md (Readme)
 [tasks]: tasks.md (tasks)
 [vision]: vision.md (vision)
