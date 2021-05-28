@@ -15,6 +15,7 @@ import { Collector } from "./Collector";
 import { collectMatches } from "./RegexCollector";
 import { fileWikiLinks } from "./types";
 import { idFromFilename } from "./file-handling";
+import { Templator } from "./Templator";
 
 export default function indexerCommand() {
   const idxer = new commander.Command('index');
@@ -22,7 +23,8 @@ export default function indexerCommand() {
     .description("Generate index/reference file")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
-    .option('-r, --reference-file <path>', "Path to output reference.md")
+    .option('-r, --reference-file <path>', "Path to output reference.md", "references.md")
+    .option('-m, --template-file <path>', "Path to input mustache template", "references.md.mustache")
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('-t, --task-display <format>', "Display tasks? 'none' 'by-file' 'by-priority'", "by-file")
     .option('--json-debug-output', "Output JSON intermediate representations")
@@ -102,27 +104,12 @@ function indexer(program: any): void {
       }
     };
 
-    if (program.referenceFile) {
-      const header = "---" +
-        "\ncreated: " + (new Date()).toISOString() +
-        "\nmodified: " + (new Date()).toISOString() +
-        "\ntitle: References" +
-        "\n---" +
-        "\n\n# References" +
-        "\n\n";
+    if (program.referenceFile && program.templateFile) { 
+      const template = await fs.readFile(program.templateFile, "utf8");
+      const templator = new Templator(references, collectors);
+      const formatted = templator.render(template)
 
-      const formattedReferences = header +
-        collectors
-          .filter(c => program.showOrphans || c.dataName !== "orphans")
-          .map(c => c.formatter(references)).join("\n\n") +
-        "\n\n## References\n\n" +
-        references.map(r => "[" + r.id + "]: ./" + r.filename + (r.title ? " (" + escapeTitle(r.title) + ")" : "")).join("\n")
-        ;
-
-      if (program.jsonDebugOutput) {
-        console.log("references :" + formattedReferences);
-      }
-      await fs.writeFile(program.referenceFile, formattedReferences);
+      await fs.writeFile(program.referenceFile, formatted);
     };
   };
 
