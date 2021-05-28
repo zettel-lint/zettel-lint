@@ -8,21 +8,13 @@ export class Templator {
     collectors: Collector[] | undefined;
     viewProps: any | undefined;
 
-    private extractData(ref: fileWikiLinks, dataName: string): formatData {
-        return {
-          ...ref,
-          name: dataName,
-          data: ref.matchData[dataName]
-        };
-      };
-
     constructor(files: fileWikiLinks[] | undefined = undefined,
         collectors: Collector[] | undefined = undefined) {
         this.notes = files;
         if (files != undefined && collectors != undefined) {
             collectors.forEach(collector =>
                 this.data.set(collector.dataName, 
-                    invertData(files?.map(ref => this.extractData(ref, collector.dataName))))
+                    collector.extractAll(files))
             );
             this.collectors = collectors;
         }

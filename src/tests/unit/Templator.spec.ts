@@ -17,11 +17,11 @@ title: References
 <details>
 <summary>Show Links</summary>
 
-{{#notes}}
+{{#Links}}{{#value}}
 * [{{title}}][{{id}}] = '{{{filename}}}':
-  * {{#links}}[{{id}}], {{/links}}{{^links}}No links{{/links}}  
-  * {{#backlinks}}[{{id}}], {{/backlinks}}{{^backlinks}}No backlinks{{/backlinks}}  
-{{/notes}}
+  * {{#data}}{{.}}, {{/data}}{{^data}}No links{{/data}}
+  * {{#bag}}[{{.}}], {{/bag}}{{^bag}}No backlinks{{/bag}}
+{{/value}}{{/Links}}
 
 </details>
 
@@ -31,8 +31,9 @@ title: References
 <summary>Show Orphans</summary>
 
 {{#Orphans}}
-* [{{title}}][{{id}}] \`{{{filename}}}\`: 
+* {{#value}}[{{title}}][{{id}}]{{/value}} \`{{{key}}}\` : {{#value}}{{#data}}{{.}}, {{/data}}{{/value}}
 {{/Orphans}}
+
 </details>
 
 ## Contexts
@@ -87,11 +88,11 @@ title: References
 <summary>Show Links</summary>
 
 * [My Project][project] = './project-tasks.md':
-  * [work-tasks.md]  
-  * [work-tasks.md]  
+  * [work], 
+  * No backlinks
 * [My Work][work] = './work-tasks.md':
-  * [project-tasks.md]  
-  * [project-tasks.md]  
+  * No links
+  * [project], 
 
 </details>
 
@@ -100,7 +101,7 @@ title: References
 <details>
 <summary>Show Orphans</summary>
 
-* [My work][work] \`work-tasks.md\` : [Not a link], [Orphaned Link]
+* [My Work][work] \`./work-tasks.md\` : [Not a link], [Orphaned link], 
 
 </details>
 
@@ -171,12 +172,12 @@ test('templator creates modified date', () => {
           matchData:{
             "Tags": ["#atag", "#btag"],
             "Links": ["[work]"],
-            "Orphans": ["[Not a link]"],
             "Contexts": ["@work"]}},
         {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', 
           matchData:{
             "Tags": ["#atag"],
-            "Links": ["[project]"],
+            "Links": [],
+            "Orphans": ["[Not a link]", "[Orphaned link]"],
             "Tasks": ["(A) My important task"]}}],
         [new TagCollector, new TaskCollector, new WikiCollector, new ContextCollector, new OrphanCollector]);
     expect(sut.render(full_template, new Date("2021-01-01"), new Date("2021-01-01"))).toBe(full_expected);

@@ -1,6 +1,6 @@
 {
   "name": "zettel-lint",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Command line zettel linting/indexing",
   "main": "./lib/zl.js",
   "bin": {
@@ -31,12 +31,12 @@
   },
   "homepage": "https://github.com/zettel-lint/zettel-lint#readme",
   "dependencies": {
-    "@types/jest": "^26.0.15",
+    "@types/jest": "^26.0.23",
     "axios": "^0.21.1",
-    "chalk": "^4.0.0",
+    "chalk": "^4.1.1",
     "clear": "^0.1.0",
     "commander": "^5.1.0",
-    "figlet": "^1.4.0",
+    "figlet": "^1.5.0",
     "fs": "0.0.2",
     "glob": "^7.1.6",
     "glob-promise": "^3.4.0",

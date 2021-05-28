@@ -1,0 +1,70 @@
+---
+created: {{created}}
+modified: {{modified}}
+title: References
+---
+
+# References
+
+## Links
+
+<details>
+<summary>Show Links</summary>
+
+{{#Links}}{{#value}}
+* [{{title}}][{{id}}] = `{{{filename}}}`:
+  * {{#data}}{{.}}, {{/data}}{{^data}}No links{{/data}}
+  * {{#bag}}[{{.}}], {{/bag}}{{^bag}}No backlinks{{/bag}}
+{{/value}}{{/Links}}
+
+</details>
+
+## Orphans
+
+<details>
+<summary>Show Orphans</summary>
+
+{{#Orphans}}
+* {{#value}}[{{title}}][{{id}}]{{/value}} `{{{key}}}`: {{#value}}{{#data}}{{{.}}}, {{/data}}{{/value}}
+{{/Orphans}}
+
+</details>
+
+## Contexts
+
+<details>
+<summary>Show Contexts</summary>
+
+{{#Contexts}}
+* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}}
+{{/Contexts}}
+
+</details>
+
+## Tags
+
+<details>
+<summary>Show Tags</summary>
+
+{{#Tags}}
+* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{^last}}, {{/last}}{{/value}}
+{{/Tags}}
+
+</details>
+
+## Tasks
+
+<details>
+<summary>Show Tasks</summary>
+
+{{#Tasks}}
+* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}}
+{{/Tasks}}
+
+</details>
+
+## References
+
+{{#notes}}
+[{{id}}]: {{{filename}}} ({{title}})
+{{/notes}}

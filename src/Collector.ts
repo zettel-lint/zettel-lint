@@ -1,5 +1,5 @@
 import { AnyTxtRecord } from "dns";
-import { formatData, fileWikiLinks } from "./types";
+import { formatData, fileWikiLinks, invertData } from "./types";
 
 export abstract class Collector {
   abstract readonly dataName: string;
@@ -13,13 +13,17 @@ export abstract class Collector {
   }
   protected shouldCollect(filename: string): boolean { return true; }
   protected abstract collect(content: string): string[];
-  private extractData(ref: fileWikiLinks): formatData {
+  public extractData(ref: fileWikiLinks): formatData {
     return {
       ...ref,
       name: this.dataName,
-      data: ref.matchData[this.dataName]
+      data: ref.matchData[this.dataName],
+      bag: []
     };
   };
+  public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
+    return invertData(files?.map(ref => this.extractData(ref)));
+  }
   public formatter(references: fileWikiLinks[]): string {
     return "## " + this.dataName + "\n\n<details>\n<summary>Show " + this.dataName + "</summary>\n\n" +
       this.format(

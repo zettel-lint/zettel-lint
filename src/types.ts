@@ -14,6 +14,7 @@ export class formatData {
   fullpath: string | undefined;
   name: string | undefined;
   data: string[] = [];
+  bag: any[] = [];
 }
 
 export function formatLink(ref: formatData): string {
@@ -24,6 +25,24 @@ export function min(x: number, y: number): number | undefined {
   if (x == null || y == null) return undefined; // null == undefined
   if (x < y) return x;
   return y;
+}
+
+export function collectBacklinks(references: formatData[]) {
+  var tagList = new Map<string, string[]>();
+
+  references.forEach(ref => {
+    const tags = ref.data;
+    if (tags != undefined) {
+      tags.forEach(tag => {
+        tag = tag.replace("[", "").replace("]", "")
+        if (tagList.get(tag) === undefined) {
+          tagList.set(tag, []);
+        }
+        tagList.get(tag)?.push(ref.id ?? ref.filename ?? "");
+      });
+    }
+  });
+  return tagList;
 }
 
 export function invertDictionary(references: formatData[]) {
