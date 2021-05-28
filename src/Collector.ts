@@ -17,7 +17,8 @@ export abstract class Collector {
     return {
       ...ref,
       name: this.dataName,
-      data: ref.matchData[this.dataName]
+      data: ref.matchData[this.dataName],
+      bag: []
     };
   };
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {

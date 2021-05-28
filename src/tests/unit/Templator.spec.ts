@@ -17,11 +17,11 @@ title: References
 <details>
 <summary>Show Links</summary>
 
-{{#Links}}
-* {{#value}}[{{title}}][{{id}}] {{/value}}= '{{{key}}}':
-  * {{#value}}{{#data}}{{.}}, {{/data}}{{^data}}No links{{/data}}{{/value}}  
-  * {{#value}}{{#bag}}[{{id}}], {{/bag}}{{^bag}}No backlinks{{/bag}}{{/value}}  
-{{/Links}}
+{{#Links}}{{#value}}
+* [{{title}}][{{id}}] = '{{{filename}}}':
+  * {{#data}}{{.}}, {{/data}}{{^data}}No links{{/data}}
+  * {{#bag}}[{{.}}], {{/bag}}{{^bag}}No backlinks{{/bag}}
+{{/value}}{{/Links}}
 
 </details>
 
@@ -89,9 +89,9 @@ title: References
 
 * [My Project][project] = './project-tasks.md':
   * [work], 
-  * [work], 
+  * No backlinks
 * [My Work][work] = './work-tasks.md':
-  * [project], 
+  * No links
   * [project], 
 
 </details>
@@ -176,7 +176,7 @@ test('templator creates modified date', () => {
         {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', 
           matchData:{
             "Tags": ["#atag"],
-            "Links": ["[project]"],
+            "Links": [],
             "Orphans": ["[Not a link]", "[Orphaned link]"],
             "Tasks": ["(A) My important task"]}}],
         [new TagCollector, new TaskCollector, new WikiCollector, new ContextCollector, new OrphanCollector]);

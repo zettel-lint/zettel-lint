@@ -1,21 +1,20 @@
-import { formatData, invertDictionary, formatLink, fileWikiLinks } from "./types";
+import { formatData, invertDictionary, formatLink, fileWikiLinks, collectBacklinks } from "./types";
 import { RegexCollector } from "./RegexCollector";
-import { exception } from "console";
 
 export class WikiCollector extends RegexCollector {
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
     var result = new Map<string, formatData[]>();
     
     files
-      ?.filter(ref => ref.filename != undefined)
-      .map(ref => result.set(ref.filename ?? "", [{...this.extractData(ref)}]));
-    const bag = invertDictionary([...result.values()].flat());
-    
+      ?.filter(ref => ref.id != undefined)
+      .map(ref => result.set(ref.id ?? "", [{...this.extractData(ref)}]));
+    const bag = collectBacklinks([...result.values()].flat());
+    bag.forEach((v, k) => v.forEach(n => result.get(k)?.forEach(data => data.bag.push(n))));
     return result;
   }
   public extractData(ref: fileWikiLinks): formatData {
     var data = super.extractData(ref);
-    return {...data, bag: invertDictionary([data])}
+    return {...data, bag: collectBacklinks([data]).get(ref.filename ?? "") ?? []}
   }  
   protected format(references: formatData[]): string {
     var backList: { [target: string]: string[]; } = invertDictionary(references);
