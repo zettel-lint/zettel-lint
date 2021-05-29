@@ -4,7 +4,7 @@ test('adds index to cli', () => {
     expect(indexerCommand().name()).toBe("index");
   });
 
-test('can parse source', () => {
+test('can parse ignoreDirs', () => {
   expect(indexerCommand().parse(["node", "zl", "--ignore-dirs", "node_modules", "--path", "."]).ignoreDirs).toBe("node_modules");
 });
 

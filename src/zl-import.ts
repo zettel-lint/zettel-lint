@@ -7,6 +7,7 @@ import commander from "commander";
 import TrelloImport from "./trello-import";
 import { ErrorResponse } from "./base-importer";
 import { exit } from "process";
+import { resolve } from "path";
 
 export default function importerCommand() {
   const idxer = new commander.Command('import');
@@ -35,28 +36,33 @@ function printHeader(program: any): void {
 
 
 function importer(program: any): void {
-    printHeader(program);
-    if(program.outputFolder === undefined) {
-      program.outputFolder = '../' + program.source + '/'
-    }
-
-    async function parseFiles() {
-        var response: ErrorResponse;
-
-        switch (program.source) {
-            case "trello": response = await (new TrelloImport).importAsync(program.path, program.outputFolder); break;
-            default:
-                response = { success: false, message: "Unknown source " + program.source };
-        }
-
-        if ((response !== undefined) && (program.verbose || !response.success)) {
-          console.error(response.message);
-          exit(1);
-        }
-    };
-  
-    parseFiles().then(
-      () => console.log("Updated"),
-      (reason) => { console.error("Error: " + reason); exit(2); }
-    )
+  printHeader(program);
+  if(program.outputFolder === undefined) {
+    program.outputFolder = '../' + program.source + '/'
   }
+
+  function delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function parseFiles() {
+      var response: ErrorResponse;
+
+      switch (program.source) {
+          case "trello": response = await (new TrelloImport).importAsync(program.path, program.outputFolder); break;
+          case "unknown": await delay(100); response = { success: true, message: "No-op" }; break;
+          default:
+              response = { success: false, message: "Unknown source " + program.source };
+      }
+
+      if ((response !== undefined) && (!response.success)) {
+        console.error(response.message);
+        exit(1);
+      }
+  };
+
+  parseFiles().then(
+    () => { if(program.verbose) { console.log("Updated") }},
+    (reason) => { console.error("Error: " + reason); exit(2); }
+  )
+}

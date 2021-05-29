@@ -120,7 +120,7 @@ function indexer(program: any): void {
   };
 
   parseFiles().then(
-    () => console.log("Updated"),
+    () => { if (program.verbose) { console.log("Updated") } },
     (reason) => { console.error("Error: " + reason); exit(2); }
   )
 }
