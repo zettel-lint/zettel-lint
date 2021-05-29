@@ -17,6 +17,7 @@ import { fileWikiLinks } from "./types";
 import { idFromFilename } from "./file-handling";
 import { Templator } from "./Templator";
 import path from "path";
+import { exit } from "process";
 
 export default function indexerCommand() {
   const idxer = new commander.Command('index');
@@ -47,6 +48,7 @@ function printHeader(program: any): void {
     console.log((program.daily ? "" : "NOT ") + "creating dailies");
     console.log("Ignoring dirs: " + program.ignoreDirs);
     console.log("Outputting references to " + program.referenceFile);
+    console.log("Using template file: " + program.templateFile)
     console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
     console.log("Displaying Tasks " + program.taskDisplay)
   }
@@ -111,11 +113,14 @@ function indexer(program: any): void {
       const formatted = templator.render(template)
 
       await fs.writeFile(program.referenceFile, formatted);
-    };
+    } else {
+      console.error("No output or template file found. Exiting.");
+      exit(1);
+    }
   };
 
   parseFiles().then(
     () => console.log("Updated"),
-    () => console.log("Error")
+    (reason) => { console.log("Error: " + reason); exit(2); }
   )
 }
