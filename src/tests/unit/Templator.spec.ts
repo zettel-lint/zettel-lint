@@ -170,7 +170,7 @@ test('templator creates modified date', () => {
     var sut = new Templator([
         {id: 'work', filename: './work-tasks.md', title: 'My (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
-    expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{title}}}][{{id}}],{{/value}}\n{{/Contexts}}")).toBe("* @work : [My _Other_ Work][work],\n");
+    expect(sut.enhance("This {{?query}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter(query)}} has an escaped {{markdown_escape(title)}}{{/query_filter(query)}}");
   });
 
   test('full template matches reference', () => {

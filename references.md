@@ -1,6 +1,6 @@
 ---
-created: 2021-05-29T14:36:49.270Z
-modified: 2021-05-29T14:36:49.270Z
+created: 2021-05-29T21:50:22.693Z
+modified: 2021-05-29T21:50:22.693Z
 title: References
 ---
 
@@ -140,3 +140,7 @@ title: References
 
 ## References
 
+[README]: README.md (Readme)
+[README]: README.md (Readme)
+[tasks]: tasks.md (tasks)
+[vision]: vision.md (vision)

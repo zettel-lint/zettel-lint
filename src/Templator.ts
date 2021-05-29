@@ -32,7 +32,11 @@ export class Templator {
     }
 
     enhance(template: string): string {
-        return template;
+        return template
+            .replace(/{{[``](\w+)}}/g, "{{markdown_escape($1)}}")
+            .replace(/{{[\?](\w+)}}/g, "{{#query_filter($1)}}")
+            .replace(/{{\/[\?](\w+)}}/g, "{{/query_filter($1)}}")
+            ;
     }
     
     render(template: string, created: Date | undefined = undefined, modified: Date | undefined = undefined): string {
