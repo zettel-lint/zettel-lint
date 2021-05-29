@@ -16,6 +16,7 @@ import { collectMatches } from "./RegexCollector";
 import { fileWikiLinks } from "./types";
 import { idFromFilename } from "./file-handling";
 import { Templator } from "./Templator";
+import path from "path";
 
 export default function indexerCommand() {
   const idxer = new commander.Command('index');
@@ -24,7 +25,7 @@ export default function indexerCommand() {
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
     .option('-r, --reference-file <path>', "Path to output reference.md", "references.md")
-    .option('-m, --template-file <path>', "Path to input mustache template", "references.md.mustache")
+    .option('-m, --template-file <path>', "Path to input mustache template", path.resolve(__dirname, "references.md.mustache"))
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('-t, --task-display <format>', "Display tasks? 'none' 'by-file' 'by-priority'", "by-file")
     .option('--json-debug-output', "Output JSON intermediate representations")
