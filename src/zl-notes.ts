@@ -6,6 +6,7 @@ import { clear } from "console";
 import chalk from "chalk";
 import figlet from "figlet";
 import { collectMatches } from "./RegexCollector";
+import { exit } from "process";
 
 export default function notesCommand() {
   const notes = new commander.Command('notes');
@@ -82,6 +83,6 @@ function lintNotes(program: any): void {
 
   parseFiles().then(
     () => console.log("Updated"),
-    (err) => console.error("Error", err)
+    (err) => {console.error(err); exit(2)}
   )
 }

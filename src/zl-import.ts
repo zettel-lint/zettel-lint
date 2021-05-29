@@ -6,6 +6,7 @@ import figlet from "figlet";
 import commander from "commander";
 import TrelloImport from "./trello-import";
 import { ErrorResponse } from "./base-importer";
+import { exit } from "process";
 
 export default function importerCommand() {
   const idxer = new commander.Command('import');
@@ -50,11 +51,12 @@ function importer(program: any): void {
 
         if ((response !== undefined) && (program.verbose || !response.success)) {
           console.error(response.message);
+          exit(1);
         }
     };
   
     parseFiles().then(
       () => console.log("Updated"),
-      () => console.log("Error")
+      (reason) => { console.error("Error: " + reason); exit(2); }
     )
   }

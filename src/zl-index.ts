@@ -121,6 +121,6 @@ function indexer(program: any): void {
 
   parseFiles().then(
     () => console.log("Updated"),
-    (reason) => { console.log("Error: " + reason); exit(2); }
+    (reason) => { console.error("Error: " + reason); exit(2); }
   )
 }
