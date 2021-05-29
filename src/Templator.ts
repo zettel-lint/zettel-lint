@@ -20,6 +20,16 @@ export class Templator {
         }
         this.viewProps = {
             notes: this.notes,
+            markdown_escape() {
+                return function(text: string, render: any) {
+                    return render(text).replace("(", "{").replace(")", "}");
+                }
+            },
+            query_filter() {
+                return function(text: string, render: any) {
+                    return render(text);
+                }
+            }
         }
         collectors?.forEach(collector =>
             Object.defineProperty(this.viewProps, collector.dataName, 
@@ -33,7 +43,9 @@ export class Templator {
 
     enhance(template: string): string {
         return template
-            .replace(/{{[``](\w+)}}/g, "{{markdown_escape($1)}}")
+            // Escaped and non-escaped versions
+            .replace(/{{{[``](\w+)}}}/g, "{{#markdown_escape}}{{{$1}}}{{/markdown_escape}}")
+            .replace(/{{[``](\w+)}}/g, "{{#markdown_escape}}{{$1}}{{/markdown_escape}}")
             .replace(/{{[\?](\w+)}}/g, "{{#query_filter($1)}}")
             .replace(/{{\/[\?](\w+)}}/g, "{{/query_filter($1)}}")
             ;

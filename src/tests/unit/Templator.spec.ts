@@ -139,7 +139,7 @@ title: References
 [work]: ./work-tasks.md (My Work)
 `
 
-test('templator creates modified date', () => {
+  test('templator creates modified date', () => {
     var sut = new Templator();
     expect(sut.render("{{modified}}")).toContain(new Date(Date.now()).toISOString().substr(0,20)); //ms don't matter
   });
@@ -166,11 +166,18 @@ test('templator creates modified date', () => {
     expect(sut.render("{{#Tags}}\n* {{key}} : {{#value}}[{{{title}}}][{{id}}],{{/value}}\n{{/Tags}}")).toBe("* #atag : [My Project][project],[My Work][work],\n* #btag : [My Project][project],\n");
   });
 
+  test('templator accepts escape and query operators', () => {
+    var sut = new Templator([
+        {id: 'work', filename: './work-tasks.md', title: 'My (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
+        [new ContextCollector]);
+    expect(sut.enhance("This {{?query}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter(query)}} has an escaped {{#markdown_escape}}{{title}}{{/markdown_escape}}{{/query_filter(query)}}");
+  });
+
   test('templator escapes markdown', () => {
     var sut = new Templator([
         {id: 'work', filename: './work-tasks.md', title: 'My (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
-    expect(sut.enhance("This {{?query}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter(query)}} has an escaped {{markdown_escape(title)}}{{/query_filter(query)}}");
+    expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{`title}}}][{{id}}],{{/value}}\n{{/Contexts}}")).toBe("* @work : [My {Other} Work][work],\n");
   });
 
   test('full template matches reference', () => {

@@ -34,21 +34,37 @@
       "name": "Test Index",
       "request": "launch",
       "type": "node-terminal",
-      "cwd":"${workspaceFolder}"
+      "cwd": "${workspaceFolder}"
     },
     {
       "command": "npm run-script zl -- notes -v -i \"node_modules/**\" --verbose --show-orphans",
       "name": "Test Notes",
       "request": "launch",
       "type": "node-terminal",
-      "cwd":"${workspaceFolder}"
+      "cwd": "${workspaceFolder}"
     },
     {
       "command": "npm run-script create",
       "name": "create",
       "request": "launch",
       "type": "node-terminal",
-      "cwd":"${workspaceFolder}"
-    }            
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "name": "vscode-jest-tests",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "disableOptimisticBPs": true,
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "npm",
+      "args": [
+        "test",
+        "--",
+        "--runInBand",
+        "--watchAll=false"
+      ]
+    }
   ]
 }
