@@ -166,6 +166,13 @@ test('templator creates modified date', () => {
     expect(sut.render("{{#Tags}}\n* {{key}} : {{#value}}[{{{title}}}][{{id}}],{{/value}}\n{{/Tags}}")).toBe("* #atag : [My Project][project],[My Work][work],\n* #btag : [My Project][project],\n");
   });
 
+  test('templator escapes markdown', () => {
+    var sut = new Templator([
+        {id: 'work', filename: './work-tasks.md', title: 'My (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
+        [new ContextCollector]);
+    expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{title}}}][{{id}}],{{/value}}\n{{/Contexts}}")).toBe("* @work : [My _Other_ Work][work],\n");
+  });
+
   test('full template matches reference', () => {
     var sut = new Templator(
       [ {id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', 

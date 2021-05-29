@@ -31,11 +31,15 @@ export class Templator {
         return {key: input[0], value: input[1]};
     }
 
+    enhance(template: string): string {
+        return template;
+    }
+    
     render(template: string, created: Date | undefined = undefined, modified: Date | undefined = undefined): string {
         const view = this.viewProps ?? {};
         view.created = new Date(created ?? Date.now()).toISOString();
         view.modified = new Date(modified ?? Date.now()).toISOString();
-        return Mustache.render(template, view);
+        return Mustache.render(this.enhance(template), view);
     }
-
 }
+
