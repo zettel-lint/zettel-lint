@@ -19,6 +19,7 @@ export class Templator {
             this.collectors = collectors;
         }
         this.viewProps = {
+            queryCount: 0,
             notes: this.notes,
             markdown_escape() {
                 return function(text: string, render: any) {
@@ -26,8 +27,27 @@ export class Templator {
                 }
             },
             query_filter() {
+                const view = this;
                 return function(text: string, render: any) {
-                    return render(text);
+                    // query = {{`tag[filter]`}}
+                    const query_end = text.indexOf("`}}") + 3
+                    const query = text.substr(3, query_end - 6);
+                    const tag = query.substr(0, query.indexOf("["));
+                    const filter = query.substr(query.indexOf("[")+1, query.length-tag.length-2);
+                    const rr = new RegExp(filter);
+                    const filtered = "q" + view.queryCount++;
+                    Object.defineProperty(view, filtered, {
+                        value: function() {
+                            return function(text: string, render: any) {
+                                const result = render(text);
+                                if (rr.test(result)) {
+                                    return result;
+                                }
+                            }
+                        }
+                    })
+                    const children = `{{#${tag}}}{{#${filtered}}}${text.substr(query_end)}{{/${filtered}}}{{/${tag}}}`;
+                    return render(children);
                 }
             }
         }
@@ -46,8 +66,8 @@ export class Templator {
             // Escaped and non-escaped versions
             .replace(/{{{[``](\w+)}}}/g, "{{#markdown_escape}}{{{$1}}}{{/markdown_escape}}")
             .replace(/{{[``](\w+)}}/g, "{{#markdown_escape}}{{$1}}{{/markdown_escape}}")
-            .replace(/{{[\?](\w+)}}/g, "{{#query_filter($1)}}")
-            .replace(/{{\/[\?](\w+)}}/g, "{{/query_filter($1)}}")
+            .replace(/{{[\?]([^}]+)}}/g, "{{#query_filter}}{{`$1`}}")
+            .replace(/{{\/[\?](\w+)}}/g, "{{/query_filter}}")
             ;
     }
     

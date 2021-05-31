@@ -159,6 +159,11 @@ title: References
     expect(sut.render("{{#Tasks}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n* (B) Do the other thing => [My Project][project] \n");
   });
 
+  test('templator can filter task links', () => {
+    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
+    expect(sut.render("{{?Tasks[\\(A\\)]}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/?Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n");
+  });
+
   test('templator can create multiple tag links', () => {
     var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tags": ["#atag", "#btag"]}},
         {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', matchData:{"Tags": ["#atag"]}}],
@@ -170,7 +175,7 @@ title: References
     var sut = new Templator([
         {id: 'work', filename: './work-tasks.md', title: 'My (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
-    expect(sut.enhance("This {{?query}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter(query)}} has an escaped {{#markdown_escape}}{{title}}{{/markdown_escape}}{{/query_filter(query)}}");
+    expect(sut.enhance("This {{?query[/search/]}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter}}{{`query[/search/]`}} has an escaped {{#markdown_escape}}{{title}}{{/markdown_escape}}{{/query_filter}}");
   });
 
   test('templator escapes markdown', () => {
