@@ -13,6 +13,8 @@ program
   .description("A linter/compiler for Zettel markdown repositories")
   .command("cron <cron-mode-args>", "Create daily entry if it doesn't exist")
   ;
+console.log(`zettel-lint (v${program.version}) See LICENCE for copyright details.`)
+
 program.addCommand(indexerCommand());
 program.addCommand(importerCommand());
 program.addCommand(notesCommand());
@@ -26,5 +28,4 @@ if (program.verbose) {
         figlet.textSync('zettel-lint', { horizontalLayout: 'full' })
       )
     );
-  
 }
