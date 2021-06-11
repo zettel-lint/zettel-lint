@@ -1,6 +1,6 @@
 ---
-created: 2021-06-10T22:19:57.003Z
-modified: 2021-06-10T22:19:57.003Z
+created: 2021-06-11T21:56:14.230Z
+modified: 2021-06-11T21:56:14.230Z
 title: References
 ---
 
@@ -17,7 +17,7 @@ title: References
 * [tasks][tasks] = `tasks.md`:
   * [[xxxxxxxxxxxxx]], 
   * No backlinks
-* [vision][vision] = `vision.md`:
+* [vision - (my frustrations and goals) - &amp; roadmap][vision] = `vision.md`:
   * No links
   * No backlinks
 
@@ -46,7 +46,7 @@ title: References
 <details>
 <summary>Show Tags</summary>
 
-* #hashtag => [Readme][README], [Readme][README], 
+* #hashtag => [Readme][README], [Readme][README], [Readme][README], 
 * #Recurring => [tasks][tasks], 
 * #Template => [tasks][tasks], 
 * #ToDo => [tasks][tasks], 
@@ -143,4 +143,4 @@ title: References
 [README]: README.md (Readme)
 [README]: README.md (Readme)
 [tasks]: tasks.md (tasks)
-[vision]: vision.md (vision)
+[vision]: vision.md (vision - (my frustrations and goals) - &amp; roadmap)

@@ -1,5 +1,5 @@
 ---
-title: vision
+title: vision - (my frustrations and goals) - & roadmap
 created: 2020-10-11 21:48
 ---
 

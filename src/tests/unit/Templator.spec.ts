@@ -173,16 +173,16 @@ title: References
 
   test('templator accepts escape and query operators', () => {
     var sut = new Templator([
-        {id: 'work', filename: './work-tasks.md', title: 'My (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
+        {id: 'work', filename: './work-tasks.md', title: 'My - (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
     expect(sut.enhance("This {{?query[/search/]}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter}}{{`query[/search/]`}} has an escaped {{#markdown_escape}}{{title}}{{/markdown_escape}}{{/query_filter}}");
   });
 
   test('templator escapes markdown', () => {
     var sut = new Templator([
-        {id: 'work', filename: './work-tasks.md', title: 'My (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
+        {id: 'work', filename: './work-tasks.md', title: 'My - (Other)side Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
-    expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{`title}}}][{{id}}] ({{{`title}}}),{{/value}}\n{{/Contexts}}")).toBe("* @work : [My {Other} Work][work] (My {Other} Work),\n");
+    expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{`title}}}][{{id}}] ({{{`title}}}),{{/value}}\n{{/Contexts}}")).toBe("* @work : [My - &lpar;Other&rpar;side Work][work] (My - &lpar;Other&rpar;side Work),\n");
   });
 
   test.skip('templator accepts @time operator', () => {
