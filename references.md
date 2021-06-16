@@ -1,6 +1,6 @@
 ---
-created: 2021-05-31T23:21:47.310Z
-modified: 2021-05-31T23:21:47.310Z
+created: 2021-06-11T22:34:01.472Z
+modified: 2021-06-11T22:34:01.472Z
 title: References
 ---
 
@@ -14,10 +14,13 @@ title: References
 * [Readme][README] = `README.md`:
   * [00000001], [00000000], 
   * No backlinks
+* [Readme][links] = `links-orphans-contexts-tags.md`:
+  * [00000001], [00000000], 
+  * No backlinks
 * [tasks][tasks] = `tasks.md`:
   * [[xxxxxxxxxxxxx]], 
   * No backlinks
-* [vision][vision] = `vision.md`:
+* [vision - (my frustrations and goals) - &amp; roadmap][vision] = `vision.md`:
   * No links
   * No backlinks
 
@@ -28,7 +31,8 @@ title: References
 <details>
 <summary>Show Orphans</summary>
 
-* [Readme][README] `README.md`: [This is a link to a page that doesn't exist - an orphan], 
+* [Readme][README] `README.md`: [This is a link to a page that doesn't exist - an orphan], [filter]}, 
+* [Readme][links] `links-orphans-contexts-tags.md`: [This is a link to a page that doesn't exist - an orphan], 
 * [tasks][tasks] `tasks.md`: [Titles] links into [[xxxxxxxxxxxxx]], 
 
 </details>
@@ -46,7 +50,7 @@ title: References
 <details>
 <summary>Show Tags</summary>
 
-* #hashtag => [Readme][README], [Readme][README], 
+* #hashtag => [Readme][README], [Readme][README], [Readme][links], 
 * #Recurring => [tasks][tasks], 
 * #Template => [tasks][tasks], 
 * #ToDo => [tasks][tasks], 
@@ -58,8 +62,8 @@ title: References
 <details>
 <summary>Show Tasks</summary>
 
-* [ ] This is a task => [Readme][README][Readme][README]
-* [ ] Also supports tasks in a bullet list => [Readme][README][Readme][README]
+* [ ] This is a task => [Readme][README][Readme][links]
+* [ ] Also supports tasks in a bullet list => [Readme][README][Readme][links]
 * (E) See [FOAM](https://foambubble.github.io/foam/) for VS Code-based solution => [tasks][tasks]
 * (C) Should take seconds to run, at most, on 10000 file example repo => [tasks][tasks]
 * (E) Add tests for regex => [tasks][tasks]
@@ -141,6 +145,7 @@ title: References
 ## References
 
 [README]: README.md (Readme)
-[README]: README.md (Readme)
+[links]: links-orphans-contexts-tags.md (Readme)
 [tasks]: tasks.md (tasks)
-[vision]: vision.md (vision)
+[vision]: vision.md (vision - (my frustrations and goals) - &amp; roadmap)
+ roadmap)

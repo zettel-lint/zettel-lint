@@ -21,9 +21,21 @@ export class Templator {
         this.viewProps = {
             queryCount: 0,
             notes: this.notes,
+            created: new Date(),
+            modified: new Date(),
+            on(){
+                var view = this;
+                return function(text: string, render: any) {
+                    // query = {{`tag[filter]`}}
+                    const query_end = text.indexOf("`}}") + 3
+                    const when = text.substr(3, query_end - 6);
+                    const changed : Date = view.modified;
+                    return render(text) + ` --${when}-- ++${new Date(changed).getUTCDay()}++ **${new Date(view.created).getUTCDay()}**`;
+                }
+            },
             markdown_escape() {
                 return function(text: string, render: any) {
-                    return render(text).replace("(", "{").replace(")", "}");
+                    return render(text).replace("(", "&lpar;").replace(")", "&rpar;");
                 }
             },
             query_filter() {
@@ -67,8 +79,10 @@ export class Templator {
             .replace(/{{{[``](\w+)}}}/g, "{{#markdown_escape}}{{{$1}}}{{/markdown_escape}}")
             .replace(/{{[``](\w+)}}/g, "{{#markdown_escape}}{{$1}}{{/markdown_escape}}")
             .replace(/{{[\?]([^}]+)}}/g, "{{#query_filter}}{{`$1`}}")
-            .replace(/{{\/[\?](\w+)}}/g, "{{/query_filter}}")
-            ;
+            .replace(/{{\/[\?](\w*)}}/g, "{{/query_filter}}")
+/*            .replace(/{{[\@]([^}]+)}}/g, "{{#on}}{{`$1`}}")
+            .replace(/{{\/[\@](\w+)}}/g, "{{/on}}")
+*/            ;
     }
     
     render(template: string, created: Date | undefined = undefined, modified: Date | undefined = undefined): string {

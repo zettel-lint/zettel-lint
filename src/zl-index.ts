@@ -89,10 +89,6 @@ function indexer(program: any): void {
     ignoreList.push(program.ignoreDirs);
   }
 
-  function escapeTitle(title: string) : string {
-    return title.replace("(", "{").replace(")", "}");
-  }
-
   async function parseFiles() {
     var references: fileWikiLinks[] = [];
 
@@ -112,6 +108,9 @@ function indexer(program: any): void {
     if (program.referenceFile && program.templateFile) { 
       const template = await fs.readFile(program.templateFile, "utf8");
       const templator = new Templator(references, collectors);
+      if(program.verbose) {
+        console.log(templator.enhance(template));
+      }
       const formatted = templator.render(template)
 
       await fs.writeFile(program.referenceFile, formatted);
