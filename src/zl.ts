@@ -7,12 +7,15 @@ import program from "commander";
 import indexerCommand from "./zl-index";
 import importerCommand from "./zl-import";
 import notesCommand from "./zl-notes";
+import {version as packageVersion} from "../package.json";
+
+export const version = packageVersion;
 
 program
-  .version('0.10.9')
+  .version(version)
   .description("A linter/compiler for Zettel markdown repositories")
   ;
-console.log(`zettel-lint (v${program.version}) See LICENCE for copyright details.`)
+console.log(`zettel-lint (v${version}). See LICENCE for copyright details.`)
 
 program.addCommand(indexerCommand());
 program.addCommand(importerCommand());
