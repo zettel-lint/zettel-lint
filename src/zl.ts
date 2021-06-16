@@ -7,9 +7,10 @@ import program from "commander";
 import indexerCommand from "./zl-index";
 import importerCommand from "./zl-import";
 import notesCommand from "./zl-notes";
-import {version as packageVersion} from "../package.json";
+// THIS import is outside `src/` folder so fails the build
+// import {version as packageVersion} from "../package.json";
 
-export const version = packageVersion;
+export const version = "0.10.10";
 
 program
   .version(version)
