@@ -12,7 +12,8 @@ import { resolve } from "path";
 export default function importerCommand() {
   const idxer = new commander.Command('import');
   idxer
-    .description("Import once from a 3rd party")
+    .description("Import once from a 3rd party. WIll create new files or OVERWRITE existing ones")
+    .alias("sync")
     .requiredOption('-s, --source <name>', "Source *e.g. trello, csv, etc...*")
     .requiredOption('-p, --path <path>', "Search path, supports wildcards", ".")
     .option('-o, --output-folder <path>', "Folder to save notes to", "../import/")

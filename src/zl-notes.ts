@@ -11,7 +11,8 @@ import { exit } from "process";
 export default function notesCommand() {
   const notes = new commander.Command('notes');
   notes
-    .description("Lint and fix notes markdown files")
+    .description("Lint and fix notes markdown files. Will update existing files.")
+    .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
     .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]")

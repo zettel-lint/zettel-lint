@@ -22,10 +22,12 @@ import { exit } from "process";
 export default function indexerCommand() {
   const idxer = new commander.Command('index');
   idxer
-    .description("Generate index/reference file")
+    .description("Generate index/reference file. Will OVERWRITE any exiting files.")
+    .alias("create")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
     .option('-r, --reference-file <path>', "Path to output reference.md", "references.md")
+    .option('-c, --create-file <path>', "Path to output file", "references.md")
     .option('-m, --template-file <path>', "Path to input mustache template", path.resolve(__dirname, "references.md.mustache"))
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('-t, --task-display <format>', "Display tasks? 'none' 'by-file' 'by-priority'", "by-file")
