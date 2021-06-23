@@ -42,10 +42,11 @@ export class Templator {
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag[filter]`}}
+                    const query_extract = /^{{`(\w+)\[([^]*)\]`}}/;
+                    const [, tag, filter] = query_extract.exec(text) || [];
+
                     const query_end = text.indexOf("`}}") + 3
-                    const query = text.substr(3, query_end - 6);
-                    const tag = query.substr(0, query.indexOf("["));
-                    const filter = query.substr(query.indexOf("[")+1, query.length-tag.length-2);
+
                     const rr = new RegExp(filter);
                     const filtered = "q" + view.queryCount++;
                     Object.defineProperty(view, filtered, {
