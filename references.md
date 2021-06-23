@@ -1,6 +1,6 @@
 ---
-created: 2021-06-11T22:34:01.472Z
-modified: 2021-06-11T22:34:01.472Z
+created: 2021-06-23T14:45:37.167Z
+modified: 2021-06-23T14:45:37.167Z
 title: References
 ---
 
@@ -147,5 +147,4 @@ title: References
 [README]: README.md (Readme)
 [links]: links-orphans-contexts-tags.md (Readme)
 [tasks]: tasks.md (tasks)
-[vision]: vision.md (vision - (my frustrations and goals) - &amp; roadmap)
- roadmap)
+[vision]: vision.md (vision - &lpar;my frustrations and goals&rpar; - &amp; roadmap)

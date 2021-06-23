@@ -47,6 +47,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 
 ## `zl index` Tasks
 
+* (A) Use better regex for filter parsing, to support complex internal regex
 * (B) Grep for orphaned + links across all files (including .txt)
 * (B) link checker should support wiki-link syntax
 * (B) Task list should include `*.txt` except `done*.txt` (or configurable exclude glob for non-English users)
