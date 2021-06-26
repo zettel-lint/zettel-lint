@@ -161,7 +161,17 @@ title: References
 
   test('templator can filter task links', () => {
     var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
-    expect(sut.render("{{?Tasks[\\(A\\)]}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/?Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n");
+    expect(sut.render("{{#Tasks}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n* (B) Do the other thing => [My Project][project] \n");
+  });
+
+  test('templator can sort alphabetically', () => {
+    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing","(C) Do the last thing due:2020-01-01","(B) Do the other thing due:2021-01-01"]}}], [new TaskCollector]);
+    expect(sut.render("{{?Tasks?sort()/\\(A\\)/}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/?Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n* (B) Do the other thing due:2021-01-01 => [My Project][project] \n* (C) Do the last thing due:2020-01-01 => [My Project][project] \n");
+  });
+
+  test('templator can sort by key', () => {
+    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
+    expect(sut.render("{{?Tasks?sort(\"due\")/\\(A\\)/}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/?Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n* (B) Do the other thing due:2021-01-01 => [My Project][project] \n* (C) Do the last thing due:2020-01-01 => [My Project][project] \n");
   });
 
   test('templator can create multiple tag links', () => {
@@ -175,7 +185,7 @@ title: References
     var sut = new Templator([
         {id: 'work', filename: './work-tasks.md', title: 'My - (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
-    expect(sut.enhance("This {{?query[/search/]}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter}}{{`query[/search/]`}} has an escaped {{#markdown_escape}}{{title}}{{/markdown_escape}}{{/query_filter}}");
+    expect(sut.enhance("This {{?query//search//}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter}}{{`query//search//`}} has an escaped {{#markdown_escape}}{{title}}{{/markdown_escape}}{{/query_filter}}");
   });
 
   test('templator escapes markdown', () => {

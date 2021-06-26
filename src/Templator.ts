@@ -41,9 +41,9 @@ export class Templator {
             query_filter() {
                 const view = this;
                 return function(text: string, render: any) {
-                    // query = {{`tag[filter]`}}
-                    const query_extract = /^{{`(\w+)\[([^]*)\]`}}/;
-                    const [, tag, filter] = query_extract.exec(text) || [];
+                    // query = {{`tag?sort(by)[filter]`}}
+                    const query_extract = /^{{`(\w+)(?:\?sort\((\w+)\))?\/([^]*)\/`}}/;
+                    const [, tag, sort, filter] = query_extract.exec(text) || [];
 
                     const query_end = text.indexOf("`}}") + 3
 
