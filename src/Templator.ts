@@ -52,16 +52,21 @@ export class Templator {
                         const sorted = "s" + view.queryCount++;
                         Object.defineProperty(view, sorted, {
                             value: function() {
-                                const fullKeySearch = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
+                                let comparator = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
                                     return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
                                 };
-                                const keyValueSearch = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
-                                    return a.key < b.key ? -1 
-                                        : a.key > b.key ? 1 : 0;
-                                };
+                                if (args && args.length > 0) {
+                                    // split string to find the argument
+                                    const ccarg = args + ":"
+                                    const cc = function(c: {key: string}) : string { return c.key.split(ccarg)[1] || "ZZZZZ"}
+                                    comparator = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
+                                        return cc(a) < cc(b) ? -1 
+                                            : cc(a) > cc(b) ? 1 : 0;
+                                    };
+                                }
 
                                 return view[tag].sort(
-                                    fullKeySearch);
+                                   comparator);
                             }
                         }) 
                         ntag = sorted;                           
