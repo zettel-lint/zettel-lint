@@ -1,8 +1,13 @@
-import { AnyTxtRecord } from "dns";
 import { formatData, fileWikiLinks, invertData } from "./types";
+import fm, { FrontMatterResult } from "front-matter";
+
+export class YamlHeaders {
+  tags: string[] | undefined;
+}
 
 export abstract class Collector {
   abstract readonly dataName: string;
+  protected yaml: any;
   protected programArgs: any;
   public collector(filename: string, content: string, program: any): string[] {
     this.programArgs = program;
@@ -13,6 +18,9 @@ export abstract class Collector {
   }
   protected shouldCollect(filename: string): boolean { return true; }
   protected abstract collect(content: string): string[];
+  protected collectYaml(content: string) : FrontMatterResult<YamlHeaders> {
+    return fm(content);
+  }
   public extractData(ref: fileWikiLinks): formatData {
     return {
       ...ref,

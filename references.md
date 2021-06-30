@@ -1,6 +1,6 @@
 ---
-created: 2021-06-23T14:45:37.167Z
-modified: 2021-06-23T14:45:37.167Z
+created: 2021-06-30T12:09:14.932Z
+modified: 2021-06-30T12:09:14.932Z
 title: References
 ---
 
@@ -70,6 +70,7 @@ title: References
 * (E) Task tracker - tasks completed per day => [tasks][tasks]
 * (Y) Export link as [a flowchart](https://mermaid-js.github.io/mermaid/#/flowchart) - see also Name: [Markdown Links](https://marketplace.visualstudio.com/items?itemName=tchayen.markdown-links) - this may be easier under indexer? => [tasks][tasks]
 * (F) Kanban view for Trello-imported notes, one md per board, with tables => [tasks][tasks]
+* (A) Use better regex for filter parsing, to support complex internal regex => [tasks][tasks]
 * (B) Grep for orphaned + links across all files (including .txt) => [tasks][tasks]
 * (B) link checker should support wiki-link syntax => [tasks][tasks]
 * (B) Task list should include `*.txt` except `done*.txt` (or configurable exclude glob for non-English users) => [tasks][tasks]

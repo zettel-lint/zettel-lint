@@ -42,6 +42,7 @@ export class Templator {
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag[filter]`}}
+                    // IDEA : Alternative {{`tag/regex_filter/`}}
                     const query_extract = /^{{`(\w+)\[([^]*)\]`}}/;
                     const [, tag, filter] = query_extract.exec(text) || [];
 
