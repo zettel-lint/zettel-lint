@@ -14,7 +14,7 @@ export class TagCollector extends RegexCollector {
   };
   collect(content: string) : string[] {
     let result = super.collect(content);
-    let tags = this.collectYaml(content)?.attributes?.tags;
+    let tags = this.collectYaml(content)?.tags;
     if (typeof(tags) === 'string') {
       tags = (tags as string).split(' ');
     }
