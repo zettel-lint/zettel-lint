@@ -13,13 +13,20 @@ test('empty file has no tags', () => {
 
   test('ignores titles', () => {
     var sut = new TagCollector();
+    expect(sut.collect("# Title"))
+        .toHaveLength(0);
+  });
+
+  test('ignores subtitles', () => {
+    var sut = new TagCollector();
     expect(sut.collect("##Subtitle"))
         .toHaveLength(0);
   });
+
   test('supports numbers', () => {
     var sut = new TagCollector();
-    expect(sut.collect("#12345678"))
-        .toHaveLength(0);
+    expect(sut.collect("#12345678").toString())
+        .toBe("#12345678");
   });
 
   test('supports embedded tags', () => {
