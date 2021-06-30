@@ -41,12 +41,36 @@ export class Templator {
             query_filter() {
                 const view = this;
                 return function(text: string, render: any) {
-                    // query = {{`tag[filter]`}}
-                    // IDEA : Alternative {{`tag/regex_filter/`}}
-                    const query_extract = /^{{`(\w+)\[([^]*)\]`}}/;
-                    const [, tag, filter] = query_extract.exec(text) || [];
+                    // query = {{`tag?sort(by)[filter]`}}
+                    const query_extract = /^{{`(\w+)\?(\w+)\(([\w\s,]*)\)?\/([^]*)\/`}}/;
+                    const [, tag, fn, args, filter] = query_extract.exec(text) || [];
 
-                    const query_end = text.indexOf("`}}") + 3
+                    const query_end = text.indexOf("`}}") + 3;
+                    
+                    let ntag = tag;
+                    if (fn && fn.length > 0) {
+                        const sorted = "s" + view.queryCount++;
+                        Object.defineProperty(view, sorted, {
+                            value: function() {
+                                let comparator = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
+                                    return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+                                };
+                                if (args && args.length > 0) {
+                                    // split string to find the argument
+                                    const ccarg = args + ":"
+                                    const cc = function(c: {key: string}) : string { return c.key.split(ccarg)[1] || "ZZZZZ"}
+                                    comparator = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
+                                        return cc(a) < cc(b) ? -1 
+                                            : cc(a) > cc(b) ? 1 : 0;
+                                    };
+                                }
+
+                                return view[tag].sort(
+                                   comparator);
+                            }
+                        }) 
+                        ntag = sorted;                           
+                    }
 
                     const rr = new RegExp(filter);
                     const filtered = "q" + view.queryCount++;
@@ -60,7 +84,7 @@ export class Templator {
                             }
                         }
                     })
-                    const children = `{{#${tag}}}{{#${filtered}}}${text.substr(query_end)}{{/${filtered}}}{{/${tag}}}`;
+                    const children = `{{#${ntag}}}{{#${filtered}}}${text.substr(query_end)}{{/${filtered}}}{{/${ntag}}}`;
                     return render(children);
                 }
             }
