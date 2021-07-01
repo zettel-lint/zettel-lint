@@ -60,7 +60,7 @@ function printHeader(program: any): void {
 const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
 async function collectFromFile(filename: string, program: any): Promise<fileWikiLinks> {
-  const titleReg = /^title: (.*)$/gm;
+  const titleReg = /^(?:title:|#) (.*)$/gm;
 
   const contents = await fs.readFile(filename, "utf8");
 
