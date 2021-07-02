@@ -47,20 +47,20 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 
 ## `zl index` Tasks
 
-* (A) Use better regex for filter parsing, to support complex internal regex
+* x 2021-07-01 (A) Use better regex for filter parsing, to support complex internal regex
 * (B) Grep for orphaned + links across all files (including .txt)
-* (B) link checker should support wiki-link syntax
+* x 2021-07-01 (B) link checker should support wiki-link syntax
 * (B) Task list should include `*.txt` except `done*.txt` (or configurable exclude glob for non-English users)
-* (C) Show tags in top section next to links and backlinks
-* (C) Task sort options: ~~By Project (i.e. filename, or by + annotations)~~, by due date, by start date, ~~by priority~~, alphabetically, by context (@ symbols), by List (if multiple `## Tasks` per file)
+* x 2021-07-01 (C) Show tags in top section next to links and backlinks
 * (D) "Soft references" that match filename should show below backlinks - needs to be fast
 * (F) Highlight orphaned links and offer to create page 
+* (G) Task sort options: ~~By Project (i.e. filename, or by + annotations)~~, ~~by due date~~, ~~by start date~~, ~~by priority~~, ~~alphabetically~~, by context (@ symbols), by List (if multiple `## Tasks` per file)
 * (G) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous 
 * (G) Format Trello boards as Tables of Content, not 2d tables? 
 * (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others 
-* (H) Use first # Title or title: as the title in `zl index` 
+* x 2021-07-01 (H) Use first # Title or title: as the title in `zl index` 
 * (H) Create indexer for notes with a list: header for blogging/Trello imports. 
-* (I) Option to generate separate index, tag, orphan, etc. files - each type has a file arg, but all can use references.md for current behaviour
+* x 2021-07-01 (I) Option to generate separate index, tag, orphan, etc. files - each type has a file arg, but all can use references.md for current behaviour
 * (L) Add anchored links from pages with tags to a collection page, and generate tag meta pages alongside references.md `tag-blog.md` for example (can then use these instead of a separate tag section in references?)
 
 ## `zl notes` Tasks
@@ -86,7 +86,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (E) send daily tasks email (todo.txt, waiting.txt, due: ) every night
 * (E) Send "Related notes" email / add to daily for each file recently added 
 * (M) Automatically copy #Recurring #Template into new notes (use `recurrence-frequency:` header?)
-* (M) Templates that can be copied 
+* x 2021-07-01 (M) Templates that can be copied 
 * (X) Automatically generate "today" file in `daily` folder if it doesn't exist 
 * (Y) Automatically pull in tasks `due:2020-05-19` into the daily journal, as a checklist, in a #ToDo section 
 * (Y) Sync checklist from journal back to todo.txt file? 

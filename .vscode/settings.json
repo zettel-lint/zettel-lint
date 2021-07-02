@@ -3,5 +3,7 @@
         "nonull",
         "zettel"
     ],
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 250,
     "jest.jestCommandLine": "npm test --"
 }

@@ -1,8 +1,12 @@
-import { AnyTxtRecord } from "dns";
 import { formatData, fileWikiLinks, invertData } from "./types";
+
+export class YamlHeaders {
+  tags: string[] | undefined;
+}
 
 export abstract class Collector {
   abstract readonly dataName: string;
+  protected yaml: any;
   protected programArgs: any;
   public collector(filename: string, content: string, program: any): string[] {
     this.programArgs = program;
@@ -13,6 +17,27 @@ export abstract class Collector {
   }
   protected shouldCollect(filename: string): boolean { return true; }
   protected abstract collect(content: string): string[];
+  private listOf(value: string): string[] {
+    if (value.trim().startsWith("[")) {
+      return value.trim().slice(1,-1).replace(", ", ",").split(",");
+    }
+    return value.split(" ").filter(v => v.length > 0);
+  }
+  private getValue(headers: string[][], key: string) : string {
+    const maybeValue = headers.find(h => h[0] === key);
+    return maybeValue ? maybeValue[1] : "";
+  }
+  protected collectYaml(content: string) : YamlHeaders {
+    const yamlSep = "---\n";
+    if (!content.startsWith(yamlSep)){
+      return {tags: undefined};
+    }
+    const header = content.substring(yamlSep.length, content.indexOf(yamlSep, yamlSep.length));
+    const pairs = header.split("\n").map(line => line.split(":", 2));
+    const o = {};
+    pairs.map(p => Object.defineProperty(o, p[0], {value: p[1]}));
+    return {...o, tags:this.listOf(this.getValue(pairs, "tags"))};
+  }
   public extractData(ref: fileWikiLinks): formatData {
     return {
       ...ref,

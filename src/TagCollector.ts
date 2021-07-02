@@ -1,4 +1,4 @@
-import { formatData, invertDictionary } from "./types";
+import { fileWikiLinks, formatData, invertDictionary } from "./types";
 import { RegexCollector } from "./RegexCollector";
 
 export class TagCollector extends RegexCollector {
@@ -12,6 +12,15 @@ export class TagCollector extends RegexCollector {
 
     return result;
   };
+  collect(content: string) : string[] {
+    let result = super.collect(content);
+    let tags = this.collectYaml(content)?.tags;
+    if (typeof(tags) === 'string') {
+      tags = (tags as string).split(' ');
+    }
+    result = result.concat(tags?.map((tg :string) => tg.startsWith("#") ? tg : "#" + tg) || []);
+    return result;
+  }
   readonly dataName = "Tags";
-  readonly regex = /[ ^](#[a-zA-z0-9-]+)/g;
+  readonly regex = /(?: |^)(#[a-zA-z0-9-]+)/g;
 }
