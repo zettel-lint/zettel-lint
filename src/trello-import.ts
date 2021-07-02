@@ -148,15 +148,16 @@ export default class TrelloImport implements BaseImporter {
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
-      "\ntitle: " + card.name +
-      "\ntags: #trello " + card.labels.map(l => l.name.replace(/[^a-zA-z0-9]/g, "_")).join(" #") +
+      "\ntitle: '" + card.name + "'"
+      "\nsource: Trello" + 
+      "\ntags:" + card.labels.map(l => l.name.replace(/[^a-zA-z0-9]/g, "_")).join(" #") +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: " + boardName + 
-      "\nlist: " + lists[card.idList].name +
+      "\nboard: '" + boardName + "'" + 
+      "\nlist: '" + lists[card.idList].name + "'" +
       "\npublished: " + lists[card.idList].name.includes("Published") +
-      "\ntrello-url: " + card.shortUrl +
+      "\ntrello-url: '" + card.shortUrl + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
