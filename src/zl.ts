@@ -10,7 +10,7 @@ import notesCommand from "./zl-notes";
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
 
-export const version = "0.10.14";
+export const version = "0.10.15";
 
 program
   .version(version)
