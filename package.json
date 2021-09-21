@@ -1,6 +1,6 @@
 {
   "name": "zettel-lint",
-  "version": "0.10.15",
+  "version": "0.10.16",
   "description": "Command line zettel linting/indexing",
   "main": "./lib/zl.js",
   "bin": {
