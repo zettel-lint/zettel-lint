@@ -190,9 +190,9 @@ title: References
 
   test('templator escapes markdown', () => {
     var sut = new Templator([
-        {id: 'work', filename: './work-tasks.md', title: 'My - (Other)side Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
+        {id: 'work', filename: './work-tasks.md', title: 'My - (Other)side (Work)', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
-    expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{`title}}}][{{id}}] ({{{`title}}}),{{/value}}\n{{/Contexts}}")).toBe("* @work : [My - &lpar;Other&rpar;side Work][work] (My - &lpar;Other&rpar;side Work),\n");
+    expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{`title}}}][{{id}}] ({{{`title}}}),{{/value}}\n{{/Contexts}}")).toBe("* @work : [My - &lpar;Other&rpar;side &lpar;Work&rpar;][work] (My - &lpar;Other&rpar;side &lpar;Work&rpar;),\n");
   });
 
   test.skip('templator accepts @time operator', () => {
