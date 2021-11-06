@@ -124,7 +124,7 @@ export default class TrelloImport implements BaseImporter {
       }      
       try {
         const response = await axios.get(attachment.url, { responseType: "arraybuffer"});
-        const data: ArrayBuffer = await response.data;
+        const data = await response.data;
         await fs.writeFile(outputFilename, data);
         filenames.push("![" + attachment.name + "](" + outputFilename + ")");
       } catch (error) {
