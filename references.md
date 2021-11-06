@@ -1,6 +1,6 @@
 ---
-created: 2021-11-06T22:30:44.593Z
-modified: 2021-11-06T22:30:44.593Z
+created: 2021-09-23T19:35:35.213Z
+modified: 2021-09-23T19:35:35.213Z
 title: References
 ---
 
@@ -17,7 +17,19 @@ title: References
 * [Readme][links] = `links-orphans-contexts-tags.md`:
   * [00000001], [00000000], 
   * No backlinks
-* [tasks][tasks] = `tasks.md`:
+* [Header Title][header] = `header-title.md`:
+  * No links
+  * No backlinks
+* [First title][multi] = `multi-title.md`:
+  * No links
+  * No backlinks
+* [no-title][no] = `no-title.md`:
+  * No links
+  * No backlinks
+* [YAML title][yaml] = `yaml-title.md`:
+  * No links
+  * No backlinks
+* [Zettel Linter][tasks] = `tasks.md`:
   * [[xxxxxxxxxxxxx]], 
   * No backlinks
 * [vision - (my frustrations and goals) - &amp; roadmap][vision] = `vision.md`:
@@ -141,5 +153,9 @@ title: References
 
 [README]: README.md (Readme)
 [links]: links-orphans-contexts-tags.md (Readme)
-[tasks]: tasks.md (tasks)
-[vision]: vision.md (vision - (my frustrations and goals) - &amp; roadmap)
+[header]: header-title.md (Header Title)
+[multi]: multi-title.md (First title)
+[no]: no-title.md (no-title)
+[yaml]: yaml-title.md (YAML title)
+[tasks]: tasks.md (Zettel Linter)
+[vision]: vision.md (vision - &lpar;my frustrations and goals&rpar; - &amp; roadmap)

@@ -35,7 +35,7 @@ export class Templator {
             },
             markdown_escape() {
                 return function(text: string, render: any) {
-                    return render(text).replace("(", "&lpar;").replace(")", "&rpar;");
+                    return render(text).replace(/\(/g, "&lpar;").replace(/\)/g, "&rpar;");
                 }
             },
             query_filter() {

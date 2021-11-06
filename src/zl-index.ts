@@ -59,8 +59,8 @@ function printHeader(program: any): void {
 
 const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
-async function collectFromFile(filename: string, program: any): Promise<fileWikiLinks> {
-  const titleReg = /^(?:title:|#) (.*)$/gm;
+export async function collectFromFile(filename: string, program: any): Promise<fileWikiLinks> {
+  const titleReg = /^(?:title:|#) (.*)$/gm; // Without the global, the parser stack overflows
 
   const contents = await fs.readFile(filename, "utf8");
 
@@ -70,13 +70,13 @@ async function collectFromFile(filename: string, program: any): Promise<fileWiki
   });
 
   const name = filename.split("/").pop();
-  const capturedTitle = collectMatches(contents, titleReg).join();
+  const capturedTitle = collectMatches(contents, titleReg)?.[0];
 
   return {
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
-    title: capturedTitle.length > 0 ? capturedTitle : name?.split(".")[0],
+    title: capturedTitle?.length > 0 ? capturedTitle : name?.split(".")[0],
     matchData
   };
 }
