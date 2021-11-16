@@ -33,7 +33,7 @@
   "homepage": "https://github.com/zettel-lint/zettel-lint#readme",
   "dependencies": {
     "@types/jest": "^26.0.24",
-    "axios": "^0.23.0",
+    "axios": "^0.24.0",
     "chalk": "^4.1.2",
     "clear": "^0.1.0",
     "commander": "^5.1.0",
