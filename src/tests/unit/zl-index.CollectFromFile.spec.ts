@@ -7,6 +7,11 @@ test("no title uses filename", async () => {
     .toBe("no-title");
 });
 
+test("wikiname uses filename", async () => {
+  expect(await (await collectFromFile(`${inputFilePath}yaml-title.md`, {})).wikiname)
+    .toBe("yaml-title");
+});
+
 test("yaml title is a title", async () => {
   expect(await (await collectFromFile(`${inputFilePath}yaml-title.md`, {})).title)
     .toBe("YAML title");

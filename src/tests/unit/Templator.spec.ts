@@ -145,52 +145,57 @@ title: References
   });
 
   test('templator can create reference links', () => {
-    var sut = new Templator([{id: 'README', filename: './README.md', title: 'Readme', fullpath:'', matchData:{}}]);
+    var sut = new Templator([{id: 'README', wikiname: 'README', filename: './README.md', title: 'Readme', fullpath:'', matchData:{}}]);
     expect(sut.render("{{#notes}}[{{id}}]: {{{filename}}} ({{title}}){{/notes}}", new Date("2021-01-01"), new Date("2021-01-01"))).toBe("[README]: ./README.md (Readme)");
   });
 
+  test('templator can create wiki links', () => {
+    var sut = new Templator([{id: 'README', wikiname: 'README', filename: './README.md', title: 'Readme', fullpath:'', matchData:{}}]);
+    expect(sut.render("{{#notes}}[[{{wikiname}}]]{{/notes}}", new Date("2021-01-01"), new Date("2021-01-01"))).toBe("[[README]]");
+  });
+
   test('templator can create task links', () => {
-    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing"]}}], [new TaskCollector]);
+    var sut = new Templator([{id: 'project', wikiname: 'project-tasks', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing"]}}], [new TaskCollector]);
     expect(sut.render("{{#Tasks}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}}{{/Tasks}}")).toBe("* (A) Do the thing => [My Project][project]");
   });
 
   test('templator can create multiple task links', () => {
-    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
+    var sut = new Templator([{id: 'project', wikiname: 'project-tasks', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
     expect(sut.render("{{#Tasks}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n* (B) Do the other thing => [My Project][project] \n");
   });
 
   test('templator can filter task links', () => {
-    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
+    var sut = new Templator([{id: 'project', wikiname: 'project-tasks', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing", "(B) Do the other thing"]}}], [new TaskCollector]);
     expect(sut.render("{{#Tasks}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n* (B) Do the other thing => [My Project][project] \n");
   });
 
   test('templator can sort alphabetically', () => {
-    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing","(C) Do the last thing due:2020-01-01","(B) Do the other thing due:2021-01-01"]}}], [new TaskCollector]);
+    var sut = new Templator([{id: 'project', wikiname: 'project-tasks', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing","(C) Do the last thing due:2020-01-01","(B) Do the other thing due:2021-01-01"]}}], [new TaskCollector]);
     expect(sut.render("{{?Tasks?sort()//}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/?Tasks}}")).toBe("* (A) Do the thing => [My Project][project] \n* (B) Do the other thing due:2021-01-01 => [My Project][project] \n* (C) Do the last thing due:2020-01-01 => [My Project][project] \n");
   });
 
   test('templator can sort by key', () => {
-    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing","(C) Do the last thing due:2020-01-01","(B) Do the other thing due:2021-01-01"]}}], [new TaskCollector]);
+    var sut = new Templator([{id: 'project', wikiname: 'project-tasks', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tasks": ["(A) Do the thing","(C) Do the last thing due:2020-01-01","(B) Do the other thing due:2021-01-01"]}}], [new TaskCollector]);
     expect(sut.render("{{?Tasks?sort(due)//}}* {{{key}}} => {{#value}}[{{{title}}}][{{id}}]{{/value}} \n{{/?Tasks}}")).toBe("* (C) Do the last thing due:2020-01-01 => [My Project][project] \n* (B) Do the other thing due:2021-01-01 => [My Project][project] \n* (A) Do the thing => [My Project][project] \n");
   });
 
   test('templator can create multiple tag links', () => {
-    var sut = new Templator([{id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tags": ["#atag", "#btag"]}},
-        {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', matchData:{"Tags": ["#atag"]}}],
+    var sut = new Templator([{id: 'project', wikiname: 'project-tasks', filename: './project-tasks.md', title: 'My Project', fullpath:'', matchData:{"Tags": ["#atag", "#btag"]}},
+        {id: 'work', wikiname: 'work-tasks', filename: './work-tasks.md', title: 'My Work', fullpath:'', matchData:{"Tags": ["#atag"]}}],
         [new TagCollector]);
     expect(sut.render("{{#Tags}}\n* {{key}} : {{#value}}[{{{title}}}][{{id}}],{{/value}}\n{{/Tags}}")).toBe("* #atag : [My Project][project],[My Work][work],\n* #btag : [My Project][project],\n");
   });
 
   test('templator accepts escape and query operators', () => {
     var sut = new Templator([
-        {id: 'work', filename: './work-tasks.md', title: 'My - (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
+        {id: 'work', wikiname: 'work-tasks', filename: './work-tasks.md', title: 'My - (Other) Work', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
     expect(sut.enhance("This {{?query//search//}} has an escaped {{`title}}{{/?query}}")).toBe("This {{#query_filter}}{{`query//search//`}} has an escaped {{#markdown_escape}}{{title}}{{/markdown_escape}}{{/query_filter}}");
   });
 
   test('templator escapes markdown', () => {
     var sut = new Templator([
-        {id: 'work', filename: './work-tasks.md', title: 'My - (Other)side (Work)', fullpath:'', matchData:{"Contexts": ["@work"]}}],
+        {id: 'work', wikiname: 'work-tasks', filename: './work-tasks.md', title: 'My - (Other)side (Work)', fullpath:'', matchData:{"Contexts": ["@work"]}}],
         [new ContextCollector]);
     expect(sut.render("{{#Contexts}}\n* {{key}} : {{#value}}[{{{`title}}}][{{id}}] ({{{`title}}}),{{/value}}\n{{/Contexts}}")).toBe("* @work : [My - &lpar;Other&rpar;side &lpar;Work&rpar;][work] (My - &lpar;Other&rpar;side &lpar;Work&rpar;),\n");
   });
@@ -209,12 +214,12 @@ title: References
 
   test('full template matches reference', () => {
     var sut = new Templator(
-      [ {id: 'project', filename: './project-tasks.md', title: 'My Project', fullpath:'', 
+      [ {id: 'project', wikiname: 'project-tasks', filename: './project-tasks.md', title: 'My Project', fullpath:'', 
           matchData:{
             "Tags": ["#atag", "#btag"],
             "Links": ["[work]"],
             "Contexts": ["@work"]}},
-        {id: 'work', filename: './work-tasks.md', title: 'My Work', fullpath:'', 
+        {id: 'work', wikiname: 'work-tasks', filename: './work-tasks.md', title: 'My Work', fullpath:'', 
           matchData:{
             "Tags": ["#atag"],
             "Links": [],

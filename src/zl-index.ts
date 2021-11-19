@@ -76,6 +76,7 @@ export async function collectFromFile(filename: string, program: any): Promise<f
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
+    wikiname: name?.slice(0,-3), // .md
     title: capturedTitle?.length > 0 ? capturedTitle : name?.split(".")[0],
     matchData
   };

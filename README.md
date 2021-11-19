@@ -53,8 +53,9 @@ Each note has the following properties:
 
 * `id` - the unique internal id (usually the timestamp from the filename)
 * `filename`
+* `wikiname` - filename without the last 3 characters, which turns a `.md` file into its wiki reference.
 * `title` - taken from YAML top matter, the first `# H1 header` or the filename, in that order
-* `data` - the collection of matches by this collector in this file 
+* `data` - the collection of matches by this collector in this file
 
 ### Template extensions
 

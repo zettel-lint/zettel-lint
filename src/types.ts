@@ -3,6 +3,7 @@ export class fileWikiLinks {
   id: string | undefined;
   title: string | undefined;
   filename: string | undefined;
+  wikiname: string | undefined;
   fullpath: string | undefined;
   matchData: { [collector: string]: string[]; } = {};
 }
