@@ -18,7 +18,9 @@ export class TagCollector extends RegexCollector {
     if (typeof(tags) === 'string') {
       tags = (tags as string).split(' ');
     }
-    result = result.concat(tags?.map((tg :string) => tg.startsWith("#") ? tg : "#" + tg) || []);
+    result = result
+      .concat(tags?.map((tg :string) => tg.startsWith("#") ? tg : "#" + tg) || [])
+      .filter(tg => tg.length > 0 && tg != "#");
     return result;
   }
   readonly dataName = "Tags";
