@@ -6,7 +6,7 @@ notes: YAML top matter is supported
 
 ---
 
-** Hacktoberfest 2020 : If you'd like to contribute via Hacktoberfest, please [look at the task list](tasks.md). I will accept PRs that add issues from that file and update the md to point to them, so long as you at least do all the tasks in a section **
+** If you'd like to contribute please [look at the task list](tasks.md). I will accept PRs that add issues from that file and update the md to point to them, so long as you at least do all the tasks in a section **
 
 ## ZL
 
