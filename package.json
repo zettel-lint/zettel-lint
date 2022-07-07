@@ -23,7 +23,8 @@
   "keywords": [
     "zettel",
     "lint",
-    "javascript"
+    "javascript",
+    "notes"
   ],
   "author": "Craig Nicol",
   "license": "ISC",
@@ -54,7 +55,7 @@
     "@types/node": "^13.13.5",
     "eslint": "^7.0.0",
     "jest": "^26.6.3",
-    "nodemon": "^2.0.3",
+    "nodemon": "^2.0.19",
     "ts-jest": "^26.4.4",
     "ts-node": "^8.10.1",
     "typescript": "^3.8.3"
