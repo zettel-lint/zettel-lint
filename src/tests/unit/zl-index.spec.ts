@@ -5,7 +5,10 @@ test('adds index to cli', () => {
   });
 
 test('can parse ignoreDirs', () => {
-  expect(indexerCommand().parse(["node", "zl", "--ignore-dirs", "node_modules", "--path", "."]).ignoreDirs).toBe("node_modules");
+  const opts =indexerCommand().parse(["node", "zl", "--ignore-dirs", "node_modules", "bin", "--path", "."]);
+  expect(opts.args).toEqual([]);
+  expect(opts.opts()["ignoreDirs"]).toBeDefined();
+  expect(opts.ignoreDirs).toEqual(["node_modules", "bin"]); 
 });
 
 test('can parse path', () => {

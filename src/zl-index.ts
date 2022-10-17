@@ -25,7 +25,7 @@ export default function indexerCommand() {
     .description("Generate index/reference file. Will OVERWRITE any exiting files.")
     .alias("create")
     .option('-p, --path <path>', "Root path for search", ".")
-    .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
+    .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
     .option('-r, --reference-file <path>', "Path to output reference.md", "references.md")
     .option('-c, --create-file <path>', "Path to output file", "references.md")
     .option('-m, --template-file <path>', "Path to input mustache template", path.resolve(__dirname, "references.md.mustache"))
@@ -52,7 +52,10 @@ function printHeader(program: any): void {
     console.log("Outputting references to " + program.referenceFile);
     console.log("Using template file: " + program.templateFile)
     console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
-    console.log("Displaying Tasks " + program.taskDisplay)
+    console.log("Displaying Tasks " + program.taskDisplay);
+    if (program.args.length > 0) {
+      console.log("Additional arguments: " + program.args);
+    }
   }
 }
 
@@ -87,7 +90,7 @@ function indexer(program: any): void {
 
   var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
   if (program.ignoreDirs) {
-    ignoreList.push(program.ignoreDirs);
+    ignoreList.concat(program.ignoreDirs);
   }
 
   async function parseFiles() {

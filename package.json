@@ -37,7 +37,7 @@
     "axios": "^0.27.2",
     "chalk": "^4.1.2",
     "clear": "^0.1.0",
-    "commander": "^5.1.0",
+    "commander": "^6.2.1",
     "copyfiles": "^2.4.1",
     "figlet": "^1.5.2",
     "fs": "0.0.2",
