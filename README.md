@@ -6,7 +6,9 @@ notes: YAML top matter is supported
 
 ---
 
-** If you'd like to contribute please [look at the task list](tasks.md). I will accept PRs that add issues from that file and update the md to point to them, so long as you at least do all the tasks in a section **
+If you are a coder and watch to submit a PR, please see the [Contributor guide](CONTRIBUTING.md) [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+
+If you are not a confident coder and would like to contribute please [look at the task list](tasks.md). I will accept PRs that add issues from that file and update the md to point to them, so long as you at least do all the tasks in a section.
 
 ## ZL
 

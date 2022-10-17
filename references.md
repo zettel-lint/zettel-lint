@@ -1,6 +1,6 @@
 ---
-created: 2022-10-17T22:55:24.404Z
-modified: 2022-10-17T22:55:24.404Z
+created: 2022-10-18T00:04:36.791Z
+modified: 2022-10-18T00:04:36.791Z
 title: References
 ---
 
@@ -13,6 +13,9 @@ title: References
 
 * [Contributor Covenant Code of Conduct][CODE_OF_CONDUCT] = `CODE_OF_CONDUCT.md`:
   * No links
+  * No backlinks
+* [Contributing to the project][CONTRIBUTING] = `CONTRIBUTING.md`:
+  * [[WikiLinks]], [[like-this]], 
   * No backlinks
 * [Readme][README] = `README.md`:
   * [00000001], [00000000], 
@@ -47,6 +50,7 @@ title: References
 <summary>Show Orphans</summary>
 
 * [Contributor Covenant Code of Conduct][CODE_OF_CONDUCT] `CODE_OF_CONDUCT.md`: [Contributor Covenant][homepage],, [homepage]:, 
+* [Contributing to the project][CONTRIBUTING] `CONTRIBUTING.md`: [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ], [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]`, [Templator](src/Templator.ts) uses `mustache` to render the output file, using the data collected by the collectors, and some additional annotations to support filtering notes `{{``tag[filter]`, [yyyymmddhhmmss]` links into WikiLinks `[[like-this]]`, 
 * [Readme][README] `README.md`: [This is a link to a page that doesn't exist - an orphan], [filter]}, 
 * [Readme][links] `links-orphans-contexts-tags.md`: [This is a link to a page that doesn't exist - an orphan], 
 * [Zettel Linter][tasks] `tasks.md`: [Titles] links into [[xxxxxxxxxxxxx]], 
@@ -156,6 +160,7 @@ title: References
 ## References
 
 [CODE_OF_CONDUCT]: CODE_OF_CONDUCT.md (Contributor Covenant Code of Conduct)
+[CONTRIBUTING]: CONTRIBUTING.md (Contributing to the project)
 [README]: README.md (Readme)
 [links]: links-orphans-contexts-tags.md (Readme)
 [header]: header-title.md (Header Title)
