@@ -26,3 +26,8 @@ test("first title used if multiple", async () => {
   expect(await (await collectFromFile(`${inputFilePath}multi-title.md`, {})).title)
     .toBe("First title");
 });
+
+test("path starts from here", async () => {
+  expect(await (await collectFromFile(`${inputFilePath}no-title.md`, {})).fullpath)
+      .toBe(`${inputFilePath}no-title.md`);
+});
