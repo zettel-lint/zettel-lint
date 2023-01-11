@@ -14,7 +14,7 @@ export default function notesCommand() {
     .description("Lint and fix notes markdown files. Will update existing files.")
     .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
-    .option('-i, --ignore-dirs <path>', "Path(s) to ignore")
+    .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
     .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]")
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('--json-debug-output', "Output JSON intermediate representations")
@@ -40,7 +40,7 @@ function printHeader(program: any): void {
 }
 
 function lintNotes(program: any): void {
-  var ignoreList = [program.path + "/**/node_modules/**", program.path + "/references.md"]; // TODO: This should come from CLI
+  var ignoreList = [program.path + "/**/node_modules/**"]; 
   if (program.ignoreDirs) {
     ignoreList.push(program.ignoreDirs);
   }
