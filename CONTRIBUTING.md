@@ -12,7 +12,7 @@ Developers should also be familiar with the [example journal](https://github.com
 
 ## Running the tests
 
-The tests are written using the `jest` framework, and can be run using the `npm test` command, or via the jest runner in VS Code and other editors. The tests are run automatically on each commit using GitHub Actions, using node v12, v14 and v16. Older versions of node are not supported, due to dependencies.
+The tests are written using the `jest` framework, and can be run using the `npm test` command, or via the jest runner in VS Code and other editors. The tests are run automatically on each commit using GitHub Actions, using node v14, v16 and v18. Older versions of node are not supported, due to dependencies. The published package will always use the latest version of node.
 
 New features should all have associated tests, and should not break existing tests. I will accept PRs that purely add test coverage, but will not accept PRs that break existing tests.
 
