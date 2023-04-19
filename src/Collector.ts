@@ -19,7 +19,7 @@ export abstract class Collector {
   protected abstract collect(content: string): string[];
   private listOf(value: string): string[] {
     if (value.trim().startsWith("[")) {
-      return value.trim().slice(1,-1).replace(", ", ",").split(",");
+      return value.trim().slice(1,-1).replaceAll(", ", ",").split(",");
     }
     return value.split(" ").filter(v => v.length > 0);
   }

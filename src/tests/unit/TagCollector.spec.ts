@@ -49,8 +49,8 @@ test('empty file has no tags', () => {
 
   test('supports yaml list', () => {
     var sut = new TagCollector();
-    expect(sut.collect("---\ntags: [yaml, header]\n---\nSome content goes here."))
-      .toEqual(expect.arrayContaining(["#yaml", "#header"]));
+    expect(sut.collect("---\ntags: [yaml, header, tags, last]\n---\nSome content goes here."))
+      .toEqual(expect.arrayContaining(["#yaml", "#header", "#tags", "#last"]));
   }); 
 
   
