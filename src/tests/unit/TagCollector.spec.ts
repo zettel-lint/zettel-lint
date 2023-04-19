@@ -35,6 +35,12 @@ test('empty file has no tags', () => {
         .toBe("#tag");
   });
 
+  test('supports nested tags', () => {
+    var sut = new TagCollector();
+    expect(sut.collect("Sometimes a #parent/child tag is nested.").toString())
+        .toBe("#parent/child");
+  });
+
   test('supports yaml tags', () => {
     var sut = new TagCollector();
     expect(sut.collect("---\ntags: yaml header\n---\nSome content goes here."))

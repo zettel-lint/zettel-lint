@@ -202,7 +202,7 @@ export default class TrelloImport implements BaseImporter {
         labels[label.id] = label;
       })
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && this.writeCard(outputFolder, notes.name, note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && await this.writeCard(outputFolder, notes.name, note, checklists, lists)) {
           totalNotes++;
         }
       }

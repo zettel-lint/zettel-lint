@@ -17,7 +17,7 @@ export function collectMatches(contents: string, regex: RegExp, useCaptureGroup:
 }
 
 export abstract class RegexCollector extends Collector {
-  readonly abstract regex = / /g;
+  readonly regex = / /g;
   /**
    * collect
    */
