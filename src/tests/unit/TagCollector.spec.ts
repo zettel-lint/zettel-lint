@@ -59,3 +59,9 @@ test('empty file has no tags', () => {
     expect(sut.collect("---\ntags: []\n---\nSome content goes here."))
       .toEqual([]);
   }); 
+
+  test('ignores square brackets', () => {
+    var sut = new TagCollector();
+    expect(sut.collect("Sometimes a #parent[child tag is #nested]."))
+      .toEqual(["#parent", "#nested"]);
+  }); 
