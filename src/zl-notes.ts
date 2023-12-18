@@ -1,4 +1,4 @@
-import commander from "commander";
+import * as commander from "commander";
 import { promise as glob } from "glob-promise";
 import { promises as fs } from "fs";
 import { idFromFilename } from "./file-handling";

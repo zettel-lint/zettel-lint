@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 import clear from "clear";
-import chalk from "chalk";
 import figlet from "figlet";
-import commander from "commander";
+import * as commander from "commander";
 import indexerCommand from "./zl-index";
 import importerCommand from "./zl-import";
 import notesCommand from "./zl-notes";
+import chalk from "chalk";
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
 

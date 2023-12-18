@@ -5,7 +5,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import { promise as glob } from "glob-promise";
 import { promises as fs } from "fs";
-import commander from "commander";
+import * as commander from "commander";
 import { TaskCollector } from "./TaskCollector";
 import { ContextCollector } from "./ContextCollector";
 import { TagCollector } from "./TagCollector";
@@ -18,6 +18,10 @@ import { idFromFilename } from "./file-handling";
 import { Templator } from "./Templator";
 import path from "path";
 import { exit } from "process";
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default function indexerCommand() {
   const idxer = new commander.Command('index');
