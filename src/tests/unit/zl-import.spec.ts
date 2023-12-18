@@ -5,9 +5,9 @@ test('adds import to cli', () => {
   });
 
 test('can parse source', () => {
-  expect(importerCommand().parse(["node", "zl", "--source", "unknown", "--path", "."]).source).toBe("unknown");
+  expect(importerCommand().parse(["node", "zl", "--source", "unknown", "--path", "."]).opts().source).toBe("unknown");
 });
 
 test('can parse path', () => {
-  expect(importerCommand().parse(["node", "zl", "--source", "unknown", "--path", "."]).path).toBe(".");
+  expect(importerCommand().parse(["node", "zl", "--source", "unknown", "--path", "."]).opts().path).toBe(".");
 });
