@@ -1,0 +1,7 @@
+{
+  "verbose": true,
+  "preset": "ts-jest",
+  "testEnvironment": "node",
+  "runner": "tsc",
+  "testPathIgnorePatterns": [".js"]
+}
