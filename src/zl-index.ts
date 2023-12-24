@@ -3,7 +3,6 @@
 import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
-import { promise as glob } from "glob-promise";
 import { promises as fs } from "fs";
 import * as commander from "commander";
 import { TaskCollector } from "./TaskCollector";
@@ -19,6 +18,7 @@ import { Templator } from "./Templator";
 import path from "path";
 import { exit } from "process";
 import { fileURLToPath } from 'url';
+import { glob } from "glob";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
