@@ -1,5 +1,5 @@
 import * as commander from "commander";
-import { promise as glob } from "glob-promise";
+import { glob } from "glob";
 import { promises as fs } from "fs";
 import { idFromFilename } from "./file-handling";
 import { clear } from "console";
