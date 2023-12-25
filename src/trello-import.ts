@@ -1,5 +1,5 @@
 import { BaseImporter, ErrorResponse } from "./base-importer"
-import { promise as glob } from "glob-promise";
+import { glob } from "glob";
 import { promises as fs } from "fs";
 import axios from "axios";
 import { min } from "./types";
