@@ -21,6 +21,11 @@ jobs:
       contents: read
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: audit
+
       - name: "Checkout code"
         uses: actions/checkout@v4.1.1
         with:
