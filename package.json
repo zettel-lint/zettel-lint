@@ -42,7 +42,7 @@
     "copyfiles": "^2.4.1",
     "figlet": "^1.7.0",
     "fs": "0.0.2",
-    "glob": "^10.3.10",
+    "glob": "^11.0.0",
     "mustache": "^4.2.0",
     "path": "^0.12.7",
     "simple-markdown": "^0.7.3"
