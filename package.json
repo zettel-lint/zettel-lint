@@ -52,7 +52,7 @@
     "@types/figlet": "^1.5.8",
     "@types/glob": "^8.1.0",
     "@types/mustache": "^4.2.5",
-    "@types/node": "^20.10.5",
+    "@types/node": "^22.0.2",
     "eslint": "^9.0.0",
     "jest": "^29.7.0",
     "jest-runner-tsc": "^1.6.0",
