@@ -3,7 +3,7 @@
 import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
-import commander from "commander";
+import * as commander from "commander";
 import TrelloImport from "./trello-import";
 import { ErrorResponse } from "./base-importer";
 import { exit } from "process";

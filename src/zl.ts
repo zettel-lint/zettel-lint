@@ -1,20 +1,27 @@
 #!/usr/bin/env node
 
 import clear from "clear";
-import chalk from "chalk";
 import figlet from "figlet";
-import program from "commander";
+import * as commander from "commander";
 import indexerCommand from "./zl-index";
 import importerCommand from "./zl-import";
 import notesCommand from "./zl-notes";
+import chalk from "chalk";
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
 
-export const version = "0.10.28";
+
+
+
+export const version = "0.11.2";
+
+var program = new commander.Command("zl");
+
 
 program
   .version(version)
   .description("A linter/compiler for Zettel markdown repositories")
+  .option('--verbose')
   ;
 console.log(`zettel-lint (v${version}). See LICENCE for copyright details.`)
 
@@ -24,7 +31,7 @@ program.addCommand(notesCommand());
 program
   .parse(process.argv);
 
-if (program.verbose) {
+if (program.opts().verbose) {
   clear();
   console.log(
       chalk.red(

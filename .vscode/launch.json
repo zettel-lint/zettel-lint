@@ -5,23 +5,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "PowerShell",
-      "request": "launch",
-      "name": "index journal",
-      "script": "${workspaceRoot}/local-scripts/journal-index.ps1",
-      "cwd": "${workspaceRoot}/local-scripts/",
-      "preLaunchTask": "npm: create"
-    },
-    {
-      "type": "PowerShell",
-      "request": "launch",
-      "name": "lint and fix journal notes",
-      "script": "${workspaceRoot}/local-scripts/journal-notes.ps1",
-      "cwd": "${workspaceRoot}/local-scripts/",
-      "preLaunchTask": "npm: create"
-    },
-    {
-      "type": "pwa-node",
+      "type": "node",
       "request": "launch",
       "name": "Launch Program",
       "skipFiles": [
