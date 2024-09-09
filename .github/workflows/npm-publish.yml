@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4.1.1
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - run: npm install
       - run: npm run build
       - run: npm test
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4.1.1
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           registry-url: https://registry.npmjs.org/
       - run: npm install
       - run: npm run-script create
