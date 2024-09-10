@@ -1,7 +1,7 @@
 ---
 
 title: Readme
-references: undefined
+references: [00000001]
 notes: YAML top matter is supported
 
 ---
@@ -22,7 +22,7 @@ This is a link to a [Page that doesn't exist](404.md)
 
 [This is a link to a page that doesn't exist - an orphan]
 
-undefined points back here
+[00000000] points back here
 
 [ ] This is a task
 
