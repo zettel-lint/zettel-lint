@@ -14,7 +14,7 @@
       "program": "${workspaceFolder}/lib/zl.js"
     },
     {
-      "command": "npm run-script zl -- index -v -i \"node_modules/**\" -r references.md --show-orphans",
+      "command": "npm run-script zl -- index -v -i \"node_modules/**\" -r references.md --show-orphans extra-arg",
       "name": "Test Index",
       "request": "launch",
       "type": "node-terminal",

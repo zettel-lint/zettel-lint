@@ -40,9 +40,11 @@ function printHeader(program: any): void {
 }
 
 function lintNotes(program: any): void {
+  printHeader(program);
+
   var ignoreList = [program.path + "/**/node_modules/**"]; 
   if (program.ignoreDirs) {
-    ignoreList.push(program.ignoreDirs);
+    ignoreList.concat(program.ignoreDirs);
   }
 
   var links: {[id: string]: string} = {};
@@ -51,7 +53,7 @@ function lintNotes(program: any): void {
     const root = program.path.replace(/\\/g, "/");
     console.log("mapWikiLinks", files[0], program.path, root);
     return files.map(f => links["[" + idFromFilename(f) + "]"] =
-       "[[" + f.replace(root, '').replace('.md','') + "]]");
+       "[[" + f.replace('.md','').replace(root, '') + "]]");
   }
 
   const linkRegex = /\[\d{8,14}\]/g;
@@ -72,7 +74,7 @@ function lintNotes(program: any): void {
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
     console.log(files.length + " files found");
 
-    mapWikiLinks(files);
+    const links = mapWikiLinks(files);
     if (program.verbose) {
       console.log("Links: " + links);
     }
