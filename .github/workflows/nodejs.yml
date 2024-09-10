@@ -32,3 +32,5 @@ jobs:
     - uses: butlerlogic/action-autotag@1.1.2
       with:
         tag_prefix: "v"
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
