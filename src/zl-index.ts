@@ -57,9 +57,6 @@ function printHeader(program: any): void {
     console.log("Using template file: " + program.templateFile)
     console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
     console.log("Displaying Tasks " + program.taskDisplay);
-    if (program.args.length > 0) {
-      console.log("Additional arguments: " + program.args);
-    }
   }
 }
 
