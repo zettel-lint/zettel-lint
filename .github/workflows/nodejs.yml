@@ -27,6 +27,8 @@ jobs:
     - run: npm ci
     - run: npm run build --if-present
     - run: npm test
+    - run: npm run-script zl -- index -v -i \"node_modules/**\" -r references.md --show-orphans
+    - run: npm run-script zl -- notes -v -i \"node_modules/**\" --verbose --show-orphans
     - uses: Klemensas/action-autotag@stable
       with:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
