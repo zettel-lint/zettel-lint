@@ -40,9 +40,11 @@ function printHeader(program: any): void {
 }
 
 function lintNotes(program: any): void {
+  printHeader(program);
+
   var ignoreList = [program.path + "/**/node_modules/**"]; 
   if (program.ignoreDirs) {
-    ignoreList.push(program.ignoreDirs);
+    ignoreList.concat(program.ignoreDirs);
   }
 
   var links: {[id: string]: string} = {};
