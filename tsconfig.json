@@ -9,7 +9,7 @@
     "strict": true,
     "types": ["node", "jest"],
     "esModuleInterop": true,
-    "moduleResolution": "Bundler",
+    "moduleResolution": "node",
     "resolveJsonModule": true
   }
 }
