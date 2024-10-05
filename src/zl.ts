@@ -10,7 +10,7 @@ import chalk from "chalk";
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
 
-export const version = "0.11.8";
+export const version = "0.11.9";
 
 var program = new commander.Command("zl");
 
