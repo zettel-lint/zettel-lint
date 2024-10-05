@@ -1,8 +1,8 @@
-import { BaseImporter, ErrorResponse } from "./base-importer"
+import { BaseImporter, ErrorResponse } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "fs";
 import axios from "axios";
-import { min } from "./types";
+import { min } from "./types.js";
 
 class NoteInfo {
   readonly count: number = 0;

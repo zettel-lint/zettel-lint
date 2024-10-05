@@ -1,6 +1,6 @@
 import Mustache from 'mustache';
-import { Collector } from './Collector';
-import { fileWikiLinks, formatData, invertData, invertDictionary } from './types';
+import { Collector } from './Collector.js';
+import { fileWikiLinks, formatData } from './types.js';
 
 export class Templator {
     notes: fileWikiLinks[] | undefined;
