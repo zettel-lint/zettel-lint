@@ -1,5 +1,5 @@
-import { fileWikiLinks, formatData, invertDictionary } from "./types";
-import { RegexCollector } from "./RegexCollector";
+import { fileWikiLinks, formatData, invertDictionary } from "./types.js";
+import { RegexCollector } from "./RegexCollector.js";
 
 export class TagCollector extends RegexCollector {
   protected format(references: formatData[]): string {

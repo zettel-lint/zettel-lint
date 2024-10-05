@@ -1,4 +1,4 @@
-import { Collector } from "./Collector";
+import { Collector } from "./Collector.js";
 
 export function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
   var result: string[] = [];

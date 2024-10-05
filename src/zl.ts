@@ -3,14 +3,14 @@
 import clear from "clear";
 import figlet from "figlet";
 import * as commander from "commander";
-import indexerCommand from "./zl-index";
-import importerCommand from "./zl-import";
-import notesCommand from "./zl-notes";
+import indexerCommand from "./zl-index.js";
+import importerCommand from "./zl-import.js";
+import notesCommand from "./zl-notes.js";
 import chalk from "chalk";
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
 
-export const version = "0.11.7";
+export const version = "0.11.8";
 
 var program = new commander.Command("zl");
 

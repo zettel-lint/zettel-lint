@@ -1,4 +1,4 @@
-import { formatData, fileWikiLinks, invertData } from "./types";
+import { formatData, fileWikiLinks, invertData } from "./types.js";
 
 export class YamlHeaders {
   tags: string[] | undefined;

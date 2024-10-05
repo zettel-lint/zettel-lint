@@ -1,5 +1,5 @@
-import { fileWikiLinks, formatData, formatLink } from "./types";
-import { RegexCollector } from "./RegexCollector";
+import { fileWikiLinks, formatData, formatLink } from "./types.js";
+import { RegexCollector } from "./RegexCollector.js";
 
 export class OrphanCollector extends RegexCollector {
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {

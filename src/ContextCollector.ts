@@ -1,5 +1,5 @@
-import { formatData, invertDictionary } from "./types";
-import { RegexCollector } from "./RegexCollector";
+import { formatData, invertDictionary } from "./types.js";
+import { RegexCollector } from "./RegexCollector.js";
 
 export class ContextCollector extends RegexCollector {
   protected format(references: formatData[]): string {

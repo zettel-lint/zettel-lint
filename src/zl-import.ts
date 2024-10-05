@@ -4,8 +4,8 @@ import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
 import * as commander from "commander";
-import TrelloImport from "./trello-import";
-import { ErrorResponse } from "./base-importer";
+import TrelloImport from "./trello-import.js";
+import { ErrorResponse } from "./base-importer.js";
 import { exit } from "process";
 import { resolve } from "path";
 
