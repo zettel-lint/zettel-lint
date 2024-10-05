@@ -1,5 +1,5 @@
-import { formatData, invertDictionary, formatLink, fileWikiLinks, collectBacklinks } from "./types";
-import { RegexCollector } from "./RegexCollector";
+import { formatData, invertDictionary, formatLink, fileWikiLinks, collectBacklinks } from "./types.js";
+import { RegexCollector } from "./RegexCollector.js";
 
 export class WikiCollector extends RegexCollector {
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
