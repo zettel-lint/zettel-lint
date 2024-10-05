@@ -1,6 +1,6 @@
 {
   "name": "zettel-lint",
-  "version": "0.11.5",
+  "version": "0.11.6",
   "description": "Command line zettel linting/indexing",
   "main": "./lib/zl.js",
   "type": "module",
@@ -14,8 +14,7 @@
     "test": "jest",
     "help": "npm run-script zl -- --version && npm run-script zl -- --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
-    "zl": "tsx src/zl.ts",
-    "postbuild": "copyfiles -u 1 src/**/*.mustache lib"
+    "zl": "tsx src/zl.ts"
   },
   "repository": {
     "type": "git",
@@ -39,7 +38,6 @@
     "chalk": "^5.3.0",
     "clear": "^0.1.0",
     "commander": "^12.0.0",
-    "copyfiles": "^2.4.1",
     "figlet": "^1.7.0",
     "fs": "0.0.2",
     "glob": "^11.0.0",
