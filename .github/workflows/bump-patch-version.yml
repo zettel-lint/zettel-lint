@@ -57,31 +57,22 @@ jobs:
           git commit -m "chore: bump version to ${{ env.new_version }}"
           git push origin bump-version-${{ env.new_version }}
 
-      - name: Install GitHub CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gh
-
-      - name: Authenticate GitHub CLI
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "${GITHUB_TOKEN}" | gh auth login --with-token
-
       - name: Create Pull Request with GitHub CLI
         run: |
           gh pr create \
-            --title "chore: bump version to $NEW_VERSION" \
+            --title "chore: bump version to ${{ env.new_version }}" \
             --body |-
               ## What's Changed
 
-              Bump version from $CURRENT_VERSION to $NEW_VERSION
+              Bump version from ${{ env.current_version }} to ${{ env.new_version }}
 
               ### Files Changed
-              - package.json: Updated version to $NEW_VERSION
-              - src/zl.ts: Updated version string to $NEW_VERSION
+              - package.json: Updated version to ${{ env.new_version }}
+              - src/zl.ts: Updated version string to ${{ env.new_version }}
 
               This PR was automatically created by the Bump Patch Version workflow. \
             --base main \
-            --head bump-version-$NEW_VERSION \
+            --head bump-version-${{ env.new_version }} \
             --label "version-bump,automated-pr"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
