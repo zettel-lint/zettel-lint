@@ -62,7 +62,7 @@ jobs:
           gh pr create \
             --title "chore: bump version to ${{ env.new_version }}" \
             --body '
-              ## What's Changed
+              ## What\'s Changed
 
               Bump version from ${{ env.current_version }} to ${{ env.new_version }}
 
