@@ -61,7 +61,7 @@ jobs:
         run: |
           gh pr create \
             --title "chore: bump version to ${{ env.new_version }}" \
-            --body |-
+            --body '
               ## What's Changed
 
               Bump version from ${{ env.current_version }} to ${{ env.new_version }}
@@ -70,7 +70,7 @@ jobs:
               - package.json: Updated version to ${{ env.new_version }}
               - src/zl.ts: Updated version string to ${{ env.new_version }}
 
-              This PR was automatically created by the Bump Patch Version workflow. \
+              This PR was automatically created by the Bump Patch Version workflow.' \
             --base main \
             --head bump-version-${{ env.new_version }} \
             --label "version-bump,automated-pr"
