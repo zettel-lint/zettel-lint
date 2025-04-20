@@ -18,11 +18,14 @@ export class Templator {
             );
             this.collectors = collectors;
         }
+
         this.viewProps = {
             queryCount: 0,
             notes: this.notes,
             created: new Date(),
             modified: new Date(),
+            references: this.notes?.filter((n) => this.notes?.some((r) => r.matchData["WikiCollector"]?.includes(n.id ?? ""))),
+
             on(){
                 var view = this;
                 return function(text: string, render: any) {
