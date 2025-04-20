@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest';
 import { WikiCollector } from '../../WikiCollector'
 
 test('empty file has no links', () => {
@@ -16,6 +17,7 @@ test('empty file has no links', () => {
     expect(sut.collect("[real-file](a.real.file.md)"))
         .toHaveLength(0);
   });
+  
   test('ignores reference links', () => {
     var sut = new WikiCollector();
     expect(sut.collect("[title-text][see-reference-below]"))

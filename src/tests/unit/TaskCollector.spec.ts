@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest';
 import { TaskCollector } from '../../TaskCollector'
 
 test('empty file has no tasks', () => {

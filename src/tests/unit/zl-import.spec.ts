@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import importerCommand from "../../zl-import";
 
 test('adds import to cli', () => {

@@ -1,7 +1,14 @@
 {
   "verbose": true,
-  "preset": "ts-jest",
   "testEnvironment": "node",
-  "runner": "tsc",
+  "extensionsToTreatAsEsm": [".ts"],
+  "transform": {
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        "useESM": true
+      }
+    ]
+  },
   "testPathIgnorePatterns": [".js"]
 }

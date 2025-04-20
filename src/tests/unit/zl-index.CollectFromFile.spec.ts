@@ -1,3 +1,4 @@
+import { expect, test } from "vitest";
 import { collectFromFile } from "../../zl-index"
 
 const inputFilePath = "src/tests/unit/input/";
