@@ -24,8 +24,16 @@ export class Templator {
             notes: this.notes,
             created: new Date(),
             modified: new Date(),
-            references: this.notes?.filter((n) => this.notes?.some((r) => r.matchData["WikiCollector"]?.includes(n.id ?? ""))),
-
+            references: (() => {
+                // First collect all referenced IDs
+                const referencedIds = new Set<string>();
+                this.notes?.forEach(note => {
+                    const refs = note.matchData["WikiCollector"] || [];
+                    refs.forEach(refId => referencedIds.add(refId));
+                });
+                // Then filter notes based on the collected IDs
+                return this.notes?.filter(note => referencedIds.has(note.id ?? ""));
+            })(),
             on(){
                 var view = this;
                 return function(text: string, render: any) {
