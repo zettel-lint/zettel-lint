@@ -1,6 +1,11 @@
+import { expect, test } from "vitest";
 import { collectFromFile } from "../../zl-index"
 
-const inputFilePath = "src/tests/unit/input/";
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const inputFilePath = `${__dirname}/input/`;
 
 test("no title uses filename", async () => {
   expect(await (await collectFromFile(`${inputFilePath}no-title.md`, {})).title)

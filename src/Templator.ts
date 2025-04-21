@@ -18,11 +18,22 @@ export class Templator {
             );
             this.collectors = collectors;
         }
+
         this.viewProps = {
             queryCount: 0,
             notes: this.notes,
             created: new Date(),
             modified: new Date(),
+            references: (() => {
+                // First collect all referenced IDs
+                const referencedIds = new Set<string>();
+                this.notes?.forEach(note => {
+                    const refs = note.matchData["WikiCollector"] || [];
+                    refs.forEach(refId => referencedIds.add(refId));
+                });
+                // Then filter notes based on the collected IDs
+                return this.notes?.filter(note => referencedIds.has(note.id ?? ""));
+            })(),
             on(){
                 var view = this;
                 return function(text: string, render: any) {

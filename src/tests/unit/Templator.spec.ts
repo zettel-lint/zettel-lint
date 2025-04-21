@@ -1,3 +1,4 @@
+import { expect, test } from 'vitest';
 import { ContextCollector } from '../../ContextCollector';
 import { OrphanCollector } from '../../OrphanCollector';
 import { TagCollector } from '../../TagCollector';
@@ -147,6 +148,11 @@ title: References
   test('templator can create reference links', () => {
     var sut = new Templator([{id: 'README', wikiname: 'README', filename: './README.md', title: 'Readme', fullpath:'', matchData:{}}]);
     expect(sut.render("{{#notes}}[{{id}}]: {{{filename}}} ({{title}}){{/notes}}", new Date("2021-01-01"), new Date("2021-01-01"))).toBe("[README]: ./README.md (Readme)");
+  });
+
+  test('templator can create filter reference links to only those that are used', () => {
+    var sut = new Templator([{id: 'README', wikiname: 'README', filename: './README.md', title: 'Readme', fullpath:'', matchData:{}},{id: 'linkToREADME', wikiname: 'linkToREADME', filename: './LinkToREADME.md', title: 'Link to Readme', fullpath:'', matchData:{'WikiCollector': ['README']}}]);
+    expect(sut.render("{{#references}}[{{id}}]: {{{filename}}} ({{title}}){{/references}}", new Date("2021-01-01"), new Date("2021-01-01"))).toBe("[README]: ./README.md (Readme)");
   });
 
   test('templator can create wiki links', () => {

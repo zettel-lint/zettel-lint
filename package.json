@@ -11,11 +11,11 @@
     "start": "nodemon --watch 'src/**/*.ts' --exec tsx src/zl.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
-    "test": "jest",
+    "test": "vitest",
     "help": "npm run-script zl -- --version && npm run-script zl -- --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "zl": "tsx src/zl.ts",
-    "postbuild": "cp src/*.mustache lib"
+    "postbuild": "cp src/*.mustache lib && mkdir -p lib/tests/unit/input && cp src/tests/unit/input/*.md lib/tests/unit/input"
   },
   "repository": {
     "type": "git",
@@ -34,7 +34,6 @@
   },
   "homepage": "https://github.com/zettel-lint/zettel-lint#readme",
   "dependencies": {
-    "@types/jest": "^29.5.11",
     "axios": "^1.8.2",
     "chalk": "^5.3.0",
     "clear": "^0.1.0",
@@ -53,11 +52,9 @@
     "@types/mustache": "^4.2.5",
     "@types/node": "^22.3.0",
     "eslint": "^9.0.0",
-    "jest": "^29.7.0",
-    "jest-runner-tsc": "^1.6.0",
     "nodemon": "^3.0.2",
-    "ts-jest": "^29.1.1",
     "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vitest": "^3.1.1"
   }
 }
