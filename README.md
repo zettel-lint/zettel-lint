@@ -20,7 +20,7 @@ Based on the [Zettelkasten method](https://zettelkasten.de/)
 
 This is a link to a [Page that doesn't exist](404.md)
 
-[This is a link to a page that doesn't exist - an orphan]
+[[This is a link to a page that doesn't exist - an orphan]]
 
 [00000000] points back here
 
@@ -45,11 +45,18 @@ See [example journal](https://github.com/zettel-lint/example) for the style of r
 
 ## Templating
 
-Some features accept a mustache based template to generate their output.
+Some features accept a mustache based template to generate their output. See [references.md.mustache](src/references.md.mustache) for an example.
 
 For the indexer, there is a `{{#notes}}` collection with all notes, as well as a collection named after each collector.
 
-Each collector looks for specific features. For example, the TagCollector looks for #hashtag and +project references, the TaskCollector looks for `[ ] Tasks` or `(A) todo.txt style`
+Each collector looks for specific features:
+
+* the WikiCollector looks for `[[wiki]]` `[Markdown](example.com)` and footnote local references and populates the `{{#Links}}` collection, where each file has outgoing links in the `{{#data}}` collection and incoming links in the `{{#bag}}` collection
+* the TagCollector looks for #hashtag and +project references, and populates the `{{#Tags}}` collection
+* the TaskCollector looks for `[ ] Tasks` or `(A) todo.txt style`, and populates the `{{#Tasks}}` collection
+* the OrphanCollector looks for all wiki links with a URL, and populates the `{{#Orphans}}` collection
+* the ContextCollector looks for `todo.txt` style `@context` links and populates the `{{#Contexts}}` collection
+
 
 Each note has the following properties:
 
@@ -61,5 +68,8 @@ Each note has the following properties:
 
 ### Template extensions
 
-* `{{``markdownEscaping}}` Using the backtick at the start of the tag will escape any markdown characters into an HTML escaped version.
-* `{{?tag[filter]}}{{/?tag}}` Using a ? at the start of a tag pair will filter any output using the specified regular expression.
+* `{{``markdownEscaping}}` Using the a single backtick at the start of the tag will escape any markdown characters into an HTML escaped version.
+* `{{?tag/filter/}}{{/?tag}}` Using a ? at the start of a tag pair will filter any output using the specified regular expression. An empty filter will match everything.
+  * `{{?tag?sort(key)/filter/}}{{/?tag}}` will sort the results according to the specified key, or alphabetically by name if the key name is not supplied.
+
+[00000000]: ./00000000-dummy-file.md

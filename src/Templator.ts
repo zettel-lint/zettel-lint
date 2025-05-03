@@ -52,11 +52,11 @@ export class Templator {
             query_filter() {
                 const view = this;
                 return function(text: string, render: any) {
-                    // query = {{`tag?sort(by)[filter]`}}
+                    // query = {{`tag?sort(by)/filter/`}}
                     const query_extract = /^{{`(?<tag>\w+)(?:\?(?<fn>\w+)\((?<args>[\w\s,]*)\))*\/(?<filter>[^]*)\/`}}/;
                     const [, tag, fn, args, filter] = query_extract.exec(text) || [];
-
-                    if(fn.toLocaleUpperCase() !== "SORT") {
+                    
+                    if(fn && fn.toLocaleUpperCase() !== "SORT") {
                         return `{{\`unknown function: ${fn}\`}}`
                     }
                     const query_end = text.indexOf("`}}") + 3;
