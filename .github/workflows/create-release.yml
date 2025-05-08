@@ -17,6 +17,7 @@ jobs:
       with:
         script: |
           const { context, github } = require('@actions/github');
+          const core = require('@actions/core');
           const tagName = context.ref.replace('refs/tags/', '');
           const { data: tags } = await github.rest.repos.listTags({
             owner: context.repo.owner,
