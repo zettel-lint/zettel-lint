@@ -10,13 +10,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4.1.1
+
+    - name: Generate Release Notes
+      id: release_notes
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { context, github } = require('@actions/github');
+          const tagName = context.ref.replace('refs/tags/', '');
+          const { data: tags } = await github.rest.repos.listTags({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          });
+
+          const currentTagIndex = tags.findIndex(tag => tag.name === tagName);
+          if (currentTagIndex === -1 || currentTagIndex === tags.length - 1) {
+            core.setOutput('notes', 'No previous tag found.');
+            return;
+          }
+
+          const previousTag = tags[currentTagIndex + 1].name;
+          const { data: commits } = await github.rest.repos.compareCommits({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            base: previousTag,
+            head: tagName,
+          });
+
+          const commitMessages = commits.commits.map(commit => `- ${commit.commit.message}`).join('\n');
+          core.setOutput('notes', `Changes since ${previousTag}:\n\n${commitMessages}`);
+
     - name: Create GitHub Release
       uses: actions/create-release@v1
       with:
         tag_name: ${{ github.ref_name }}
         release_name: Release ${{ github.ref_name }}
-        body: |
-          This is an automated release for tag ${{ github.ref_name }}.
+        body: ${{ steps.release_notes.outputs.notes }}
         draft: false
         prerelease: false
       env:
