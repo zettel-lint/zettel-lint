@@ -36,3 +36,8 @@ test("path starts from here", async () => {
   expect(await (await collectFromFile(`${inputFilePath}no-title.md`, {})).fullpath)
       .toBe(`${inputFilePath}no-title.md`);
 });
+
+test("can parse wikilinks in file", async () => {
+  expect(await (await collectFromFile(`${inputFilePath}yaml-wikilink.md`, {})).title)
+      .toBe("YAML title");
+});
