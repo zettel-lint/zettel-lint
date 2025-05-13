@@ -29,12 +29,13 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
   * todotxt mode
   * [Markdown Links to graph connections](https://marketplace.visualstudio.com/items?itemName=tchayen.markdown-links)
   * [Markdown Lint](https://github.com/DavidAnson/vscode-markdownlint#configure)
-* (E) See [FOAM](https://foambubble.github.io/foam/) for VS Code-based solution
+  * [Obsidian](https://obsidian.md)
+* (✔) See [FOAM](https://foambubble.github.io/foam/) for VS Code-based solution
 
 ## `zl *` Tasks
 
-* (C) Should take seconds to run, at most, on 10000 file example repo 
-* (E) Add tests for regex
+* x 2025-05-13 (C) Should take seconds to run, at most, on 10000 file example repo
+* x 2025-05-13 (E) Add tests for regex
 
 ## `zl graph` Tasks
 
@@ -56,7 +57,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (F) Highlight orphaned links and offer to create page 
 * (G) Task sort options: ~~By Project (i.e. filename, or by + annotations)~~, ~~by due date~~, ~~by start date~~, ~~by priority~~, ~~alphabetically~~, by context (@ symbols), by List (if multiple `## Tasks` per file)
 * (G) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous 
-* (G) Format Trello boards as Tables of Content, not 2d tables? 
+* (G) Format Trello boards as Tables of Content, not 2D tables? 
 * (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others 
 * x 2021-07-01 (H) Use first # Title or title: as the title in `zl index` 
 * (H) Create indexer for notes with a list: header for blogging/Trello imports. 
@@ -78,7 +79,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (H) Output links to `## Links` section at bottom of each note : only needed if not using wiki-links 
 * (J) Automatically add yaml header to notes 
 * (L) Support pages in a hierarchy, but allow page links to only reference leaf text (use namespacing rules)
-* (P) Automatically generate bi-directional links when saving/committing markdown files
+* (P) Automatically generate bidirectional links when saving/committing markdown files
 
 ## `zl cron` Tasks
 
@@ -104,7 +105,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (F) Allow todo.txt style projects to link to note +project-link
 * (G) Interactive mode : select tasks for daily 
 * (H) Move completed tasks from archive to daily log 
-* (L) Highlight 5 Minute Tasks 
+* (L) Highlight 5-Minute Tasks 
 
 ## `zl import` Tasks
 

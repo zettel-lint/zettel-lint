@@ -1,6 +1,6 @@
 ---
-created: 2025-05-13T21:12:41.276Z
-modified: 2025-05-13T21:12:41.276Z
+created: 2025-05-13T21:37:12.660Z
+modified: 2025-05-13T21:37:12.660Z
 title: References
 ---
 
@@ -59,7 +59,6 @@ title: References
 * [Readme][links] `links-orphans-contexts-tags.md`: [[https://example.com/author/bob]]", [This is a link to a page that doesn't exist - an orphan], 
 * [Readme][README] `README.md`: [[This is a link to a page that doesn't exist - an orphan]], [[wiki]]`, 
 * [Contributing to the project][CONTRIBUTING] `CONTRIBUTING.md`: [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ], [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]`, [Templator](src/Templator.ts) uses `mustache` to render the output file, using the data collected by the collectors, and some additional annotations to support filtering notes `{{``tag[filter]`, [yyyymmddhhmmss]` links into WikiLinks `[[like-this]]`, 
-* [Contributor Covenant Code of Conduct][CODE_OF_CONDUCT] `CODE_OF_CONDUCT.md`: [Contributor Covenant][homepage],, [homepage]:, 
 * [YAML title][yaml] `yaml-wikilink.md`: [[https://example.com/author/bob]]", 
 
 </details>
@@ -89,9 +88,6 @@ title: References
 <details>
 <summary>Show Tasks</summary>
 
-* (E) See [FOAM](https://foambubble.github.io/foam/) for VS Code-based solution => [Zettel Linter][tasks]
-* (C) Should take seconds to run, at most, on 10000 file example repo => [Zettel Linter][tasks]
-* (E) Add tests for regex => [Zettel Linter][tasks]
 * (E) Task tracker - tasks completed per day => [Zettel Linter][tasks]
 * (Y) Export link as [a flowchart](https://mermaid-js.github.io/mermaid/#/flowchart) - see also Name: [Markdown Links](https://marketplace.visualstudio.com/items?itemName=tchayen.markdown-links) - this may be easier under indexer? => [Zettel Linter][tasks]
 * (F) Kanban view for Trello-imported notes, one md per board, with tables => [Zettel Linter][tasks]
@@ -101,7 +97,7 @@ title: References
 * (F) Highlight orphaned links and offer to create page => [Zettel Linter][tasks]
 * (G) Task sort options: ~~By Project (i.e. filename, or by + annotations)~~, ~~by due date~~, ~~by start date~~, ~~by priority~~, ~~alphabetically~~, by context (@ symbols), by List (if multiple `## Tasks` per file) => [Zettel Linter][tasks]
 * (G) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous => [Zettel Linter][tasks]
-* (G) Format Trello boards as Tables of Content, not 2d tables? => [Zettel Linter][tasks]
+* (G) Format Trello boards as Tables of Content, not 2D tables? => [Zettel Linter][tasks]
 * (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others => [Zettel Linter][tasks]
 * (H) Create indexer for notes with a list: header for blogging/Trello imports. => [Zettel Linter][tasks]
 * (L) Add anchored links from pages with tags to a collection page, and generate tag meta pages alongside references.md `tag-blog.md` for example (can then use these instead of a separate tag section in references?) => [Zettel Linter][tasks]
@@ -118,7 +114,7 @@ title: References
 * (H) Output links to `## Links` section at bottom of each note : only needed if not using wiki-links => [Zettel Linter][tasks]
 * (J) Automatically add yaml header to notes => [Zettel Linter][tasks]
 * (L) Support pages in a hierarchy, but allow page links to only reference leaf text (use namespacing rules) => [Zettel Linter][tasks]
-* (P) Automatically generate bi-directional links when saving/committing markdown files => [Zettel Linter][tasks]
+* (P) Automatically generate bidirectional links when saving/committing markdown files => [Zettel Linter][tasks]
 * (E) send daily tasks email (todo.txt, waiting.txt, due: ) every night => [Zettel Linter][tasks]
 * (E) Send "Related notes" email / add to daily for each file recently added => [Zettel Linter][tasks]
 * (M) Automatically copy #Recurring #Template into new notes (use `recurrence-frequency:` header?) => [Zettel Linter][tasks]
@@ -136,7 +132,7 @@ title: References
 * (F) Allow todo.txt style projects to link to note +project-link => [Zettel Linter][tasks]
 * (G) Interactive mode : select tasks for daily => [Zettel Linter][tasks]
 * (H) Move completed tasks from archive to daily log => [Zettel Linter][tasks]
-* (L) Highlight 5 Minute Tasks => [Zettel Linter][tasks]
+* (L) Highlight 5-Minute Tasks => [Zettel Linter][tasks]
 * (B) Re-write Trello links as references on import => [Zettel Linter][tasks]
 * (B) Import to import card as note (current default), list as note, or board as note => [Zettel Linter][tasks]
 * (D) Simplenote import => [Zettel Linter][tasks]
