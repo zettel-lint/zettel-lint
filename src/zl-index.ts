@@ -91,7 +91,7 @@ function indexer(program: any): void {
 
   var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
   if (program.ignoreDirs) {
-    ignoreList.concat(program.ignoreDirs);
+    ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
   async function parseFiles() {

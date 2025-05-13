@@ -1,6 +1,6 @@
 ---
-created: 2025-05-13T21:37:12.660Z
-modified: 2025-05-13T21:37:12.660Z
+created: 2025-05-13T22:49:23.703Z
+modified: 2025-05-13T22:49:23.703Z
 title: References
 ---
 
@@ -17,7 +17,7 @@ title: References
 * [Zettel Linter][tasks] = `tasks.md`:
   * [[xxxxxxxxxxxxx]], 
   * No backlinks
-* [Readme][links] = `links-orphans-contexts-tags.md`:
+* [Testing file][links] = `links-orphans-contexts-tags.md`:
   * [00000001], [00000000], 
   * No backlinks
 * [Readme][README] = `README.md`:
@@ -35,18 +35,6 @@ title: References
 * [00000000-dummy-file][00000000] = `00000000-dummy-file.md`:
   * No links
   * [links], [README], [README], 
-* [YAML title][yaml] = `yaml-title.md`:
-  * No links
-  * No backlinks
-* [no-title][no] = `no-title.md`:
-  * No links
-  * No backlinks
-* [First title][multi] = `multi-title.md`:
-  * No links
-  * No backlinks
-* [Header Title][header] = `header-title.md`:
-  * No links
-  * No backlinks
 
 </details>
 
@@ -56,10 +44,9 @@ title: References
 <summary>Show Orphans</summary>
 
 * [Zettel Linter][tasks] `tasks.md`: [Titles] links into [[xxxxxxxxxxxxx]], 
-* [Readme][links] `links-orphans-contexts-tags.md`: [[https://example.com/author/bob]]", [This is a link to a page that doesn't exist - an orphan], 
+* [Testing file][links] `links-orphans-contexts-tags.md`: [[https://example.com/author/bob]]", [This is a link to a page that doesn't exist - an orphan], 
 * [Readme][README] `README.md`: [[This is a link to a page that doesn't exist - an orphan]], [[wiki]]`, 
 * [Contributing to the project][CONTRIBUTING] `CONTRIBUTING.md`: [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ], [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]`, [Templator](src/Templator.ts) uses `mustache` to render the output file, using the data collected by the collectors, and some additional annotations to support filtering notes `{{``tag[filter]`, [yyyymmddhhmmss]` links into WikiLinks `[[like-this]]`, 
-* [YAML title][yaml] `yaml-wikilink.md`: [[https://example.com/author/bob]]", 
 
 </details>
 
@@ -79,7 +66,7 @@ title: References
 * #Recurring => [Zettel Linter][tasks], 
 * #Template => [Zettel Linter][tasks], 
 * #ToDo => [Zettel Linter][tasks], 
-* #hashtag => [Testing file][links], [Readme][README], [Readme][README], [Readme][links], 
+* #hashtag => [Testing file][links], [Readme][README], [Readme][README], 
 
 </details>
 
@@ -155,8 +142,8 @@ title: References
 * (J) Option : cross-repo links? => [Zettel Linter][tasks]
 * (W) Option : Allow colour => [Zettel Linter][tasks]
 * (Y) Option : auto-update links to Github issues, Trello tasks etc. (ask for community extensions) => [Zettel Linter][tasks]
-* [ ] This is a task => [Testing file][links][Readme][README][Readme][links]
-* [ ] Also supports tasks in a bullet list => [Testing file][links][Readme][README][Readme][links]
+* [ ] This is a task => [Testing file][links] [Readme][README]
+* [ ] Also supports tasks in a bullet list => [Testing file][links] [Readme][README]
 
 </details>
 
@@ -170,14 +157,3 @@ title: References
 [CODE_OF_CONDUCT]: CODE_OF_CONDUCT.md (Contributor Covenant Code of Conduct)
 [00000001]: 00000001-another-file.md (00000001-another-file)
 [00000000]: 00000000-dummy-file.md (00000000-dummy-file)
-[yaml]: src/tests/unit/input/yaml-wikilink.md (YAML title)
-[yaml]: src/tests/unit/input/yaml-title.md (YAML title)
-[no]: src/tests/unit/input/no-title.md (no-title)
-[multi]: src/tests/unit/input/multi-title.md (First title)
-[header]: src/tests/unit/input/header-title.md (Header Title)
-[yaml]: lib/tests/unit/input/yaml-wikilink.md (YAML title)
-[yaml]: lib/tests/unit/input/yaml-title.md (YAML title)
-[no]: lib/tests/unit/input/no-title.md (no-title)
-[multi]: lib/tests/unit/input/multi-title.md (First title)
-[header]: lib/tests/unit/input/header-title.md (Header Title)
-[links]: src/tests/system/links-orphans-contexts-tags-tasks/inputs/links-orphans-contexts-tags.md (Readme)
