@@ -8,8 +8,6 @@ author:
 purpose: This file is used for integration testing. If you find a failing scenario and want to create a failing test, add it to this file.
 ---
 
-** Hacktoberfest 2020 : If you'd like to contribute via Hacktoberfest, please [look at the task list](tasks.md). I will accept PRs that add issues from that file and update the md to point to them, so long as you at least do all the tasks in a section **
-
 ## ZL
 
 ![Node.js CI](https://github.com/zettel-lint/zettel-lint/workflows/Node.js%20CI/badge.svg)
@@ -33,9 +31,8 @@ This is a link to a [Page that doesn't exist](404.md)
 
 Tags can use #hashtag or +projectref formats for compatibility with `todo.txt` files
 
-To refresh index:
+To refresh the index:
 
-* `cd zle`
 * `npm i`
 * `npm run-script zl -- -r ../ -i "../zle/**" -r ../references.md`
 
