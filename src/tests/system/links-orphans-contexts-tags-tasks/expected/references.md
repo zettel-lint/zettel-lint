@@ -43,10 +43,6 @@ title: References
 <details>
 <summary>Show Orphans</summary>
 
-* [Zettel Linter][tasks] `tasks.md`: [Titles] links into [[xxxxxxxxxxxxx]], 
-* [Testing file][links] `links-orphans-contexts-tags.md`: [[https://example.com/author/bob]], [This is a link to a page that doesn't exist - an orphan], 
-* [Readme][README] `README.md`: [[This is a link to a page that doesn't exist - an orphan]], [[wiki]]`, 
-* [Contributing to the project][CONTRIBUTING] `CONTRIBUTING.md`: [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ], [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]`, [Templator](src/Templator.ts) uses `mustache` to render the output file, using the data collected by the collectors, and some additional annotations to support filtering notes `{{``tag[filter]`, [yyyymmddhhmmss]` links into WikiLinks `[[like-this]]`, 
 
 </details>
 
@@ -83,7 +79,6 @@ title: References
 * (D) "Soft references" that match filename should show below backlinks - needs to be fast => [Zettel Linter][tasks]
 * (F) Highlight orphaned links and offer to create page => [Zettel Linter][tasks]
 * (G) Task sort options: ~~By Project (i.e. filename, or by + annotations)~~, ~~by due date~~, ~~by start date~~, ~~by priority~~, ~~alphabetically~~, by context (@ symbols), by List (if multiple `## Tasks` per file) => [Zettel Linter][tasks]
-* (G) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous => [Zettel Linter][tasks]
 * (G) Format Trello boards as Tables of Content, not 2D tables? => [Zettel Linter][tasks]
 * (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others => [Zettel Linter][tasks]
 * (H) Create indexer for notes with a list: header for blogging/Trello imports. => [Zettel Linter][tasks]

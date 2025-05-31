@@ -15,5 +15,5 @@ export class OrphanCollector extends RegexCollector {
       .map(r => "* " + formatLink(r) + " `" + r.filename + "`: " + r.data.join()).join("\n");
   }
   readonly dataName = "Orphans";
-  readonly regex = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+.*\][^\(]/g;
+  readonly regex = /\[[a-zA-Z0-9\[]+[a-zA-Z ]+[^\[\]]*\](?=\(\)|\[\])/g;
 }

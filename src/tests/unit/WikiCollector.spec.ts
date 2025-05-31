@@ -26,6 +26,6 @@ test('empty file has no links', () => {
 
   test('supports wiki links', () => {
     var sut = new WikiCollector();
-    expect(sut.collect("[[Wiki-Link]]").toString())
+    expect(sut.collect("[[Wiki-Link]]\"").toString())
         .toBe("[[Wiki-Link]]");
   });
