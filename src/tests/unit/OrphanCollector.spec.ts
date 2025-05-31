@@ -6,9 +6,9 @@ test('empty file has no orphans', () => {
   expect(sut.collect("")).toHaveLength(0);
 });
 
-test('ignores valid wiki links', () => {
+test('ignores double-bracket wiki links', () => {
   const sut = new OrphanCollector();
-  // Assume [[ExistingPage]] is not orphaned if it exists, but here we just check detection
+  // Double-bracket links don't match orphan pattern (no empty target indicators)
   expect(sut.collect("[[ExistingPage]]")).toHaveLength(0);
 });
 
