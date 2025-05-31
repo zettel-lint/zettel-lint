@@ -56,7 +56,6 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (D) "Soft references" that match filename should show below backlinks - needs to be fast
 * (F) Highlight orphaned links and offer to create page 
 * (G) Task sort options: ~~By Project (i.e. filename, or by + annotations)~~, ~~by due date~~, ~~by start date~~, ~~by priority~~, ~~alphabetically~~, by context (@ symbols), by List (if multiple `## Tasks` per file)
-* (G) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous 
 * (G) Format Trello boards as Tables of Content, not 2D tables? 
 * (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others 
 * x 2021-07-01 (H) Use first # Title or title: as the title in `zl index` 

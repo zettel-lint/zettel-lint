@@ -15,7 +15,7 @@
     "help": "npm run-script zl -- --version && npm run-script zl -- --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "zl": "tsx src/zl.ts",
-    "postbuild": "cp src/*.mustache lib && mkdir -p lib/tests/unit/input && cp src/tests/unit/input/*.md lib/tests/unit/input"
+    "postbuild": "cp src/*.mustache lib && mkdir -p lib/tests/unit/input && cp src/tests/unit/input/*.md lib/tests/unit/input && mkdir -p lib/tests/system && cp -r src/tests/system/** lib/tests/system"
   },
   "repository": {
     "type": "git",
