@@ -94,6 +94,7 @@ function indexer(program: any): void {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
+
   async function parseFiles() {
     var references: fileWikiLinks[] = [];
 
@@ -108,22 +109,26 @@ function indexer(program: any): void {
       if (program.jsonDebugOutput) {
         console.log(wikiLinks);
       }
-    };
+    }
 
-    if (program.referenceFile && program.templateFile) { 
+    if (program.referenceFile && program.templateFile) {
+      // Ensure the directory for the reference file exists
+      const refDir = path.dirname(program.referenceFile);
+      await fs.mkdir(refDir, { recursive: true });
+
       const template = await fs.readFile(program.templateFile, "utf8");
       const templator = new Templator(references, collectors);
-      if(program.verbose) {
+      if (program.verbose) {
         console.log(templator.enhance(template));
       }
-      const formatted = templator.render(template)
+      const formatted = templator.render(template);
 
       await fs.writeFile(program.referenceFile, formatted);
     } else {
       console.error("No output or template file found. Exiting.");
       exit(1);
     }
-  };
+  }
 
   parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
