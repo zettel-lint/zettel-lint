@@ -8,7 +8,6 @@ import * as commander from "commander";
 import { TaskCollector } from "./TaskCollector.js";
 import { ContextCollector } from "./ContextCollector.js";
 import { TagCollector } from "./TagCollector.js";
-import { OrphanCollector } from "./OrphanCollector.js";
 import { WikiCollector } from "./WikiCollector.js";
 import { Collector } from "./Collector.js";
 import { collectMatches } from "./RegexCollector.js";
@@ -61,7 +60,7 @@ function printHeader(program: any): void {
 }
 
 
-const collectors: Collector[] = [new WikiCollector, new OrphanCollector, new ContextCollector, new TagCollector, new TaskCollector];
+const collectors: Collector[] = [new WikiCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
 export async function collectFromFile(filename: string, program: any): Promise<fileWikiLinks> {
   const titleReg = /^(?:title:|#) (.*)$/gm; // Without the global, the parser stack overflows

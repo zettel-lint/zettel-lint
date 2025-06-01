@@ -1,10 +1,11 @@
 import { expect, test } from 'vitest';
 import { ContextCollector } from '../../ContextCollector';
-import { OrphanCollector } from '../../OrphanCollector';
 import { TagCollector } from '../../TagCollector';
 import { TaskCollector } from '../../TaskCollector';
 import { Templator } from '../../Templator';
 import { WikiCollector } from '../../WikiCollector';
+import { describe, expect, test } from 'vitest';
+import { Collector } from '../../Collector';
 
 const full_template = `
 ---
@@ -20,8 +21,8 @@ title: References
 
 {{#Links}}{{#value}}
 * [{{title}}][{{id}}] = '{{{filename}}}':
-  * {{#data}}{{.}}, {{/data}}{{^data}}No links{{/data}}
-  * {{#bag}}[{{.}}], {{/bag}}{{^bag}}No backlinks{{/bag}}
+  * {{#data}}{{.}}{{^last}}, {{/last}}{{/data}}{{^data}}No links{{/data}}
+  * {{#bag}}[{{.}}]{{^last}}, {{/last}}{{/bag}}{{^bag}}No backlinks{{/bag}}
 {{/value}}{{/Links}}
 
 </details>
@@ -32,7 +33,7 @@ title: References
 <summary>Show Orphans</summary>
 
 {{#Orphans}}
-* {{#value}}[{{title}}][{{id}}]{{/value}} \`{{{key}}}\` : {{#value}}{{#data}}{{.}}, {{/data}}{{/value}}
+* [{{key}}] : {{#value}}{{id}}{{^last}}, {{/last}}{{/value}}
 {{/Orphans}}
 
 </details>
@@ -92,7 +93,7 @@ title: References
   * [work], 
   * No backlinks
 * [My Work][work] = './work-tasks.md':
-  * No links
+  * [Not a link], [Orphaned link], 
   * [project], 
 
 </details>
@@ -102,7 +103,7 @@ title: References
 <details>
 <summary>Show Orphans</summary>
 
-* [My Work][work] \`./work-tasks.md\` : [Not a link], [Orphaned link], 
+* [work] : [Not a link], [Orphaned link], 
 
 </details>
 
@@ -228,9 +229,125 @@ title: References
         {id: 'work', wikiname: 'work-tasks', filename: './work-tasks.md', title: 'My Work', fullpath:'', 
           matchData:{
             "Tags": ["#atag"],
-            "Links": [],
-            "Orphans": ["[Not a link]", "[Orphaned link]"],
+            "Links": ["[Not a link]", "[Orphaned link]"],
             "Tasks": ["(A) My important task"]}}],
-        [new TagCollector, new TaskCollector, new WikiCollector, new ContextCollector, new OrphanCollector]);
+        [new TagCollector, new TaskCollector, new WikiCollector, new ContextCollector]);
     expect(sut.render(full_template, new Date("2021-01-01"), new Date("2021-01-01"))).toBe(full_expected);
   });
+  // Dummy Collector for testing
+  class DummyCollector extends Collector {
+    dataName = 'Dummy';
+    extractAll(files: any[]) {
+      const map = new Map();
+      files.forEach(f => {
+        (f.matchData?.Dummy || []).forEach((d: string) => {
+          if (!map.has(d)) map.set(d, []);
+          map.get(d).push(f);
+        });
+      });
+      return map;
+    }
+  }
+
+  describe('Templator generated tests', () => {
+    test('should render created and modified dates', () => {
+      const sut = new Templator();
+      const now = new Date();
+      const rendered = sut.render("{{created}} {{modified}}", now, now);
+      expect(rendered).toContain(now.toISOString());
+    });
+
+    test('should render notes as reference links', () => {
+      const notes = [{id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'Note 1', fullpath: '', matchData: {}}];
+      const sut = new Templator(notes);
+      expect(sut.render("{{#notes}}[{{id}}]: {{{filename}}} ({{title}}){{/notes}}")).toBe("[n1]: ./n1.md (Note 1)");
+    });
+
+    test('should render wiki links', () => {
+      const notes = [{id: 'n2', wikiname: 'n2', filename: './n2.md', title: 'Note 2', fullpath: '', matchData: {}}];
+      const sut = new Templator(notes);
+      expect(sut.render("{{#notes}}[[{{wikiname}}]]{{/notes}}")).toBe("[[n2]]");
+    });
+
+    test('should escape markdown in title', () => {
+      const notes = [{id: 'n3', wikiname: 'n3', filename: './n3.md', title: 'Title (with) parens', fullpath: '', matchData: {}}];
+      const sut = new Templator(notes);
+      expect(sut.render("{{#notes}}{{{`title}}}{{/notes}}")).toBe("Title &lpar;with&rpar; parens");
+    });
+
+    test('should filter orphans correctly', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {'WikiCollector': ['x']}},
+        {id: 'c', wikiname: 'c', filename: './c.md', title: 'C', fullpath: '', matchData: {}}
+      ];
+      const sut = new Templator(notes);
+      // Only 'c' is orphan (not referenced and doesn't reference others)
+      const result = sut.render("{{#Orphans}}{{id}}: {{#value}}{{.}}, {{/value}}{{/Orphans}}");
+      expect(result).toContain("b: x");
+      expect(result).not.toContain("a:");
+      expect(result).not.toContain("c:");
+    });
+
+    test('should render references (notes that are referenced)', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {'WikiCollector': ['a']}}
+      ];
+      const sut = new Templator(notes);
+      // Only 'a' is referenced
+      expect(sut.render("{{#references}}{{id}},{{/references}}")).toBe("a,");
+    });
+
+    test('should support custom collectors and expose their data', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo', 'bar']}},
+        {id: 'y', wikiname: 'y', filename: './y.md', title: 'Y', fullpath: '', matchData: {Dummy: ['foo']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Should expose Dummy as a list of {key, value}
+      const result = sut.render("{{#Dummy}}{{key}}:{{#value}}{{id}},{{/value}};{{/Dummy}}");
+      // foo: x, y; bar: x;
+      expect(result).toContain("foo:x,y,");
+      expect(result).toContain("bar:x,");
+    });
+
+    test('enhance should convert escape and query operators', () => {
+      const sut = new Templator();
+      const enhanced = sut.enhance("{{?Dummy//foo//}} and {{{`title}}}");
+      expect(enhanced).toContain("{{#query_filter}}{{`Dummy//foo//`}}");
+      expect(enhanced).toContain("{{#markdown_escape}}{{{title}}}{{/markdown_escape}}");
+    });
+
+    test('should support query_filter for filtering', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo', 'bar']}},
+        {id: 'y', wikiname: 'y', filename: './y.md', title: 'Y', fullpath: '', matchData: {Dummy: ['foo']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Only foo key should match
+      const template = "{{?Dummy/foo/}}* {{key}}:{{#value}}{{id}},{{/value}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* foo:x,y,");
+      expect(result).not.toContain("bar");
+    });
+
+    test('should support query_filter with unknown function', () => {
+      const sut = new Templator();
+      const template = "{{?Dummy?unknown()/foo/}}{{/?Dummy}}";
+      const enhanced = sut.enhance(template);
+      expect(enhanced).toContain("{{#query_filter}}{{`Dummy?unknown()/foo/`}}");
+      expect(enhanced).toContain("{{/query_filter}}");
+      const result = sut.render(template);
+      expect(result).toContain("unknown function");
+    });
+
+    test('listToNamedTuple returns correct object', () => {
+      const sut = new Templator();
+      const tuple = ["key", [{id: "id", wikiname: "w", filename: "f", title: "t", fullpath: "", matchData: {}}]];
+      expect(sut.listToNamedTuple(tuple as any)).toEqual({key: "key", value: tuple[1]});
+    });
+  });
+
