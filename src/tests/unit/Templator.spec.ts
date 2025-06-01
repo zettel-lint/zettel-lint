@@ -1,4 +1,3 @@
-import { expect, test } from 'vitest';
 import { ContextCollector } from '../../ContextCollector';
 import { TagCollector } from '../../TagCollector';
 import { TaskCollector } from '../../TaskCollector';
@@ -247,6 +246,13 @@ title: References
       });
       return map;
     }
+    collect(content: string): string[] {
+      // Dummy implementation, just return an empty array
+      return [];
+    }
+    format(references: any[]): string {
+      return "Dummy";
+    }
   }
 
   describe('Templator generated tests', () => {
@@ -278,12 +284,12 @@ title: References
     test('should filter orphans correctly', () => {
       const notes = [
         {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {}},
-        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {'WikiCollector': ['x']}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {'Links': ['x']} as {[collector: string]: string[]}},
         {id: 'c', wikiname: 'c', filename: './c.md', title: 'C', fullpath: '', matchData: {}}
       ];
       const sut = new Templator(notes);
       // Only 'c' is orphan (not referenced and doesn't reference others)
-      const result = sut.render("{{#Orphans}}{{id}}: {{#value}}{{.}}, {{/value}}{{/Orphans}}");
+      const result = sut.render("{{#Orphans}}{{key}}: {{#value}}{{id}}, {{/value}}{{/Orphans}}");
       expect(result).toContain("b: x");
       expect(result).not.toContain("a:");
       expect(result).not.toContain("c:");
@@ -292,7 +298,7 @@ title: References
     test('should render references (notes that are referenced)', () => {
       const notes = [
         {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {}},
-        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {'WikiCollector': ['a']}}
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {'Links': ['a']} as {[collector: string]: string[]}},
       ];
       const sut = new Templator(notes);
       // Only 'a' is referenced
