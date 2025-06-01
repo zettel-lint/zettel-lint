@@ -8,6 +8,28 @@ export class Templator {
     collectors: Collector[] | undefined;
     viewProps: any | undefined;
 
+    // get orphaned links - i.e. internal references to files that don't exist
+    private getOrphans() {
+        if (!this.notes) return [];
+
+        const fileIds = new Set(this.notes.map(note => '['+note.id+']'));
+
+        return this.notes.filter(note => {
+            const refs = note.matchData["Links"] || [];
+            return refs.length > 0 && refs.some(refId => !fileIds.has(refId));
+        }).map(note => {
+            // return a copy of the note with only the refs that aren't in WikiCollector
+            const refs = note.matchData["Links"] || [];
+            const orphans = refs.filter(refId => !fileIds.has(refId));
+            return {
+                key: note.id ?? note.filename ?? "",
+                // map orphans to formatData
+                value: orphans.map(refId => ({id: refId, title: refId, filename: refId, fullpath: undefined, data: [], bag: [note]}))
+            };
+        })
+        ;
+    }
+
     constructor(files: fileWikiLinks[] | undefined = undefined,
         collectors: Collector[] | undefined = undefined) {
         this.notes = files;
@@ -24,11 +46,13 @@ export class Templator {
             notes: this.notes,
             created: new Date(),
             modified: new Date(),
+            orphans: this.getOrphans(),
+            Orphans: this.getOrphans(),
             references: (() => {
                 // First collect all referenced IDs
                 const referencedIds = new Set<string>();
                 this.notes?.forEach(note => {
-                    const refs = note.matchData["WikiCollector"] || [];
+                    const refs = note.matchData["Links"] || [];
                     refs.forEach(refId => referencedIds.add(refId));
                 });
                 // Then filter notes based on the collected IDs
