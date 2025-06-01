@@ -9,8 +9,8 @@ export class Templator {
     viewProps: any | undefined;
 
     // get orphaned links - i.e. internal references to files that don't exist
-    private getOrphans(): Map<string, formatData[]> {
-        if (!this.notes) return [];
+    private getOrphans() {
+        if (!this.notes) return new Map<string, formatData[]>();
 
         const fileIds = new Set(this.notes.map(note => '['+note.id+']'));
 
@@ -52,7 +52,7 @@ export class Templator {
                 // First collect all referenced IDs
                 const referencedIds = new Set<string>();
                 this.notes?.forEach(note => {
-                    const refs = note.matchData["WikiCollector"] || [];
+                    const refs = note.matchData["Links"] || [];
                     refs.forEach(refId => referencedIds.add(refId));
                 });
                 // Then filter notes based on the collected IDs
