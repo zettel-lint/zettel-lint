@@ -10,7 +10,7 @@ export class Templator {
 
     // get orphaned links - i.e. internal references to files that don't exist
     private getOrphans() {
-        if (!this.notes) return new Map<string, formatData[]>();
+        if (!this.notes) return [];
 
         const fileIds = new Set(this.notes.map(note => '['+note.id+']'));
 
