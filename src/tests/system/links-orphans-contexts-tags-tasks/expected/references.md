@@ -77,7 +77,6 @@ title: References
 * (E) Task tracker - tasks completed per day => [Zettel Linter][tasks]
 * (Y) Export link as [a flowchart](https://mermaid-js.github.io/mermaid/#/flowchart) - see also Name: [Markdown Links](https://marketplace.visualstudio.com/items?itemName=tchayen.markdown-links) - this may be easier under indexer? => [Zettel Linter][tasks]
 * (F) Kanban view for Trello-imported notes, one md per board, with tables => [Zettel Linter][tasks]
-* (B) Grep for orphaned + links across all files (including .txt) => [Zettel Linter][tasks]
 * (B) Task list should include `*.txt` except `done*.txt` (or configurable exclude glob for non-English users) => [Zettel Linter][tasks]
 * (D) "Soft references" that match filename should show below backlinks - needs to be fast => [Zettel Linter][tasks]
 * (F) Highlight orphaned links and offer to create page => [Zettel Linter][tasks]
