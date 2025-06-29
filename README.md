@@ -42,7 +42,59 @@ This will use the `references.md.mustache` as the template for the references fi
 
 See [example journal](https://github.com/zettel-lint/example) for the style of repo this could be used on.
 
-## Templating
+## Command Line
+
+The `zl` command line tool provides several subcommands for managing your Zettelkasten:
+
+### Global Options
+
+* `--verbose` - Enable verbose output with additional details and ASCII art headers
+* `--version` - Display the version number
+
+### index (alias: create)
+
+Generate an index/reference file from your notes.
+
+Options:
+
+* `-p, --path <path>` - Root path for search (default: ".")
+* `-i, --ignore-dirs <path...>` - Path(s) to ignore
+* `-r, --reference-file <path>` - Path to output (default "reference.md")
+* `-c, --create-file <path>` - Path to output file
+* `-m, --template-file <path>` - Path to input mustache template (default "reference.md.mustache")
+* `-o, --show-orphans` - Output list of orphaned links to console
+* `-t, --task-display <format>` - Display tasks format: 'none', 'by-file', or 'by-priority' (default: 'by-file')
+* `--json-debug-output` - Output JSON intermediate representations
+* `--no-wiki` - Disable wiki-style links
+* `-v, --verbose` - Show additional output
+
+### import (alias: sync)
+
+Import notes from third-party sources. Will create new files or overwrite existing ones.
+
+Options:
+
+* `-s, --source <source>` - Source type (e.g., trello, csv) **Required**
+* `-p, --path <path>` - Search path, supports wildcards (default: ".")
+* `-o, --output-folder <path>` - Folder to save notes to (default: "../import/")
+* `--json-debug-output` - Output JSON intermediate representations
+* `-v, --verbose` - Show additional output
+
+### notes (alias: update)
+
+Lint and fix notes markdown files. Will update existing files.
+
+Options:
+
+* `-p, --path <path>` - Root path for search (default: ".")
+* `-i, --ignore-dirs <path...>` - Path(s) to ignore
+* `-w, --wiki-links-from-id` - Convert [id]-style links into [[wiki-links]]
+* `-o, --show-orphans` - Output list of orphaned links to console
+* `--json-debug-output` - Output JSON intermediate representations
+* `--no-wiki` - Disable wiki-style links
+* `-v, --verbose` - Show additional output
+
+## Templating (for the `index` and `import` options)
 
 Some features accept a mustache based template to generate their output. See [references.md.mustache](src/references.md.mustache) for an example.
 
