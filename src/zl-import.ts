@@ -102,7 +102,7 @@ function importer(program: any): Promise<void> {
         // For public boards, only API key is needed. For private, a token is also needed (not supported here yet)
         const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all` + (program.trelloToken ? `&token=${program.trelloToken}` : '');
         if (program.verbose) {
-          console.log("Downloading Trello board from:", url);
+          console.log(`Downloading Trello board ${boardIdOrName}`);
         }
         const res = await axios.get(url);
         const boardJson = res.data;
