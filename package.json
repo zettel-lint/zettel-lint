@@ -46,12 +46,14 @@
     "simple-markdown": "^0.7.3"
   },
   "devDependencies": {
+    "@commander-js/extra-typings": "^14.0.0",
     "@types/clear": "^0.1.4",
     "@types/figlet": "^1.5.8",
     "@types/glob": "^8.1.0",
     "@types/mustache": "^4.2.5",
     "@types/node": "^24.0.0",
     "eslint": "^9.0.0",
+    "execa": "^9.6.0",
     "nodemon": "^3.0.2",
     "tsx": "^4.7.0",
     "typescript": "^5.3.3",
