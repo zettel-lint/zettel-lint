@@ -1,4 +1,4 @@
-import * as commander from "commander";
+import { Command } from '@commander-js/extra-typings';
 import { glob } from "glob";
 import { promises as fs } from "fs";
 import { idFromFilename } from "./file-handling.js";
@@ -9,7 +9,7 @@ import { collectMatches } from "./RegexCollector.js";
 import { exit } from "process";
 
 export default function notesCommand() {
-  const notes = new commander.Command('notes');
+  const notes = new Command('notes');
   notes
     .description("Lint and fix notes markdown files. Will update existing files.")
     .alias("update")

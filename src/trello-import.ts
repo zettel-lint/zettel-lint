@@ -77,7 +77,7 @@ class TrelloBoardInfo {
   readonly url: string = "";
   readonly prefs: any = {};
   readonly labelNames: any = {};
-  readonly iimits: any = {};
+  readonly limits: any = {};
   readonly actions: any[] = [];
   readonly cards: TrelloCardInfo[] = [];
   readonly checklists: TrelloChecklistInfo[] = [];
@@ -143,7 +143,7 @@ export default class TrelloImport implements BaseImporter {
       sortableDate(card.dateLastActivity) + 
       "-" + this.sanitiseName(card) + ".md";
 
-    const filenames = await this.saveAttachments(outputFolder + "attachments/", card.attachments);
+    const filenames = await this.saveAttachments(outputFolder + "attachments/", card.attachments || []);
 
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
@@ -189,6 +189,11 @@ export default class TrelloImport implements BaseImporter {
     var checklists : { [id: string]: TrelloChecklistInfo; } = {};
     var lists : { [id: string]: TrelloListInfo; } = {};
     var labels : { [id: string]: TrelloLabelInfo; } = {};
+    if (files.length === 0) {
+      return { success: false, message: "No files found matching " + globpattern };
+    } else  {
+      console.warn(`${files.length} files found matching ${globpattern}, importing all of them.`);
+    }
     for await (const file of files) {
       const notes = await this.extractNotes(file);
       totalCards += notes.cards.length;
