@@ -77,7 +77,7 @@ class TrelloBoardInfo {
   readonly url: string = "";
   readonly prefs: any = {};
   readonly labelNames: any = {};
-  readonly iimits: any = {};
+  readonly limits: any = {};
   readonly actions: any[] = [];
   readonly cards: TrelloCardInfo[] = [];
   readonly checklists: TrelloChecklistInfo[] = [];
