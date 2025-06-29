@@ -4,7 +4,7 @@ import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
 import { promises as fs } from "fs";
-import * as commander from "commander";
+import { Command } from '@commander-js/extra-typings';
 import { TaskCollector } from "./TaskCollector.js";
 import { ContextCollector } from "./ContextCollector.js";
 import { TagCollector } from "./TagCollector.js";
@@ -23,7 +23,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default function indexerCommand() {
-  const idxer = new commander.Command('index');
+  const idxer = new Command('index');
   idxer
     .description("Generate index/reference file. Will OVERWRITE any exiting files.")
     .alias("create")

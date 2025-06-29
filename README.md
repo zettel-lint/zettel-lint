@@ -127,7 +127,6 @@ Each collector looks for specific features:
 * the OrphanCollector looks for all wiki links with a URL, and populates the `{{#Orphans}}` collection
 * the ContextCollector looks for `todo.txt` style `@context` links and populates the `{{#Contexts}}` collection
 
-
 Each note has the following properties:
 
 * `id` - the unique internal id (usually the timestamp from the filename)
