@@ -8,8 +8,20 @@ import TrelloImport from "./trello-import.js";
 import { ErrorResponse } from "./base-importer.js";
 import { exit } from "process";
 
-export default function importerCommand() {
-  const idxer = new Command('import');
+interface ZlImportOptions {
+  source: string;
+  path: string;
+  outputFolder: string;
+  trelloApiKey?: string;
+  trelloBoard?: string;
+  trelloToken?: string;
+  jsonDebugOutput: boolean;
+  verbose: boolean;
+  [key: string]: any; // Allow additional options
+}
+
+export default function importerCommand() : Command<[], ZlImportOptions>{
+  const idxer = new Command<[], ZlImportOptions>('import');
   idxer
     .description("Import once from a 3rd party. Will create new files or OVERWRITE existing ones")
     .alias("sync")
@@ -20,13 +32,16 @@ export default function importerCommand() {
     .option('--trello-board <idOrName>', 'Trello board id or name for direct download')
     .option('--trello-token <token>', 'Trello API token (required if using board name)')
     .option('--json-debug-output', "Output JSON intermediate representations")
-    .option('-v, --verbose', "Additional output", true)
+    .option('-v, --verbose', "Additional output")
     .action((cmdObj) => { importer(cmdObj) })
   return idxer;
 }
 
 function printHeader(program: any): void {
-  console.log(JSON.stringify(program, null, 2));
+  const safeProgram = { ...program };  
+  if (safeProgram.trelloApiKey) safeProgram.trelloApiKey = '[REDACTED]';  
+  if (safeProgram.trelloToken) safeProgram.trelloToken = '[REDACTED]';  
+  console.log(JSON.stringify(safeProgram, null, 2));
   if (program.verbose) {
     clear();
     console.log(
@@ -98,9 +113,9 @@ function importer(program: any): Promise<void> {
         }
         // Save to a temp file
         const tempFile = program.outputFolder + "/trello-board.json";
-        const fs = await import("fs/promises");
-        await fs.mkdir(program.outputFolder, { recursive: true });
-        await fs.writeFile(tempFile, JSON.stringify(boardJson, null, 2));
+        const fsPromises = await import("fs/promises");
+        await fsPromises.mkdir(program.outputFolder, { recursive: true });
+        await fsPromises.writeFile(tempFile, JSON.stringify(boardJson, null, 2));
         // Now import as usual
         response = await (new TrelloImport).importAsync(tempFile, program.outputFolder);
       } catch (err: any) {
