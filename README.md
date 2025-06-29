@@ -72,11 +72,30 @@ Options:
 
 Import notes from third-party sources. Will create new files or overwrite existing ones.
 
+#### Trello API Key and Token
+
+To import directly from Trello, you will need a Trello API key and (for private boards or board name lookup) a token:
+
+1. **Get your API key:**
+   * Visit <https://trello.com/app-key> while logged in to Trello.
+   * Copy the API key shown at the top of the page.
+
+2. **Get your token:**
+   * On the same page, under "Token", click the link to generate a token.
+   * Approve the access and copy the token provided.
+
+**Keep your API key and token secret!** Do not share them or commit them to public repositories.
+
+You can now use these with `--trello-api-key <key>` and `--trello-token <token>`.
+
 Options:
 
 * `-s, --source <source>` - Source type (e.g., trello, csv) **Required**
 * `-p, --path <path>` - Search path, supports wildcards (default: ".")
 * `-o, --output-folder <path>` - Folder to save notes to (default: "../import/")
+* `--trello-api-key <key>` - Trello API key for direct board download (trello source only)
+* `--trello-board <idOrName>` - Trello board id or name for direct download (trello source only)
+* `--trello-token <token>` - Trello API token (required if using board name)
 * `--json-debug-output` - Output JSON intermediate representations
 * `-v, --verbose` - Show additional output
 
