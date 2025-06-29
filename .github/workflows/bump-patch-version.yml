@@ -27,13 +27,11 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Get current version
-        id: current_version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "current_version=${CURRENT_VERSION}" >> $GITHUB_ENV
 
       - name: Calculate new version
-        id: new_version
         run: |
           CURRENT_VERSION=${{ env.current_version }}
           NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
