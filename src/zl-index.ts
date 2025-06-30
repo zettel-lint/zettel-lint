@@ -33,7 +33,7 @@ interface ZlIndexOptions {
   jsonDebugOutput: boolean; // Output JSON intermediate representations
   wiki: boolean; // Use [[wiki style]] links
   verbose: boolean; // Additional output
-  // Additional options
+  // Additional options, required for Command compatibility
   [key: string]: any; // Allow additional options
 }
 
