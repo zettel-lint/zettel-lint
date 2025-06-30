@@ -98,6 +98,40 @@ function sortableDate(d: Date) : string {
 }
 
 export default class TrelloImport implements BaseImporter {
+  static async downloadBoardJson(options: {
+    boardIdOrName: string,
+    apiKey: string,
+    token?: string,
+    verbose?: boolean
+  }): Promise<any> {
+    let { boardIdOrName, apiKey, token, verbose } = options;
+    // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
+    if (!/^([0-9a-f]{8}|[0-9a-f]{24})$/i.test(boardIdOrName)) {
+      if (verbose) {
+        console.log(`Looking up Trello board id for name: ${boardIdOrName}`);
+      }
+      if (!token) {
+        throw new Error("A Trello token (--trello-token) is required to look up boards by name.");
+      }
+      const boardsUrl = `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${token}`;
+      const boardsRes = await axios.get(boardsUrl);
+      const boards = boardsRes.data;
+      const found = boards.find((b: any) => b.name === boardIdOrName);
+      if (!found) {
+        throw new Error(`Could not find Trello board with name: ${boardIdOrName}`);
+      }
+      boardIdOrName = found.id;
+      if (verbose) {
+        console.log(`Resolved board name '${options.boardIdOrName}' to id: ${boardIdOrName}`);
+      }
+    }
+    const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all` + (token ? `&token=${token}` : '');
+    if (verbose) {
+      console.log(`Downloading Trello board ${boardIdOrName}`);
+    }
+    const res = await axios.get(url);
+    return res.data;
+  }
   async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
     const data : TrelloBoardInfo = JSON.parse(contents);
@@ -183,6 +217,10 @@ export default class TrelloImport implements BaseImporter {
   }
 
   async importAsync(globpattern: string, outputFolder: string): Promise<ErrorResponse> {
+    // Ensure output folder exists and has a path separator at the end
+    if (!outputFolder.endsWith("/")) {
+      outputFolder += "/";
+    }
     const files = await glob(globpattern);
     var totalCards = 0;
     var totalNotes = 0;

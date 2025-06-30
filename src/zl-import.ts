@@ -56,7 +56,7 @@ function printHeader(program: any): void {
 
 import axios from "axios";
 
-function importer(program: any): Promise<void> {
+async function importer(program: any): Promise<void> {
   printHeader(program);
   if(program.outputFolder === undefined) {
     program.outputFolder = '../' + program.source + '/'
@@ -73,39 +73,14 @@ function importer(program: any): Promise<void> {
       program.trelloApiKey &&
       program.trelloBoard
     ) {
-      // Download board JSON from Trello API
+      // Download board JSON from Trello API using TrelloImport helper
       try {
-        let boardIdOrName = program.trelloBoard;
-        const apiKey = program.trelloApiKey;
-        // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
-        if (!/^([0-9a-f]{8}|[0-9a-f]{24})$/i.test(boardIdOrName)) {
-          if (program.verbose) {
-            console.log(`Looking up Trello board id for name: ${boardIdOrName}`);
-          }
-          // User must provide a Trello token for this API call
-          if (!program.trelloToken) {
-            throw new Error("A Trello token (--trello-token) is required to look up boards by name.");
-          }
-          // Get all boards for the user
-          const boardsUrl = `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${program.trelloToken}`;
-          const boardsRes = await axios.get(boardsUrl);
-          const boards = boardsRes.data;
-          const found = boards.find((b: any) => b.name === boardIdOrName);
-          if (!found) {
-            throw new Error(`Could not find Trello board with name: ${boardIdOrName}`);
-          }
-          boardIdOrName = found.id;
-          if (program.verbose) {
-            console.log(`Resolved board name '${program.trelloBoard}' to id: ${boardIdOrName}`);
-          }
-        }
-        // For public boards, only API key is needed. For private, a token is also needed (not supported here yet)
-        const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all` + (program.trelloToken ? `&token=${program.trelloToken}` : '');
-        if (program.verbose) {
-          console.log(`Downloading Trello board ${boardIdOrName}`);
-        }
-        const res = await axios.get(url);
-        const boardJson = res.data;
+        const boardJson = await TrelloImport.downloadBoardJson({
+          boardIdOrName: program.trelloBoard,
+          apiKey: program.trelloApiKey,
+          token: program.trelloToken,
+          verbose: program.verbose
+        });
         if (program.jsonDebugOutput) {
           console.log("Trello board JSON:", JSON.stringify(boardJson, null, 2));
         } else {
@@ -142,8 +117,6 @@ function importer(program: any): Promise<void> {
     }
   };
 
-  return parseFiles().then(
-    () => { if(program.verbose) { console.log("Updated") }},
-    (reason) => { console.error("Error: " + reason); }
-  )
+  return await parseFiles();
+  
 }
