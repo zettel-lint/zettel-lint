@@ -31,14 +31,22 @@ describe('zl-import trello system test', () => {
   });
 
   it('should generate output files matching expected', async () => {
-    // Run zl-import for trello source
-    const cmd = await importerCommand().parseAsync([
-      'zl', 'import',
+    // Run zl-import for trello source using the CLI command as defined in project.json targets
+    // Use npm run-script zl -- import --source trello ...
+    await execa('npm', [
+      'run-script',
+      'zl',
+      '--',
+      'import',
       '--source', 'trello',
       '--path', path.join(inputsDir, '*.json'),
-      '--output-folder', outputsDir + '/',
-      '--verbose'
-    ]);
+      '--output-folder', outputsDir,
+      '--verbose',
+      '--json-debug-output'
+    ],{
+      cwd: root,
+      stdio: 'inherit'
+    });
 
     // Compare outputs to expected
     const expectedFiles = await getFilesRecursive(expectedDir);
@@ -51,6 +59,19 @@ describe('zl-import trello system test', () => {
       ]);
       expect(outputContent).toBe(expectedContent);
     }
+
+    // Check that no unexpected files were created, ignoring .gitignore and .DS_Store
+    const outputFiles = await getFilesRecursive(outputsDir);
+    const expectedRelFiles = expectedFiles.map(f => path.relative(expectedDir, f));
+    const outputRelFiles = outputFiles.map(f => path.relative(outputsDir, f));
+    const unexpectedFiles = outputRelFiles.filter(rel =>
+      !expectedRelFiles.includes(rel) &&
+      !rel.startsWith('.') &&
+      !rel.startsWith('..') &&
+      !rel.includes('.gitignore') &&
+      !rel.includes('.DS_Store')
+    );
+    expect(unexpectedFiles.length).toBe(0);
   });
 
   afterAll(async () => {
