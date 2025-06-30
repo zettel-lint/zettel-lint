@@ -43,7 +43,8 @@
     "glob": "^13.0.0",
     "mustache": "^4.2.0",
     "simple-markdown": "^0.7.3",
-    "yaml": "^2.8.1"
+    "yaml": "^2.8.1",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/clear": "^0.1.4",
