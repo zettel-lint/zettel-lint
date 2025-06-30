@@ -113,7 +113,7 @@ async function importer(program: any): Promise<void> {
 
     if ((response !== undefined) && (!response.success)) {
       console.error(response.message);
-      exit(1);
+      return;
     }
   };
 
