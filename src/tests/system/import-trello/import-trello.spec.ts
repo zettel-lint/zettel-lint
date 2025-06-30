@@ -14,6 +14,13 @@ async function cleanOutputs() {
     await fs.rm(outputsDir, { recursive: true, force: true });
   } catch {}
   await fs.mkdir(outputsDir, { recursive: true });
+  // restore .gitignore
+  const gitignorePath = path.join(outputsDir, '.gitignore');
+  if (!(await fs.stat(gitignorePath).catch(() => false))) {
+    // create .gitignore if it doesn't exist,ignoring everything else in outputsDir
+    // This is to ensure we don't accidentally commit output files
+    await fs.writeFile(gitignorePath, '*\n!.gitignore\n', 'utf8');
+  }
 }
 
 async function getFilesRecursive(dir: string): Promise<string[]> {
