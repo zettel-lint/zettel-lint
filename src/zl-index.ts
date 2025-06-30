@@ -58,7 +58,7 @@ export default function indexerCommand() : Command<[], ZlIndexOptions> {
     .option('--json-debug-output', "Output JSON intermediate representations", false)
     .option('--no-wiki', "use [[wiki style]] links", false)
     .option('-v, --verbose', "Additional output", false)
-    .action((cmdObj: ZlIndexOptions) => { indexer(cmdObj) })
+    .action(async (cmdObj: ZlIndexOptions) => { await indexer(cmdObj) })
   return idxer;
 }
 
