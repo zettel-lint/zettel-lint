@@ -6,7 +6,6 @@ import figlet from "figlet";
 import { Command } from '@commander-js/extra-typings';
 import TrelloImport from "./trello-import.js";
 import { ErrorResponse } from "./base-importer.js";
-import { exit } from "process";
 
 interface ZlImportOptions {
   source: string;
@@ -17,7 +16,7 @@ interface ZlImportOptions {
   trelloToken?: string;
   jsonDebugOutput: boolean;
   verbose: boolean;
-  [key: string]: any; // Allow additional options
+  [key: string]: any; // Allow additional options, required for Command compatibility
 }
 
 export default function importerCommand() : Command<[], ZlImportOptions>{
@@ -31,13 +30,13 @@ export default function importerCommand() : Command<[], ZlImportOptions>{
     .option('--trello-api-key <key>', 'Trello API key for direct board download')
     .option('--trello-board <idOrName>', 'Trello board id or name for direct download')
     .option('--trello-token <token>', 'Trello API token (required if using board name)')
-    .option('--json-debug-output', "Output JSON intermediate representations")
-    .option('-v, --verbose', "Additional output")
-    .action((cmdObj) => { importer(cmdObj) })
+    .option('--json-debug-output', "Output JSON intermediate representations", false)
+    .option('-v, --verbose', "Additional output", false)
+    .action(async (cmdObj: ZlImportOptions) => { await importer(cmdObj) })
   return idxer;
 }
 
-function printHeader(program: any): void {
+function printHeader(program: ZlImportOptions): void {
   const safeProgram = { ...program };  
   if (safeProgram.trelloApiKey) safeProgram.trelloApiKey = '[REDACTED]';  
   if (safeProgram.trelloToken) safeProgram.trelloToken = '[REDACTED]';  
@@ -53,10 +52,7 @@ function printHeader(program: any): void {
   }
 }
 
-
-import axios from "axios";
-
-async function importer(program: any): Promise<void> {
+async function importer(program: ZlImportOptions): Promise<void> {
   printHeader(program);
   if(program.outputFolder === undefined) {
     program.outputFolder = '../' + program.source + '/'
