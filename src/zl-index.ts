@@ -22,8 +22,24 @@ import { glob } from "glob";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default function indexerCommand() {
-  const idxer = new Command('index');
+interface ZlIndexOptions {
+  path: string; // Root path for search
+  ignoreDirs: string[] | undefined; // Path(s) to ignore
+  referenceFile: string; // Path to output reference.md
+  createFile: string; // Path to output file
+  templateFile: string; // Path to input mustache template
+  showOrphans: boolean; // Output list of orphaned links to console
+  taskDisplay: 'none' | 'by-file' | 'by-priority'; // Display tasks
+  jsonDebugOutput: boolean; // Output JSON intermediate representations
+  wiki: boolean; // Use [[wiki style]] links
+  verbose: boolean; // Additional output
+  // Additional options
+  [key: string]: any; // Allow additional options
+}
+
+
+export default function indexerCommand() : Command<[], ZlIndexOptions> {
+  const idxer = new Command<[], ZlIndexOptions>('index');
   idxer
     .description("Generate index/reference file. Will OVERWRITE any exiting files.")
     .alias("create")
@@ -32,16 +48,21 @@ export default function indexerCommand() {
     .option('-r, --reference-file <path>', "Path to output reference.md", "references.md")
     .option('-c, --create-file <path>', "Path to output file", "references.md")
     .option('-m, --template-file <path>', "Path to input mustache template", path.resolve(__dirname, "references.md.mustache"))
-    .option('-o, --show-orphans', "Output list of orphaned links to console")
-    .option('-t, --task-display <format>', "Display tasks? 'none' 'by-file' 'by-priority'", "by-file")
-    .option('--json-debug-output', "Output JSON intermediate representations")
-    .option('--no-wiki', "use [[wiki style]] links")
-    .option('-v, --verbose', "Additional output")
-    .action((cmdObj) => { indexer(cmdObj) })
+    .option('-o, --show-orphans', "Output list of orphaned links to console", false)
+    .option('-t, --task-display <format>', "Display tasks? 'none' 'by-file' 'by-priority'", (value): 'none' | 'by-file' | 'by-priority' => {
+      if (!['none', 'by-file', 'by-priority'].includes(value)) {
+        throw new Error("Invalid task display format");
+      }
+      return value as 'none' | 'by-file' | 'by-priority';
+    }, "by-file")
+    .option('--json-debug-output', "Output JSON intermediate representations", false)
+    .option('--no-wiki', "use [[wiki style]] links", false)
+    .option('-v, --verbose', "Additional output", false)
+    .action((cmdObj: ZlIndexOptions) => { indexer(cmdObj) })
   return idxer;
 }
 
-function printHeader(program: any): void {
+function printHeader(program: ZlIndexOptions): void {
   if (program.verbose) {
     clear();
     console.log(
@@ -85,7 +106,7 @@ export async function collectFromFile(filename: string, program: any): Promise<f
   };
 }
 
-function indexer(program: any): void {
+function indexer(program: ZlIndexOptions): void {
   printHeader(program);
 
   var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
@@ -102,7 +123,7 @@ function indexer(program: any): void {
 
     for await (const file of files) {
       const wikiLinks = await collectFromFile(file, program);
-      if (program.referenceFile && !program.referenceFile.endsWith(wikiLinks.filename)) {
+      if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
         references.push(wikiLinks);
       }
       if (program.jsonDebugOutput) {
