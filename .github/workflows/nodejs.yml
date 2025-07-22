@@ -29,7 +29,7 @@ jobs:
     - run: npm test
     - run: npm run-script zl -- index -v -i \"node_modules/**\" -r references.md --show-orphans
     - run: npm run-script zl -- notes -v -i \"node_modules/**\" --verbose --show-orphans
-    - uses: butlerlogic/action-autotag@1.1.2
+    - uses: butlerlogic/action-autotag@1.1.4
       if: github.event_name == 'push'
       with:
         tag_prefix: "v"
