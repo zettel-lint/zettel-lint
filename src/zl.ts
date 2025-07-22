@@ -11,7 +11,7 @@ import { Command } from '@commander-js/extra-typings';
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
 
-export const version = "0.12.3";
+export const version = "0.12.4";
 
 var program = new Command("zl")
   .version(version)
