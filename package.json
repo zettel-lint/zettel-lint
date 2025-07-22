@@ -34,6 +34,7 @@
   },
   "homepage": "https://github.com/zettel-lint/zettel-lint#readme",
   "dependencies": {
+    "@commander-js/extra-typings": "^14.0.0",
     "axios": "^1.8.2",
     "chalk": "^5.3.0",
     "clear": "^0.1.0",
@@ -46,7 +47,6 @@
     "simple-markdown": "^0.7.3"
   },
   "devDependencies": {
-    "@commander-js/extra-typings": "^14.0.0",
     "@types/clear": "^0.1.4",
     "@types/figlet": "^1.5.8",
     "@types/glob": "^9.0.0",
