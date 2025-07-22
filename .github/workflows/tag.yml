@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: write
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4.1.1
       with:
         fetch-depth: '0'
 
@@ -24,22 +24,18 @@ jobs:
 
     - name: Get version from package.json
       id: get_version
-      run: echo "::set-output name=version::$(node -p "require('./package.json').version")"
+      run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
 
-    - name: Check if tag exists
+    - name: Create and push tag if it doesn't exist
+      id: create_tag
       run: |
-        if git rev-parse v${{ steps.get_version.outputs.version }} >/dev/null 2>&1; then
-          echo "Tag v${{ steps.get_version.outputs.version }} already exists"
+        if ! git rev-parse v${{ steps.get_version.outputs.version }} >/dev/null 2>&1; then
+          echo "Creating tag v${{ steps.get_version.outputs.version }}"
+          git tag -a v${{ steps.get_version.outputs.version }} -m "Version ${{ steps.get_version.outputs.version }}"
+          git push origin v${{ steps.get_version.outputs.version }}
+          echo "tag_created=true" >> $GITHUB_OUTPUT
+          echo "The create-release workflow will be triggered automatically to generate release notes and create the release"
+        else
+          echo "Tag v${{ steps.get_version.outputs.version }} already exists, skipping tag and release creation"
+          echo "tag_created=false" >> $GITHUB_OUTPUT
         fi
-
-    - name: Remove existing tag if exists
-      run: |
-        if git rev-parse v${{ steps.get_version.outputs.version }} >/dev/null 2>&1; then
-          git push --delete origin v${{ steps.get_version.outputs.version }}
-          git tag -d v${{ steps.get_version.outputs.version }}
-        fi
-
-    - name: Create tag
-      run: |
-        git tag -a v${{ steps.get_version.outputs.version }} -m "Version ${{ steps.get_version.outputs.version }}"
-        git push origin v${{ steps.get_version.outputs.version }}
