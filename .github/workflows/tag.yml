@@ -26,20 +26,12 @@ jobs:
       id: get_version
       run: echo "::set-output name=version::$(node -p "require('./package.json').version")"
 
-    - name: Check if tag exists
+    - name: Create and push tag if it doesn't exist
       run: |
-        if git rev-parse v${{ steps.get_version.outputs.version }} >/dev/null 2>&1; then
-          echo "Tag v${{ steps.get_version.outputs.version }} already exists"
+        if ! git rev-parse v${{ steps.get_version.outputs.version }} >/dev/null 2>&1; then
+          echo "Creating tag v${{ steps.get_version.outputs.version }}"
+          git tag -a v${{ steps.get_version.outputs.version }} -m "Version ${{ steps.get_version.outputs.version }}"
+          git push origin v${{ steps.get_version.outputs.version }}
+        else
+          echo "Tag v${{ steps.get_version.outputs.version }} already exists, skipping"
         fi
-
-    - name: Remove existing tag if exists
-      run: |
-        if git rev-parse v${{ steps.get_version.outputs.version }} >/dev/null 2>&1; then
-          git push --delete origin v${{ steps.get_version.outputs.version }}
-          git tag -d v${{ steps.get_version.outputs.version }}
-        fi
-
-    - name: Create tag
-      run: |
-        git tag -a v${{ steps.get_version.outputs.version }} -m "Version ${{ steps.get_version.outputs.version }}"
-        git push origin v${{ steps.get_version.outputs.version }}
