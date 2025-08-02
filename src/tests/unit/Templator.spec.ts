@@ -142,7 +142,16 @@ title: References
 
   test('templator creates modified date', () => {
     var sut = new Templator();
-    expect(sut.render("{{modified}}")).toContain(new Date(Date.now()).toISOString().substr(0,20)); //ms don't matter
+    const beforeTime = new Date();
+    const result = sut.render("{{modified}}");
+    const afterTime = new Date();
+    
+    // Convert result string to date for comparison
+    const resultDate = new Date(result);
+    
+    // Check that the result time is between beforeTime and afterTime
+    expect(resultDate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
+    expect(resultDate.getTime()).toBeLessThanOrEqual(afterTime.getTime());
   });
 
   test('templator can create reference links', () => {
