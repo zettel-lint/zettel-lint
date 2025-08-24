@@ -1,0 +1,29 @@
+import { fileWikiLinks, formatData, invertDictionary } from "./types.js";
+import { RegexCollector } from "./RegexCollector.js";
+
+// Properties either in yaml or in [property:: value] format
+export class PropertyCollector extends RegexCollector {
+  protected format(references: formatData[]): string {
+    var tagList: { [tag: string]: string[]; } = invertDictionary(references);
+
+    var result: string = "";
+    Object.keys(tagList).sort().forEach(tag => {
+      result += "* " + tag + " : " + tagList[tag].join() + "\n";
+    });
+
+    return result;
+  };
+  collect(content: string) : string[] {
+    let result = super.collect(content);
+    let tags = this.collectYaml(content)?.tags;
+    if (typeof(tags) === 'string') {
+      tags = (tags as string).split(',');
+    }
+    result = result
+      .concat(tags?.map((tg :string) => tg.startsWith(".") ? tg.slice(1) : tg) || [])
+      .filter(tg => tg.length > 0 && tg != ".");
+    return result;
+  }
+  readonly dataName = "Properties";
+  readonly regex = /(?: |^)\[([a-zA-Z0-9-_/]+)\w*::\w*([a-zA-Z0-9-_/]+)\]/g;
+}
