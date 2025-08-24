@@ -15,17 +15,30 @@ export class PropertyCollector extends RegexCollector {
     return result;
   };
   collectProperties(content: string): YamlHeaders {
-    let result = this.collectPairs(content);
-    let properties = this.collectYaml(content);
+    let pairs = this.collectPairs(content);
+    let yaml = this.collectYaml(content);
+    let result: YamlHeaders = { tags: [] };
 
-    // Merge result and properties
-    Object.keys(properties).forEach(key => {
-      if (result[key] && properties[key]) {
-        result[key] = [...new Set([...result[key], ...properties[key]])];
-      } else {
-        result[key] = properties[key];
+    // Merge tags from YAML and inline properties
+    if (yaml.tags) {
+      result.tags = [...yaml.tags];
+    }
+    if (pairs.tags) {
+      result.tags = [...new Set([...(result.tags || []), ...(pairs.tags || [])])];
+    }
+
+    // Merge all other properties
+    const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
+    allKeys.forEach(key => {
+      if (key === 'tags') return; // Already handled above
+      
+      const yamlValues = yaml[key] || [];
+      const pairValues = pairs[key] || [];
+      if (yamlValues.length > 0 || pairValues.length > 0) {
+        result[key] = [...new Set([...yamlValues, ...pairValues])];
       }
     });
+
     return result;
   }
   collectPairs(content: string): YamlHeaders {
@@ -35,12 +48,19 @@ export class PropertyCollector extends RegexCollector {
       next = this.regex.exec(content);
       if (next) {
         if (next[1] && next[2]) {
-          result[next[1].trim()] = next[2].split(", ");
+          const key = next[1].trim();
+          // For non-tags properties, store as a single-item array
+          const values = key === 'tags' ? next[2].split(", ") : [next[2].trim()];
+          if (result[key]) {
+            result[key] = [...new Set([...result[key]!, ...values])];
+          } else {
+            result[key] = values;
+          }
         }
       }
     } while (next);
     return result;
   }
   readonly dataName = "Properties";
-  readonly regex = /(?: |^)\[([a-zA-Z0-9-_/]+)\w*::\w*([a-zA-Z0-9-_/]+)\]/g;
+  readonly regex = /(?: |^)\[([a-zA-Z0-9-_/]+)::\s*([^\]]+)\]/g;
 }

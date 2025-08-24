@@ -17,3 +17,9 @@ test('empty file has no properties', () => {
     expect(sut.collectProperties("---\nauthor: Charles Dickens\n---\n\n* Great Expectations"))
       .toEqual({'author': ['Charles Dickens'], 'tags': []})
   })
+
+  test('collects properties from body', () => {
+    var sut = new PropertyCollector();
+    expect(sut.collectProperties("---\ntags: fiction novel classics\n---\n\n* Great Expectations [author:: Charles Dickens]"))
+      .toEqual({'tags': ["fiction", "novel", "classics"], 'author': ['Charles Dickens']})
+  })
