@@ -1,7 +1,7 @@
 import { formatData, fileWikiLinks, invertData } from "./types.js";
 
 export class YamlHeaders {
-  tags: string[] | undefined;
+  [property: string]: string[] | undefined;
 }
 
 export abstract class Collector {
@@ -34,9 +34,24 @@ export abstract class Collector {
     }
     const header = content.substring(yamlSep.length, content.indexOf(yamlSep, yamlSep.length));
     const pairs = header.split("\n").map(line => line.split(":", 2));
-    const o = {};
-    pairs.map(p => Object.defineProperty(o, p[0], {value: p[1]}));
-    return {...o, tags:this.listOf(this.getValue(pairs, "tags"))};
+    const result: YamlHeaders = { tags: [] };
+    
+    pairs.forEach(pair => {
+      if (pair.length === 2) {
+        const [key, value] = pair;
+        const trimmedKey = key.trim();
+        const trimmedValue = value.trim();
+        
+        if (trimmedKey === 'tags') {
+          result[trimmedKey] = this.listOf(trimmedValue);
+        } else {
+          // For non-tags properties, we store them as single-item arrays
+          result[trimmedKey] = [trimmedValue];
+        }
+      }
+    });
+    
+    return result;
   }
   public extractData(ref: fileWikiLinks): formatData {
     return {

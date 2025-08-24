@@ -1,5 +1,6 @@
 import { fileWikiLinks, formatData, invertDictionary } from "./types.js";
 import { RegexCollector } from "./RegexCollector.js";
+import { YamlHeaders } from "./Collector.js";
 
 // Properties either in yaml or in [property:: value] format
 export class PropertyCollector extends RegexCollector {
@@ -13,15 +14,31 @@ export class PropertyCollector extends RegexCollector {
 
     return result;
   };
-  collect(content: string) : string[] {
-    let result = super.collect(content);
-    let tags = this.collectYaml(content)?.tags;
-    if (typeof(tags) === 'string') {
-      tags = (tags as string).split(',');
-    }
-    result = result
-      .concat(tags?.map((tg :string) => tg.startsWith(".") ? tg.slice(1) : tg) || [])
-      .filter(tg => tg.length > 0 && tg != ".");
+  collectProperties(content: string): YamlHeaders {
+    let result = this.collectPairs(content);
+    let properties = this.collectYaml(content);
+
+    // Merge result and properties
+    Object.keys(properties).forEach(key => {
+      if (result[key] && properties[key]) {
+        result[key] = [...new Set([...result[key], ...properties[key]])];
+      } else {
+        result[key] = properties[key];
+      }
+    });
+    return result;
+  }
+  collectPairs(content: string): YamlHeaders {
+    var result: YamlHeaders = { tags: [] };
+    var next: RegExpExecArray | null;
+    do {
+      next = this.regex.exec(content);
+      if (next) {
+        if (next[1] && next[2]) {
+          result[next[1].trim()] = next[2].split(", ");
+        }
+      }
+    } while (next);
     return result;
   }
   readonly dataName = "Properties";
