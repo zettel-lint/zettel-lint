@@ -39,9 +39,12 @@ export abstract class Collector {
     
     Object.entries(yamlData).forEach(([key, value]) => {
       if (key === 'tags') {
-        result[key] = Array.isArray(value) ? value : this.listOf(value as string);
+        result[key] = Array.isArray(value)
+          ? value.map(v => String(v))
+          : this.listOf(String(value));
       } else {
-        result[key] = Array.isArray(value) ? value : [value as string];
+        const arr = Array.isArray(value) ? value : [value];
+        result[key] = arr.map(v => String(v));
       }
     });
     
