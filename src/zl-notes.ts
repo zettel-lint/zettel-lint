@@ -54,7 +54,7 @@ function lintNotes(program: any): void {
     console.log("mapWikiLinks", files[0], program.path, root);
     files.forEach(f => {
       const id = idFromFilename(f);
-      if (id) {
+      if (id && id.trim() !== "") {
         links["[" + id + "]"] = "[[" + f.replace('.md','').replace(root + "/", '') + "]]";
       }
     });
