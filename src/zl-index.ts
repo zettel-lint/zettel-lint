@@ -41,7 +41,7 @@ interface ZlIndexOptions {
 export default function indexerCommand() : Command<[], ZlIndexOptions> {
   const idxer = new Command<[], ZlIndexOptions>('index');
   idxer
-    .description("Generate index/reference file. Will OVERWRITE any exiting files.")
+    .description("Generate index/reference file. Will OVERWRITE any existing files.")
     .alias("create")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
