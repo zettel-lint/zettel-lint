@@ -33,7 +33,7 @@ interface ZlIndexOptions {
   jsonDebugOutput: boolean; // Output JSON intermediate representations
   wiki: boolean; // Use [[wiki style]] links
   verbose: boolean; // Additional output
-  // Additional options, required for Command compatibility
+  tasksToIssues?: boolean; // New: create GitHub issues from tasks
   [key: string]: any; // Allow additional options
 }
 
@@ -57,6 +57,7 @@ export default function indexerCommand() : Command<[], ZlIndexOptions> {
     }, "by-file")
     .option('--json-debug-output', "Output JSON intermediate representations", false)
     .option('--no-wiki', "use [[wiki style]] links", false)
+    .option('--tasks-to-issues', "Create GitHub issues for each unique task found in the repo", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj: ZlIndexOptions) => { await indexer(cmdObj) })
   return idxer;
@@ -106,6 +107,51 @@ export async function collectFromFile(filename: string, program: any): Promise<f
   };
 }
 
+async function createIssuesFromTasks(tasks: {task: string, file: string, title: string}[], program: ZlIndexOptions) {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.GITHUB_REPOSITORY;
+  if (!token || !repo) {
+    console.error("GITHUB_TOKEN or GITHUB_REPOSITORY not set. Skipping issue creation.");
+    return;
+  }
+  const [owner, repoName] = repo.split("/");
+  const fetch = (await import('node-fetch')).default;
+  for (const t of tasks) {
+    // Check for existing open issues with the same title
+    const searchUrl = `https://api.github.com/search/issues?q=repo:${owner}/${repoName}+in:title+${encodeURIComponent(t.task)}`;
+    const searchResp = await fetch(searchUrl, {
+      headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    const searchData = await searchResp.json();
+    if (searchData.items && searchData.items.some((i: any) => i.title === t.task && i.state === 'open')) {
+      if (program.verbose) console.log(`Issue already exists for: ${t.task}`);
+      continue;
+    }
+    // Create issue
+    const url = `https://api.github.com/repos/${owner}/${repoName}/issues`;
+    const body = {
+      title: t.task,
+      body: `Auto-created from task in file: \
+${t.file}\n\nSource note title: ${t.title}`
+    };
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `token ${token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (resp.ok) {
+      if (program.verbose) console.log(`Created issue: ${t.task}`);
+    } else {
+      const err = await resp.text();
+      console.error(`Failed to create issue for: ${t.task}\n${err}`);
+    }
+  }
+}
+
 function indexer(program: ZlIndexOptions): void {
   printHeader(program);
 
@@ -117,10 +163,7 @@ function indexer(program: ZlIndexOptions): void {
 
   async function parseFiles() {
     var references: fileWikiLinks[] = [];
-
-    // options is optional
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
-
     for await (const file of files) {
       const wikiLinks = await collectFromFile(file, program);
       if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
@@ -129,6 +172,27 @@ function indexer(program: ZlIndexOptions): void {
       if (program.jsonDebugOutput) {
         console.log(wikiLinks);
       }
+    }
+
+    if (program.tasksToIssues) {
+      // Gather all unique tasks from TaskCollector
+      const taskCollector = collectors.find(c => c.dataName === "Tasks") as TaskCollector;
+      const allTasks: {task: string, file: string, title: string}[] = [];
+      for (const ref of references) {
+        const tasks = ref.matchData["Tasks"] || [];
+        for (const t of tasks) {
+          allTasks.push({task: t.trim(), file: ref.filename || '', title: ref.title || ''});
+        }
+      }
+      // Remove duplicates by task text
+      const seen = new Set();
+      const uniqueTasks = allTasks.filter(t => {
+        if (seen.has(t.task)) return false;
+        seen.add(t.task);
+        return true;
+      });
+      await createIssuesFromTasks(uniqueTasks, program);
+      return;
     }
 
     if (program.referenceFile && program.templateFile) {

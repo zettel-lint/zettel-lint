@@ -44,7 +44,8 @@
     "glob": "^11.0.0",
     "mustache": "^4.2.0",
     "path": "^0.12.7",
-    "simple-markdown": "^0.7.3"
+    "simple-markdown": "^0.7.3",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@types/clear": "^0.1.4",
