@@ -22,7 +22,7 @@ import { glob } from "glob";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-interface ZlIndexOptions {
+export interface ZlIndexOptions {
   path: string; // Root path for search
   ignoreDirs: string[] | undefined; // Path(s) to ignore
   referenceFile: string; // Path to output reference.md
