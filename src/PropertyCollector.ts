@@ -1,4 +1,5 @@
-import { fileWikiLinks, formatData, invertDictionary } from "./types.js";
+import { parse } from 'yaml';
+import { formatData, invertDictionary } from "./types.js";
 import { RegexCollector } from "./RegexCollector.js";
 import { YamlHeaders } from "./Collector.js";
 
@@ -12,6 +13,10 @@ export class PropertyCollector extends RegexCollector {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([tag, values]) => `* ${tag} : ${values.join()}\n`)
       .join('');
+  }
+
+  collect(content: string): string[] {
+    return [];
   }
 
   collectProperties(content: string): YamlHeaders {
@@ -42,7 +47,7 @@ export class PropertyCollector extends RegexCollector {
 
       const trimmedKey = key.trim();
       const values = trimmedKey === 'tags' ? value.split(", ") : [value.trim()];
-      result[trimmedKey] = result[trimmedKey] 
+      result[trimmedKey] = result[trimmedKey]
         ? [...new Set([...result[trimmedKey]!, ...values])]
         : values;
     }

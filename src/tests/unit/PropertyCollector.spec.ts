@@ -18,8 +18,26 @@ test('empty file has no properties', () => {
       .toEqual({'author': ['Charles Dickens'], 'tags': []})
   })
 
+  test('collects properties from YAML frontmatter using indented list format', () => {
+    var sut = new PropertyCollector();
+    expect(sut.collectProperties("---\nauthor:\n  - Charles Dickens\n---\n\n* Great Expectations"))
+      .toEqual({'author': ['Charles Dickens'], 'tags': []})
+  })
+
+  test('collects properties from YAML frontmatter using array format', () => {
+    var sut = new PropertyCollector();
+    expect(sut.collectProperties("---\nauthor: ['Charles Dickens', ]\n---\n\n* Great Expectations"))
+      .toEqual({'author': ['Charles Dickens'], 'tags': []})
+  })
+
   test('collects properties from body', () => {
     var sut = new PropertyCollector();
     expect(sut.collectProperties("---\ntags: fiction novel classics\n---\n\n* Great Expectations [author:: Charles Dickens]"))
+      .toEqual({'tags': ["fiction", "novel", "classics"], 'author': ['Charles Dickens']})
+  })
+
+  test('merges unique properties', () => {
+    var sut = new PropertyCollector();
+    expect(sut.collectProperties("---\ntags: fiction novel\n---\n\n* Great Expectations [author:: Charles Dickens] [tags:: novel, classics]"))
       .toEqual({'tags': ["fiction", "novel", "classics"], 'author': ['Charles Dickens']})
   })

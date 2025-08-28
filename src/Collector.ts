@@ -1,4 +1,5 @@
 import { formatData, fileWikiLinks, invertData } from "./types.js";
+import { parse } from 'yaml'
 
 export class YamlHeaders {
   [property: string]: string[] | undefined;
@@ -33,21 +34,14 @@ export abstract class Collector {
       return {tags: undefined};
     }
     const header = content.substring(yamlSep.length, content.indexOf(yamlSep, yamlSep.length));
-    const pairs = header.split("\n").map(line => line.split(":", 2));
+    const yamlData = parse(header);
     const result: YamlHeaders = { tags: [] };
     
-    pairs.forEach(pair => {
-      if (pair.length === 2) {
-        const [key, value] = pair;
-        const trimmedKey = key.trim();
-        const trimmedValue = value.trim();
-        
-        if (trimmedKey === 'tags') {
-          result[trimmedKey] = this.listOf(trimmedValue);
-        } else {
-          // For non-tags properties, we store them as single-item arrays
-          result[trimmedKey] = [trimmedValue];
-        }
+    Object.entries(yamlData).forEach(([key, value]) => {
+      if (key === 'tags') {
+        result[key] = Array.isArray(value) ? value : this.listOf(value as string);
+      } else {
+        result[key] = Array.isArray(value) ? value : [value as string];
       }
     });
     
