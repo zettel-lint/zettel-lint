@@ -1,5 +1,5 @@
 import { formatData, fileWikiLinks, invertData } from "./types.js";
-import { parse } from 'yaml'
+import { parse, stringify } from 'yaml';
 
 export class YamlHeaders {
   [property: string]: string[] | undefined;
@@ -28,12 +28,12 @@ export abstract class Collector {
     const maybeValue = headers.find(h => h[0] === key);
     return maybeValue ? maybeValue[1] : "";
   }
+  private readonly yamlSep = "---\n";
   protected collectYaml(content: string) : YamlHeaders {
-    const yamlSep = "---\n";
-    if (!content.startsWith(yamlSep)){
+    if (!content.startsWith(this.yamlSep)){
       return {tags: undefined};
     }
-    const header = content.substring(yamlSep.length, content.indexOf(yamlSep, yamlSep.length));
+    const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
     const yamlData = parse(header);
     const result: YamlHeaders = { tags: [] };
     
@@ -66,4 +66,8 @@ export abstract class Collector {
       + "\n\n</details>";
   };
   protected abstract format(references: formatData[]): string;
+  public writeHeader(properties: YamlHeaders): string {
+    return this.yamlSep + stringify(properties) + this.yamlSep;
+  }
+
 }

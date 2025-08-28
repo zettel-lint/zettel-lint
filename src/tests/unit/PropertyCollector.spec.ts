@@ -41,3 +41,12 @@ test('empty file has no properties', () => {
     expect(sut.collectProperties("---\ntags: fiction novel\n---\n\n* Great Expectations [author:: Charles Dickens] [tags:: novel, classics]"))
       .toEqual({'tags': ["fiction", "novel", "classics"], 'author': ['Charles Dickens']})
   })
+
+    test('writes out to header', () => {
+    var sut = new PropertyCollector();
+    expect(
+      sut.writeHeader(
+        sut.collectProperties("---\ntags: fiction novel\n---\n\n* Great Expectations [author:: Charles Dickens] [tags:: novel, classics]"))
+      )
+      .toEqual("---\ntags:\n  - fiction\n  - novel\n  - classics\nauthor:\n  - Charles Dickens\n---\n")
+  })

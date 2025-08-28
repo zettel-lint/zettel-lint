@@ -1,4 +1,3 @@
-import { parse } from 'yaml';
 import { formatData, invertDictionary } from "./types.js";
 import { RegexCollector } from "./RegexCollector.js";
 import { YamlHeaders } from "./Collector.js";
