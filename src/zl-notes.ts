@@ -11,7 +11,7 @@ import { exit } from "process";
 export default function notesCommand() {
   const notes = new Command('notes');
   notes
-    .description("Lint and fix notes markdown files. Will update existing files.")
+    .description("Lint and fix notes markdown files. Will update existing files. (Deprecated, use 'zl fix')")
     .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
@@ -44,7 +44,7 @@ function lintNotes(program: any): void {
 
   var ignoreList = [program.path + "/**/node_modules/**"]; 
   if (program.ignoreDirs) {
-    ignoreList.concat(program.ignoreDirs);
+    ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
   var links: {[id: string]: string} = {};
@@ -52,20 +52,43 @@ function lintNotes(program: any): void {
   function mapWikiLinks(files: string[]) {
     const root = program.path.replace(/\\/g, "/");
     console.log("mapWikiLinks", files[0], program.path, root);
-    return files.map(f => links["[" + idFromFilename(f) + "]"] =
-       "[[" + f.replace('.md','').replace(root, '') + "]]");
+    files.forEach(f => {
+      const id = idFromFilename(f);
+      if (id) {
+        links["[" + id + "]"] = "[[" + f.replace('.md','').replace(root + "/", '') + "]]";
+      }
+    });
   }
 
   const linkRegex = /\[\d{8,14}\]/g;
   async function updateLinks(filename: string) {
-    var contents = await fs.readFile(filename, "utf8");
-    const matches = collectMatches(contents, linkRegex, false);
-    if(matches.length > 0) { console.log(matches); }
-    if(program.verbose){ matches.forEach(match => console.log("Mapping " + match + " to " + links[match]))};
-    matches.forEach(
-      match => contents = contents.replace(match, links[match])
-    );
-    await fs.writeFile(filename, contents);
+    try {
+      const contents = await fs.readFile(filename, "utf8");
+      const matches = collectMatches(contents, linkRegex, false);
+      
+      let newContents = contents;
+      if (matches.length > 0) {
+        if(program.verbose) {
+          console.log("Found links:", matches);
+          matches.forEach(match => console.log("Mapping " + match + " to " + links[match]));
+        }
+        
+        matches.forEach(match => {
+          if (links[match]) {
+            newContents = newContents.replace(match, links[match]);
+          }
+        });
+      } else if(program.verbose) {
+        console.log("No numeric links found in", filename);
+      }
+      
+      await fs.writeFile(filename, newContents);
+    } catch (error: any) {
+      // Only rethrow if not ENOENT
+      if (error.code !== 'ENOENT') {
+        throw error;
+      }
+    }
   }
 
   async function parseFiles() {
@@ -74,18 +97,23 @@ function lintNotes(program: any): void {
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
     console.log(files.length + " files found");
 
-    const links = mapWikiLinks(files);
+    mapWikiLinks(files);
     if (program.verbose) {
-      console.log("Links: " + links);
+      console.log("Links:", links);
     }
 
     for await (const file of files) {
-      await updateLinks(file)
-    };
-  };
+      try {
+        await updateLinks(file);
+      } catch (error) {
+        console.error("Error processing file", file, error);
+        throw error;
+      }
+    }
+  }
 
-  parseFiles().then(
-    () => console.log("Updated"),
-    (err) => {console.error(err); exit(2)}
-  )
+  parseFiles().catch((err) => {
+    console.error(err);
+    exit(2);
+  });
 }
