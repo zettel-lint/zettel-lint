@@ -7,7 +7,7 @@ describe('fixerCommand', () => {
       });
 
     test('can parse ignoreDirs', () => {
-      const opts = fixerCommand().parse(["node", "zl", "--path", ".", "--ignore-dirs", "node_modules", "bin"]);
+      const opts = fixerCommand().parse(["node", "zl", "--path", ".", "--ignore-dirs", "node_modules", "bin", "--rules", "id-to-wiki-links"]);
       expect(opts.args).toEqual([]);
       expect(opts.opts()["ignoreDirs"]).toBeDefined();
       expect(opts.opts().ignoreDirs).toEqual(["node_modules", "bin"]); 
@@ -26,12 +26,12 @@ describe('fixerCommand', () => {
     });
 
     test('can parse verbose option', () => {
-      const opts = fixerCommand().parse(["node", "zl", "--verbose"]);
+      const opts = fixerCommand().parse(["node", "zl", "--verbose", "--rules", "id-to-wiki-links"]);
       expect(opts.opts().verbose).toBe(true);
     });
 
     test('can parse multiple options', () => {
-      const opts = fixerCommand().parse(["node", "zl", "--path", ".", "--verbose"]);
+      const opts = fixerCommand().parse(["node", "zl", "--path", ".", "--verbose", "--rules", "id-to-wiki-links", "normalize-frontmatter"]);
       expect(opts.opts().path).toBe(".");
       expect(opts.opts().verbose).toBe(true);
     });

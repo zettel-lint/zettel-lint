@@ -56,7 +56,10 @@ function fixNotes(program: ZlFixOptions): void {
   var outputDir = program.outputDir;
   if (!outputDir.endsWith("/")) { outputDir += "/"; }
 
-  const knownRules: { [key: string]: BaseRule } = { [TrailingNewlineRule.name]: new TrailingNewlineRule };
+  const importedRules: BaseRule[] = [new TrailingNewlineRule()];
+  const knownRules: { [key: string]: BaseRule } = {};
+  importedRules.forEach((r) => { knownRules[r.name] = r; });
+  
   const activeRules: BaseRule[] = [];
 
   if (program.rules) {
@@ -74,7 +77,8 @@ function fixNotes(program: ZlFixOptions): void {
 
   if (activeRules.length === 0) {
     console.error("No rules specified. Use --rules to specify rules to run.");
-    return
+    console.error("Known rules are: " + Object.keys(knownRules).join(", "));
+    exit(3);
   }
 
   async function parseFiles() {
@@ -86,7 +90,8 @@ function fixNotes(program: ZlFixOptions): void {
     if (program.verbose) {
       console.log("Collecting properties from files...");
     }
-    files.forEach(async (filename) => {
+    
+    await Promise.all(files.map(async (filename) => {
       try {
         const contents = await fs.readFile(filename, "utf8");
         let newContents = contents; // Start with original contents
@@ -115,8 +120,9 @@ function fixNotes(program: ZlFixOptions): void {
         }
       } catch (error) {
         console.error(`Error processing file ${filename}:`, error);
+        throw error; // Re-throw to ensure Promise.all catches failures
       }
-    });
+    }));
   }
 
   parseFiles().catch((err) => {
