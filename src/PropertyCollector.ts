@@ -37,6 +37,7 @@ export class PropertyCollector extends RegexCollector {
   }
 
   private collectPairs(content: string): YamlHeaders {
+    this.regex.lastIndex = 0; // Reset regex state
     const result: YamlHeaders = { tags: [] };
     let match: RegExpExecArray | null;
 

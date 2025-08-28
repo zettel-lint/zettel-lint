@@ -28,7 +28,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-o, --output-dir <path>', "Directory to output fixed files to. If not specified, files will be updated in place.", ".")
     .option('-r, --rules <rule...>', "Rules to use", [])
     .option('-v, --verbose', "Additional output", false)
-    .action((cmdObj) => { fixNotes(cmdObj) })
+    .action(async (cmdObj) => { await fixNotes(cmdObj) })
   return fixer;
 }
 
@@ -45,7 +45,7 @@ function printHeader(program: ZlFixOptions): void {
   }
 }
 
-function fixNotes(program: ZlFixOptions): void {
+async function fixNotes(program: ZlFixOptions): Promise<void> {
   printHeader(program);
 
   var ignoreList = [program.path + "/**/node_modules/**"]; 
@@ -78,7 +78,7 @@ function fixNotes(program: ZlFixOptions): void {
   if (activeRules.length === 0) {
     console.error("No rules specified. Use --rules to specify rules to run.");
     console.error("Known rules are: " + Object.keys(knownRules).join(", "));
-    exit(3);
+    process.exitCode = 3;
   }
 
   async function parseFiles() {
@@ -125,8 +125,10 @@ function fixNotes(program: ZlFixOptions): void {
     }));
   }
 
-  parseFiles().catch((err) => {
+  try {
+    await parseFiles(); // Await the async function
+  } catch (err) { 
     console.error(err);
-    exit(2);
-  });
+    process.exitCode = 2;
+  }
 }

@@ -71,7 +71,6 @@ function printHeader(program: ZlIndexOptions): void {
       )
     );
     console.log("Looking for notes in " + program.path);
-    console.log((program.daily ? "" : "NOT ") + "creating dailies");
     console.log("Ignoring dirs: " + program.ignoreDirs);
     console.log("Outputting references to " + program.referenceFile);
     console.log("Using template file: " + program.templateFile)
@@ -83,7 +82,7 @@ function printHeader(program: ZlIndexOptions): void {
 
 const collectors: Collector[] = [new WikiCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
-export async function collectFromFile(filename: string, program: any): Promise<fileWikiLinks> {
+export async function collectFromFile(filename: string, program: ZlIndexOptions): Promise<fileWikiLinks> {
   const titleReg = /^(?:title:|#) (.*)$/gm; // Without the global, the parser stack overflows
 
   const contents = await fs.readFile(filename, "utf8");
