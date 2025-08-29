@@ -1,6 +1,6 @@
 ---
-created: 2025-06-01T02:04:44.813Z
-modified: 2025-06-01T02:04:44.813Z
+created: 2025-08-28T23:48:16.471Z
+modified: 2025-08-28T23:48:16.472Z
 title: References
 ---
 
@@ -11,7 +11,7 @@ title: References
 <details>
 <summary>Show Links</summary>
 
-* [vision - (my frustrations and goals) - &amp; roadmap][vision] = `vision.md`:
+* [&quot;vision - (my frustrations and goals) - &amp; roadmap&quot;][vision] = `vision.md`:
   * No links
   * No backlinks
 * [Zettel Linter][tasks] = `tasks.md`:
@@ -146,7 +146,7 @@ title: References
 
 ## References
 
-[vision]: vision.md (vision - &lpar;my frustrations and goals&rpar; - &amp; roadmap)
+[vision]: vision.md (&quot;vision - &lpar;my frustrations and goals&rpar; - &amp; roadmap&quot;)
 [tasks]: tasks.md (Zettel Linter)
 [links]: links-orphans-contexts-tags.md (Testing file)
 [README]: README.md (Readme)

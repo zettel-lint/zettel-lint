@@ -51,10 +51,11 @@ jobs:
 
       - name: Commit changes
         run: |
-          git add package.json src/zl.ts
+          npm ci
+          npm test
+          git add package.json package-lock.json src/zl.ts
           git commit -m "chore: bump version to ${{ env.new_version }}"
           git push origin bump-version-${{ env.new_version }}
-
       - name: Create Pull Request with GitHub CLI
         run: |
           gh pr create \

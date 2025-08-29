@@ -7,6 +7,7 @@ import importerCommand from "./zl-import.js";
 import notesCommand from "./zl-notes.js";
 import chalk from "chalk";
 import { Command } from '@commander-js/extra-typings';
+import fixerCommand from "./zl-fix.js";
 
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
@@ -23,6 +24,8 @@ console.log(`zettel-lint (v${version}). See LICENCE for copyright details.`)
 program.addCommand(indexerCommand());
 program.addCommand(importerCommand());
 program.addCommand(notesCommand());
+program.addCommand(fixerCommand());
+
 await program
   .parseAsync(process.argv);
 
