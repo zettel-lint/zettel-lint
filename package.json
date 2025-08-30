@@ -41,10 +41,8 @@
     "clear": "^0.1.0",
     "commander": "^14.0.0",
     "figlet": "^1.8.0",
-    "fs": "0.0.2",
     "glob": "^11.0.0",
     "mustache": "^4.2.0",
-    "path": "^0.12.7",
     "simple-markdown": "^0.7.3",
     "yaml": "^2.8.1"
   },
