@@ -4,7 +4,7 @@ import { PropertyCollector } from "../PropertyCollector.js";
 export class InlinePropertiesToFrontmatter extends BaseRule {
   readonly name = "inline-properties-to-frontmatter";
   private propertyCollector: PropertyCollector;
-  private move: boolean = true; // New option to control moving vs copying inline properties, should come from command line args
+  private move: boolean; // New option to control moving vs copying inline properties, should come from command line args
 
   constructor(move: boolean = false) {
     super();

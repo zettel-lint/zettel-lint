@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { InlinePropertiesToFrontmatter } from '../../rules/InlinePropertiesToFrontmatterRule.js';
 
-describe('FormatFrontmatterRule in move mode', () => {
+describe('InlinePropertiesToFrontmatter in move mode', () => {
   const rule = new InlinePropertiesToFrontmatter(true);
 
   it('should format inline properties into YAML frontmatter', () => {
@@ -79,7 +79,7 @@ invalid:: value
   });
 });
 
-describe('FormatFrontmatterRule in copy mode', () => {
+describe('InlinePropertiesToFrontmatter in copy mode', () => {
   const rule = new InlinePropertiesToFrontmatter(false);
 
   it('should format inline properties into YAML frontmatter', () => {

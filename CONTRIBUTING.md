@@ -46,7 +46,7 @@ This is not designed for 2-way sync. I have some ideas for how to do that, but i
 A framework for fixing common issues in notes, either from import, or to maintain internal consistency. Each note is processed by a series of rules, which look for specific issues in the file. The rules are:
 
 - [BaseRule](src/rules/BaseRule.ts) - the base class for all rules
-  - [TrailingNewlineRule](src/rules/TrailingNewlineRule.ts) - a rule that ensures there is a trailing newline at the end of the file
+  - [TrailingNewlineRule](src/rules/BaseRule.ts) - a rule that ensures there is a trailing newline at the end of the file
   - [InlinePropertiesToFrontmatter](src/rules/InlinePropertiesToFrontmatterRule.ts) - a rule that moves or copies inline properties to frontmatter
 
 ### `zl-notes`
