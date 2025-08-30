@@ -51,6 +51,8 @@ A framework for fixing common issues in notes, either from import, or to maintai
 
 ### `zl-notes`
 
+** This command is now DEPRECATED and will be removed in a future version. Please use `zl-fix` instead. **
+
 This is for tidying up existing notes, either from import, or to maintain internal consistency. At the moment it only supports the option to turn Zettelkasten-style `[yyyymmddhhmmss]` links into WikiLinks `[[like-this]]`.
 
 ## Tasks
