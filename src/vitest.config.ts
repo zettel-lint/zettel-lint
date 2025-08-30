@@ -1,5 +1,5 @@
 // filepath: /workspaces/zettel-lint/vitest.config.ts
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 
 export default defineConfig({
   test: {
@@ -10,7 +10,10 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       all: true,
       include: ['src/**/*.ts'],
-      exclude: ['lib/**/*.*'],
+      exclude: [
+        ...configDefaults.exclude,
+        'lib/**/*.*'
+      ],
     },
   },
 });

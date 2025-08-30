@@ -2,4 +2,4 @@
 inline:
   - property
 ---
-Property Test 
+Property Test
