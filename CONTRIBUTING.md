@@ -27,7 +27,6 @@ The [zl-index.ts](src/zl-index.ts) file is responsible for the `index` command (
 - [Collector](src/collectors/collector.ts) - the base class for all collectors
   - [RegexCollector](src/collectors/regex-collector.ts) - a collector that uses a regular expression to find matches
     - [ContextCollector](src/collectors/context-collector.ts) - a collector that looks for `@Context` GTD-style references
-    - [OrphanCollector](src/collectors/orphan-collector.ts) - a collector that looks for links to files that don't exist
     - [TagCollector](src/collectors/tag-collector.ts) - a collector that looks for `#hashtag` and GTD-style `+project` references
     - [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ] Tasks` and `(A) todo.txt style` references
     - [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]` references
