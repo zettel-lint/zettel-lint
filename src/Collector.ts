@@ -1,7 +1,7 @@
 import { formatData, fileWikiLinks, invertData } from "./types.js";
 import { parse, stringify } from 'yaml';
 
-export class YamlHeaders {
+export interface YamlHeaders {
   [property: string]: string[] | undefined;
 }
 

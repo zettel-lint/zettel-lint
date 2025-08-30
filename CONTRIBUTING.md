@@ -31,6 +31,7 @@ The [zl-index.ts](src/zl-index.ts) file is responsible for the `index` command (
     - [TagCollector](src/collectors/tag-collector.ts) - a collector that looks for `#hashtag` and GTD-style `+project` references
     - [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ] Tasks` and `(A) todo.txt style` references
     - [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]` references
+    - [PropertyCollector](src/PropertyCollector.ts) - a collector that looks for `Property:: value` references
 
 Once the input files have been processed, the [Templator](src/Templator.ts) uses `mustache` to render the output file, using the data collected by the collectors, and some additional annotations to support filtering notes `{{``tag[filter]``}}` and escaping markdown characters.
 
