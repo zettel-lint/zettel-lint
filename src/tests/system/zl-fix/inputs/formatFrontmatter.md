@@ -1,1 +1,1 @@
-[inline:: property]
+Property Test [inline:: property]
