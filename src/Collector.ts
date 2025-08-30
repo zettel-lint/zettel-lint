@@ -35,7 +35,7 @@ export abstract class Collector {
     }
     const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
     const yamlData = parse(header);
-    const result: YamlHeaders = { tags: [] };
+    const result: YamlHeaders = { };
     
     Object.entries(yamlData).forEach(([key, value]) => {
       if (key === 'tags') {

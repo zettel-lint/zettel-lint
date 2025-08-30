@@ -15,19 +15,19 @@ test('empty file has no properties', () => {
   test('collects properties from YAML frontmatter', () => {
     var sut = new PropertyCollector();
     expect(sut.collectProperties("---\nauthor: Charles Dickens\n---\n\n* Great Expectations"))
-      .toEqual({'author': ['Charles Dickens'], 'tags': []})
+      .toEqual({'author': ['Charles Dickens']})
   })
 
   test('collects properties from YAML frontmatter using indented list format', () => {
     var sut = new PropertyCollector();
     expect(sut.collectProperties("---\nauthor:\n  - Charles Dickens\n---\n\n* Great Expectations"))
-      .toEqual({'author': ['Charles Dickens'], 'tags': []})
+      .toEqual({'author': ['Charles Dickens']})
   })
 
   test('collects properties from YAML frontmatter using array format', () => {
     var sut = new PropertyCollector();
     expect(sut.collectProperties("---\nauthor: ['Charles Dickens', ]\n---\n\n* Great Expectations"))
-      .toEqual({'author': ['Charles Dickens'], 'tags': []})
+      .toEqual({'author': ['Charles Dickens']})
   })
 
   test('collects properties from body', () => {

@@ -4,9 +4,8 @@ import { promises as fs } from "fs";
 import { clear } from "console";
 import chalk from "chalk";
 import figlet from "figlet";
-import { PropertyCollector } from "./PropertyCollector.js";
-import { exit } from "process";
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
+import { InlinePropertiesToFrontmatter } from './rules/InlinePropertiesToFrontmatterRule.js';
 
 interface ZlFixOptions {
   path: string; // Root path for search
@@ -14,6 +13,7 @@ interface ZlFixOptions {
   rules: string[]; // Fixing rules to apply
   verbose: boolean; // Additional output
   outputDir: string; // Directory to output fixed files to
+  move: boolean; // Move inline properties to frontmatter instead of copying
   // Additional options, required for Command compatibility
   [key: string]: any; // Allow additional options
 }
@@ -27,12 +27,13 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
     .option('-o, --output-dir <path>', "Directory to output fixed files to. If not specified, files will be updated in place.", ".")
     .option('-r, --rules <rule...>', "Rules to use", [])
+    .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await fixNotes(cmdObj) })
   return fixer;
 }
 
-function printHeader(program: ZlFixOptions): void {
+function printHeader(program: ZlFixOptions, rules: string[] = []): void {
   if (program.verbose) {
     clear();
     console.log(
@@ -42,11 +43,20 @@ function printHeader(program: ZlFixOptions): void {
     );
     console.log("Looking for notes in " + program.path);
     console.log("Ignoring dirs: " + program.ignoreDirs);
+    console.log("Output dir: " + program.outputDir);
+    console.log("Using rules: " + program.rules);
+    console.log("Known rules: " + rules);
+    console.log("Move inline properties: " + program.move);
   }
 }
 
 async function fixNotes(program: ZlFixOptions): Promise<void> {
-  printHeader(program);
+  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move)];
+  const knownRules: { [key: string]: BaseRule } = {};
+  var ruleNames: string[] = [];
+  importedRules.forEach((r) => { knownRules[r.name] = r; ruleNames.push(r.name); });
+
+  printHeader(program, ruleNames);
 
   var ignoreList = [program.path + "/**/node_modules/**"]; 
   if (program.ignoreDirs) {
@@ -56,10 +66,6 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
   var outputDir = program.outputDir;
   if (!outputDir.endsWith("/")) { outputDir += "/"; }
 
-  const importedRules: BaseRule[] = [new TrailingNewlineRule()];
-  const knownRules: { [key: string]: BaseRule } = {};
-  importedRules.forEach((r) => { knownRules[r.name] = r; });
-  
   const activeRules: BaseRule[] = [];
 
   if (program.rules) {

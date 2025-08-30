@@ -40,6 +40,14 @@ A general framework for importing notes from other platforms, but the only curre
 
 This is not designed for 2-way sync. I have some ideas for how to do that, but it's not a priority for me right now, and will be a separate command.
 
+### `zl-fix`
+
+A framework for fixing common issues in notes, either from import, or to maintain internal consistency. Each note is processed by a series of rules, which look for specific issues in the file. The rules are:
+
+- [BaseRule](src/rules/BaseRule.ts) - the base class for all rules
+  - [TrailingNewlineRule](src/rules/TrailingNewlineRule.ts) - a rule that ensures there is a trailing newline at the end of the file
+  - [InlinePropertiesToFrontmatter](src/rules/InlinePropertiesToFrontmatterRule.ts) - a rule that moves or copies inline properties to frontmatter
+
 ### `zl-notes`
 
 This is for tidying up existing notes, either from import, or to maintain internal consistency. At the moment it only supports the option to turn Zettelkasten-style `[yyyymmddhhmmss]` links into WikiLinks `[[like-this]]`.

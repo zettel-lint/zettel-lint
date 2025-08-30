@@ -22,7 +22,7 @@ export class PropertyCollector extends RegexCollector {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
     const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
-    const result: YamlHeaders = { tags: [] };
+    const result: YamlHeaders = { };
 
     // Merge properties from both sources
     allKeys.forEach(key => {
