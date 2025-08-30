@@ -1,7 +1,8 @@
 import { formatData, fileWikiLinks, invertData } from "./types.js";
+import { parse, stringify } from 'yaml';
 
-export class YamlHeaders {
-  tags: string[] | undefined;
+export interface YamlHeaders {
+  [property: string]: string[] | undefined;
 }
 
 export abstract class Collector {
@@ -27,16 +28,27 @@ export abstract class Collector {
     const maybeValue = headers.find(h => h[0] === key);
     return maybeValue ? maybeValue[1] : "";
   }
+  private readonly yamlSep = "---\n";
   protected collectYaml(content: string) : YamlHeaders {
-    const yamlSep = "---\n";
-    if (!content.startsWith(yamlSep)){
+    if (!content.startsWith(this.yamlSep)){
       return {tags: undefined};
     }
-    const header = content.substring(yamlSep.length, content.indexOf(yamlSep, yamlSep.length));
-    const pairs = header.split("\n").map(line => line.split(":", 2));
-    const o = {};
-    pairs.map(p => Object.defineProperty(o, p[0], {value: p[1]}));
-    return {...o, tags:this.listOf(this.getValue(pairs, "tags"))};
+    const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
+    const yamlData = parse(header);
+    const result: YamlHeaders = { };
+    
+    Object.entries(yamlData).forEach(([key, value]) => {
+      if (key === 'tags') {
+        result[key] = Array.isArray(value)
+          ? value.map(v => String(v))
+          : this.listOf(String(value));
+      } else {
+        const arr = Array.isArray(value) ? value : [value];
+        result[key] = arr.map(v => String(v));
+      }
+    });
+    
+    return result;
   }
   public extractData(ref: fileWikiLinks): formatData {
     return {
@@ -57,4 +69,8 @@ export abstract class Collector {
       + "\n\n</details>";
   };
   protected abstract format(references: formatData[]): string;
+  public writeHeader(properties: YamlHeaders): string {
+    return this.yamlSep + stringify(properties) + this.yamlSep;
+  }
+
 }

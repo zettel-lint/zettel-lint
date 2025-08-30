@@ -99,7 +99,29 @@ Options:
 * `--json-debug-output` - Output JSON intermediate representations
 * `-v, --verbose` - Show additional output
 
+### fix
+
+Fix markdown files based on a set of rules. Will update existing files or output to a new directory.
+
+Options:
+
+* `-p, --path <path>` - Root path for search (default: ".")
+* `-i, --ignore-dirs <path...>` - Path(s) to ignore
+* `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: ".")
+* `-r, --rules <rule...>` - Rules to use (default: all known rules)
+* `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
+* `-v, --verbose` - Show additional output
+
+#### Existing Rules
+
+* `trailing-newline` - Ensure files end with a single newline
+* `inline-properties-to-frontmatter` - Ensure YAML frontmatter is correctly formatted, with inline properties moved to frontmatter if specified
+  * If `--move` is specified, inline properties will be moved to frontmatter instead of copied
+  * This is useful for moving Obsidian dataview properties to YAML frontmatter
+
 ### notes (alias: update)
+
+**This has been DEPRECATED and will be removed in a future release. Please use `zl fix` instead.**
 
 Lint and fix notes markdown files. Will update existing files.
 

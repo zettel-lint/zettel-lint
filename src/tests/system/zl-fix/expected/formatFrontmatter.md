@@ -1,0 +1,5 @@
+---
+inline:
+  - property
+---
+Property Test

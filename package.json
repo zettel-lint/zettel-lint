@@ -11,7 +11,7 @@
     "start": "nodemon --watch 'src/**/*.ts' --exec tsx src/zl.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
-    "test": "vitest",
+    "test": "vitest --run",
     "help": "npm run-script zl -- --version && npm run-script zl -- --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
     "zl": "tsx src/zl.ts",
@@ -35,6 +35,7 @@
   "homepage": "https://github.com/zettel-lint/zettel-lint#readme",
   "dependencies": {
     "@commander-js/extra-typings": "^14.0.0",
+    "@types/yaml": "^1.9.6",
     "axios": "^1.8.2",
     "chalk": "^5.3.0",
     "clear": "^0.1.0",
@@ -44,12 +45,12 @@
     "glob": "^11.0.0",
     "mustache": "^4.2.0",
     "path": "^0.12.7",
-    "simple-markdown": "^0.7.3"
+    "simple-markdown": "^0.7.3",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@types/clear": "^0.1.4",
     "@types/figlet": "^1.5.8",
-    "@types/glob": "^9.0.0",
     "@types/mustache": "^4.2.5",
     "@types/node": "^24.0.0",
     "eslint": "^9.0.0",

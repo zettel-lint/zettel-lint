@@ -31,6 +31,7 @@ The [zl-index.ts](src/zl-index.ts) file is responsible for the `index` command (
     - [TagCollector](src/collectors/tag-collector.ts) - a collector that looks for `#hashtag` and GTD-style `+project` references
     - [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ] Tasks` and `(A) todo.txt style` references
     - [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]` references
+    - [PropertyCollector](src/PropertyCollector.ts) - a collector that looks for `Property:: value` references
 
 Once the input files have been processed, the [Templator](src/Templator.ts) uses `mustache` to render the output file, using the data collected by the collectors, and some additional annotations to support filtering notes `{{``tag[filter]``}}` and escaping markdown characters.
 
@@ -40,7 +41,17 @@ A general framework for importing notes from other platforms, but the only curre
 
 This is not designed for 2-way sync. I have some ideas for how to do that, but it's not a priority for me right now, and will be a separate command.
 
+### `zl-fix`
+
+A framework for fixing common issues in notes, either from import, or to maintain internal consistency. Each note is processed by a series of rules, which look for specific issues in the file. The rules are:
+
+- [BaseRule](src/rules/BaseRule.ts) - the base class for all rules
+  - [TrailingNewlineRule](src/rules/BaseRule.ts) - a rule that ensures there is a trailing newline at the end of the file
+  - [InlinePropertiesToFrontmatter](src/rules/InlinePropertiesToFrontmatterRule.ts) - a rule that moves or copies inline properties to frontmatter
+
 ### `zl-notes`
+
+** This command is now DEPRECATED and will be removed in a future version. Please use `zl-fix` instead. **
 
 This is for tidying up existing notes, either from import, or to maintain internal consistency. At the moment it only supports the option to turn Zettelkasten-style `[yyyymmddhhmmss]` links into WikiLinks `[[like-this]]`.
 

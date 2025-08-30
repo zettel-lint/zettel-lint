@@ -12,7 +12,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
   * Backlinks tracker (references.md)
   * Wikilink updater
   * 3rd party integrations
-  * Optionally create new pages on thr fly
+  * Optionally create new pages on the fly
 * Task tracker/GTD/#BuJo:
   * repeating tasks
   * snoozed tasks

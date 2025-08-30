@@ -22,7 +22,7 @@ import { glob } from "glob";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-interface ZlIndexOptions {
+export interface ZlIndexOptions {
   path: string; // Root path for search
   ignoreDirs: string[] | undefined; // Path(s) to ignore
   referenceFile: string; // Path to output reference.md
@@ -41,7 +41,7 @@ interface ZlIndexOptions {
 export default function indexerCommand() : Command<[], ZlIndexOptions> {
   const idxer = new Command<[], ZlIndexOptions>('index');
   idxer
-    .description("Generate index/reference file. Will OVERWRITE any exiting files.")
+    .description("Generate index/reference file. Will OVERWRITE any existing files.")
     .alias("create")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
@@ -71,7 +71,6 @@ function printHeader(program: ZlIndexOptions): void {
       )
     );
     console.log("Looking for notes in " + program.path);
-    console.log((program.daily ? "" : "NOT ") + "creating dailies");
     console.log("Ignoring dirs: " + program.ignoreDirs);
     console.log("Outputting references to " + program.referenceFile);
     console.log("Using template file: " + program.templateFile)
@@ -83,7 +82,7 @@ function printHeader(program: ZlIndexOptions): void {
 
 const collectors: Collector[] = [new WikiCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
-export async function collectFromFile(filename: string, program: any): Promise<fileWikiLinks> {
+export async function collectFromFile(filename: string, program: ZlIndexOptions): Promise<fileWikiLinks> {
   const titleReg = /^(?:title:|#) (.*)$/gm; // Without the global, the parser stack overflows
 
   const contents = await fs.readFile(filename, "utf8");
