@@ -184,7 +184,7 @@ export default class TrelloImport implements BaseImporter {
       "\nmodified: " + card.dateLastActivity +
       "\ntitle: '" + card.name + "'"
       "\nsource: Trello" + 
-      "\ntags:" + card.labels.map(l => l.name.replace(/[^a-zA-z0-9]/g, "_")).join(" #") +
+      "\ntags:" + card.labels.map(l => l.name.replace(/[^a-zA-Z0-9]/g, "_")).join(" #") +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
