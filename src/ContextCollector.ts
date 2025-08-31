@@ -13,5 +13,5 @@ export class ContextCollector extends RegexCollector {
     return result;
   };
   readonly dataName = "Contexts";
-  readonly regex = /[ ^](\@[a-zA-z0-9]+)/g;
+  readonly regex = /[ ^](\@[a-zA-Z0-9]+)/g;
 }
