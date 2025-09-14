@@ -57,3 +57,17 @@ test('empty file has no properties', () => {
       )
       .toEqual("---\ntags:\n  - fiction\n  - novel\n  - classics\nauthor:\n  - Charles Dickens\n---\n")
   })
+
+  test('regex does not filter YAML keys', () => {
+  const sut = new PropertyCollector();
+  expect(
+    sut.collectProperties("---\nauthor: Charles Dickens\n---\n\n[tags:: classic]", [/^tags$/])
+  ).toEqual({ author: ['Charles Dickens'], tags: ['classic'] });
+});
+
+test('filters correctly when regex has global flag', () => {
+  const sut = new PropertyCollector();
+  expect(
+    sut.collectProperties("---\n---\n\n[tag:: v] [tag-extra:: v2]", [/^tag$/g])
+  ).toEqual({ tag: ['v'] });
+});

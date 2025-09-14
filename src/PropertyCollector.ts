@@ -18,6 +18,10 @@ export class PropertyCollector extends RegexCollector {
     return [];
   }
 
+  /**
+   * Collects properties from YAML frontmatter and inline pairs.
+   * Regex filters apply ONLY to inline pairs; YAML-derived keys/values are always included.
+   */
   collectProperties(content: string, regexes: Array<RegExp> = []): YamlHeaders {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
