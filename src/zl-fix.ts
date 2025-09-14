@@ -28,7 +28,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
     .option('-o, --output-dir <path>', "Directory to output fixed files to. If not specified, files will be updated in place.", ".")
     .option('-r, --rules <rule...>', "Rules to use", [])
-    .option('-f, --propertyFilter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
+    .option('-f, --property-filter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await fixNotes(cmdObj) })
@@ -48,7 +48,7 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
     console.log("Output dir: " + program.outputDir);
     console.log("Using rules: " + program.rules);
     console.log("Known rules: " + rules);
-    console.log("Property filter: " + program.propertyFilter);
+    console.log("Property filter: " + (program.propertyFilter?.join(", ") ?? "[]"));
     console.log("Move inline properties: " + program.move);
   }
 }
