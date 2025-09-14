@@ -10,8 +10,8 @@ describe("zl-fix system test", () => {
     const packageDir = join(testDir, "../../../..");
     const inputDir = join(testDir, "inputs");
     const outputDir = join(testDir, "outputs");
-    
-    const command = `npm run-script zl -- fix -v --move --rules trailing-newline inline-properties-to-frontmatter --propertyFilter "^inline$"` +
+
+    const command = `npm run-script zl -- fix -v --move --rules trailing-newline inline-properties-to-frontmatter --property-filter "^inline$"` +
       ` --path "${inputDir}"` +
       ` --output-dir "${outputDir}"`;
       
