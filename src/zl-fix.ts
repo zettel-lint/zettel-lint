@@ -11,6 +11,7 @@ interface ZlFixOptions {
   path: string; // Root path for search
   ignoreDirs: string[] | undefined; // Path(s) to ignore
   rules: string[]; // Fixing rules to apply
+  propertyFilter: string[] | RegExp[] | undefined; // Regex patterns to filter which properties to move
   verbose: boolean; // Additional output
   outputDir: string; // Directory to output fixed files to
   move: boolean; // Move inline properties to frontmatter instead of copying
@@ -27,6 +28,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
     .option('-o, --output-dir <path>', "Directory to output fixed files to. If not specified, files will be updated in place.", ".")
     .option('-r, --rules <rule...>', "Rules to use", [])
+    .option('-f, --propertyFilter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await fixNotes(cmdObj) })
@@ -46,12 +48,18 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
     console.log("Output dir: " + program.outputDir);
     console.log("Using rules: " + program.rules);
     console.log("Known rules: " + rules);
+    console.log("Property filter: " + program.propertyFilter);
     console.log("Move inline properties: " + program.move);
   }
 }
 
 async function fixNotes(program: ZlFixOptions): Promise<void> {
-  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move)];
+  // Convert propertyFilter strings to RegExp objects
+  const propertyRegex = (program.propertyFilter) 
+    ? program.propertyFilter.map((pattern) => new RegExp(pattern))
+    : [];
+
+  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex)];
   const knownRules: { [key: string]: BaseRule } = {};
   var ruleNames: string[] = [];
   importedRules.forEach((r) => { knownRules[r.name] = r; ruleNames.push(r.name); });

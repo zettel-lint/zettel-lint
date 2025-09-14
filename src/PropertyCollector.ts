@@ -27,10 +27,12 @@ export class PropertyCollector extends RegexCollector {
     // Merge properties from both sources
     allKeys.forEach(key => {
       const yamlValues = yaml[key] || [];
-      var pairValues: string[] = [];
       // Only grab pairs that match a regex, if any are provided
-      if (regexes.length == 0 || regexes.some(r => r.test(key))) {
-        pairValues = pairs[key] || [];
+      // Normalise supplied regexes to avoid stateful /g behaviour.
+      const safeRegexes = regexes.map(r => new RegExp(r.source, r.flags.replace('g', '')));
+      let pairValues: string[] = [];
+      if (safeRegexes.length === 0 || safeRegexes.some(r => r.test(key))) {
+        pairValues = pairs[key] ?? [];
       }
       
       if (yamlValues.length > 0 || pairValues.length > 0) {

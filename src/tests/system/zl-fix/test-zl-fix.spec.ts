@@ -11,7 +11,7 @@ describe("zl-fix system test", () => {
     const inputDir = join(testDir, "inputs");
     const outputDir = join(testDir, "outputs");
     
-    const command = `npm run-script zl -- fix -v --move --rules trailing-newline inline-properties-to-frontmatter` +
+    const command = `npm run-script zl -- fix -v --move --rules trailing-newline inline-properties-to-frontmatter --propertyFilter "^inline$"` +
       ` --path "${inputDir}"` +
       ` --output-dir "${outputDir}"`;
       
@@ -20,7 +20,8 @@ describe("zl-fix system test", () => {
 
   test.each([
     ["trailingNewline.md"],
-    ["formatFrontmatter.md"]
+    ["formatFrontmatter.md"],
+    ["formatFrontmatterWithRegex.md"],
   ])("should generate a %s file matching the expected output, ignoring timestamps", (filename) => {
   const expectedOutputFile = join(__dirname, "expected", filename);
   const outputFile = join(__dirname, "outputs", filename);

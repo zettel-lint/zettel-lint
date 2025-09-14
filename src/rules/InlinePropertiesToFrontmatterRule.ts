@@ -38,7 +38,14 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
 
     // Remove inline properties
     if (this.move) {
+      if (this.regexes.length === 0) {
         contentWithoutYaml = contentWithoutYaml.replace(/\[[\w-]+::\s*[^\]]+\]/g, '');
+      } else {
+        const safeRegexes = this.regexes.map(r => new RegExp(r.source, r.flags.replace('g', '')));
+        contentWithoutYaml = contentWithoutYaml.replace(/\[([\w-]+)::\s*[^\]]+\]/g, (m, key) =>
+          safeRegexes.some(r => r.test(key)) ? '' : m
+        );
+      }
     }
 
     // Combine new frontmatter with cleaned content
