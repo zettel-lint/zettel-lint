@@ -37,6 +37,10 @@ export abstract class Collector {
     const yamlData = parse(header);
     const result: YamlHeaders = { };
     
+    if (!yamlData || typeof yamlData !== 'object') {
+      return result;
+    }
+    
     Object.entries(yamlData).forEach(([key, value]) => {
       if (key === 'tags') {
         result[key] = Array.isArray(value)

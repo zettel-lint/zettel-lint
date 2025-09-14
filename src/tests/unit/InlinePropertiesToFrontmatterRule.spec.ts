@@ -77,6 +77,20 @@ invalid:: value
 
     expect(rule.fix(input, 'test.md')).toBe(input);
   });
+
+  it('in move mode removes only inline properties that match the regex', () => {
+  const rule = new InlinePropertiesToFrontmatter(true, [/^tag$/, /^author$/]);
+  const input = `# My Note
+Body [tag:: keep] [another-tag:: stay] [tag-extra:: also-stay].`;
+  const expected = `---
+tag:
+  - keep
+---
+# My Note
+Body  [another-tag:: stay] [tag-extra:: also-stay].
+`;
+  expect(rule.fix(input, 'test.md')).toBe(expected);
+});
 });
 
 describe('InlinePropertiesToFrontmatter in copy mode', () => {
