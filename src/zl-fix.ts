@@ -48,7 +48,7 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
     console.log("Output dir: " + program.outputDir);
     console.log("Using rules: " + program.rules);
     console.log("Known rules: " + rules);
-    console.log("Property filter: " + (program.propertyFilter?.join(", ") ?? "[]"));
+    console.log("Property filter: " + JSON.stringify(program.propertyFilter ?? []));
     console.log("Move inline properties: " + program.move);
   }
 }
