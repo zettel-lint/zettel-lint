@@ -140,6 +140,22 @@ tags:
     expect(rule.fix(input, 'test.md')).toBe(expected);
   });
 
+  it('should only copy properties that match the pattern if specified', () => {
+    const ruleWithPattern = new InlinePropertiesToFrontmatter(false, [/^tag$/, /^author$/]);
+    const input = `# My Note
+Some content with [tag:: value1], [another-tag:: value2], and [tag-extra:: value3].`;
+
+    const expected = `---
+tag:
+  - value1
+---
+# My Note
+Some content with [tag:: value1], [another-tag:: value2], and [tag-extra:: value3].
+`;
+
+    expect(ruleWithPattern.fix(input, 'test.md')).toBe(expected);
+  });
+
   it('should return content unchanged if no properties found', () => {
     const input = '# Just a regular note\nWith no properties.';
     expect(rule.fix(input, 'test.md')).toBe(input);
