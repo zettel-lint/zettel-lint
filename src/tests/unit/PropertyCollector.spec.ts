@@ -42,6 +42,13 @@ test('empty file has no properties', () => {
       .toEqual({'tags': ["fiction", "novel", "classics"], 'author': ['Charles Dickens']})
   })
 
+  test('ignores properties that do not match a regex pattern', () => {
+    var sut = new PropertyCollector();
+    expect(sut.collectProperties("---\ntags: fiction novel\n---\n\n* Great Expectations [author:: Charles Dickens] [tags:: novel, classics]", [/^tags$/]))
+      .toEqual({'tags': ["fiction", "novel", "classics"]})
+  })
+
+
     test('writes out to header', () => {
     var sut = new PropertyCollector();
     expect(

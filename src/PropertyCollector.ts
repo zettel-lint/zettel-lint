@@ -18,7 +18,7 @@ export class PropertyCollector extends RegexCollector {
     return [];
   }
 
-  collectProperties(content: string): YamlHeaders {
+  collectProperties(content: string, regexes: Array<RegExp> = []): YamlHeaders {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
     const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
@@ -27,7 +27,12 @@ export class PropertyCollector extends RegexCollector {
     // Merge properties from both sources
     allKeys.forEach(key => {
       const yamlValues = yaml[key] || [];
-      const pairValues = pairs[key] || [];
+      var pairValues: string[] = [];
+      // Only grab pairs that match a regex, if any are provided
+      if (regexes.length == 0 || regexes.some(r => r.test(key))) {
+        pairValues = pairs[key] || [];
+      }
+      
       if (yamlValues.length > 0 || pairValues.length > 0) {
         result[key] = [...new Set([...yamlValues, ...pairValues])];
       }
