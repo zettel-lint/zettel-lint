@@ -55,11 +55,13 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
 
 async function fixNotes(program: ZlFixOptions): Promise<void> {
   // Convert propertyFilter strings to RegExp objects
-  var re: RegExp | undefined;
+  let propertyRegex: RegExp[] = [];
   if (program.propertyFilter && program.propertyFilter.length > 0) {
     try {
-      const optionlist = program.propertyFilter.join("|");
-      const re = new RegExp(optionlist);
+      propertyRegex = program.propertyFilter.map((pattern) => {
+        const re = new RegExp(pattern);
+        return re.global ? new RegExp(re.source, re.flags.replace('g','')) : re;
+      });
     } catch (e: any) {
       console.error(`Invalid --propertyFilter pattern: ${e?.message ?? e}`);
       process.exitCode = 2;
@@ -67,7 +69,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     }
   }
 
-  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, [re ?? /.*/])];
+  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex)];
   const knownRules: { [key: string]: BaseRule } = {};
   var ruleNames: string[] = [];
   importedRules.forEach((r) => { knownRules[r.name] = r; ruleNames.push(r.name); });
