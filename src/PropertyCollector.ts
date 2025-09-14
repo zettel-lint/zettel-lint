@@ -27,13 +27,13 @@ export class PropertyCollector extends RegexCollector {
     const yaml = this.collectYaml(content);
     const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
     const result: YamlHeaders = { };
+    // Only grab pairs that match a regex, if any are provided
+    // Normalise supplied regexes to avoid stateful /g behaviour.
+    const safeRegexes = regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r));
 
     // Merge properties from both sources
     allKeys.forEach(key => {
       const yamlValues = yaml[key] || [];
-      // Only grab pairs that match a regex, if any are provided
-      // Normalise supplied regexes to avoid stateful /g behaviour.
-      const safeRegexes = regexes.map(r => new RegExp(r.source, r.flags.replace('g', '')));
       let pairValues: string[] = [];
       if (safeRegexes.length === 0 || safeRegexes.some(r => r.test(key))) {
         pairValues = pairs[key] ?? [];

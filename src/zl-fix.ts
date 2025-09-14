@@ -28,7 +28,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
     .option('-o, --output-dir <path>', "Directory to output fixed files to. If not specified, files will be updated in place.", ".")
     .option('-r, --rules <rule...>', "Rules to use", [])
-    .option('-f, --propertyFilter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
+    .option('-f, --propertyFilter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule. Not global by default, use /g if global behaviour expected.", [])
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await fixNotes(cmdObj) })
@@ -55,9 +55,19 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
 
 async function fixNotes(program: ZlFixOptions): Promise<void> {
   // Convert propertyFilter strings to RegExp objects
-  const propertyRegex = (program.propertyFilter) 
-    ? program.propertyFilter.map((pattern) => new RegExp(pattern))
-    : [];
+  let propertyRegex: RegExp[] = [];
+  if (program.propertyFilter && program.propertyFilter.length > 0) {
+    try {
+      propertyRegex = program.propertyFilter.map((pattern) => {
+        const re = new RegExp(pattern as any);
+        return re.global ? new RegExp(re.source, re.flags.replace('g','')) : re;
+      });
+    } catch (e: any) {
+      console.error(`Invalid --propertyFilter pattern: ${e?.message ?? e}`);
+      process.exitCode = 2;
+      return;
+    }
+  }
 
   const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex)];
   const knownRules: { [key: string]: BaseRule } = {};
