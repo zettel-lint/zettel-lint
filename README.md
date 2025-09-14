@@ -110,6 +110,7 @@ Options:
 * `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: ".")
 * `-r, --rules <rule...>` - Rules to use (default: all known rules)
 * `-f, --propertyFilter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
+  * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first. 
 * `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
 * `-v, --verbose` - Show additional output
 
