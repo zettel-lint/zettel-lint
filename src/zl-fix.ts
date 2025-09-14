@@ -11,7 +11,7 @@ interface ZlFixOptions {
   path: string; // Root path for search
   ignoreDirs: string[] | undefined; // Path(s) to ignore
   rules: string[]; // Fixing rules to apply
-  propertyFilter: string[] | RegExp[] | undefined; // Regex patterns to filter which properties to move
+  propertyFilter: string[] |  undefined; // Regex patterns to filter which properties to move
   verbose: boolean; // Additional output
   outputDir: string; // Directory to output fixed files to
   move: boolean; // Move inline properties to frontmatter instead of copying
@@ -28,7 +28,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
     .option('-o, --output-dir <path>', "Directory to output fixed files to. If not specified, files will be updated in place.", ".")
     .option('-r, --rules <rule...>', "Rules to use", [])
-    .option('-f, --propertyFilter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule. Not global by default, use /g if global behaviour expected.", [])
+    .option('-f, --propertyFilter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await fixNotes(cmdObj) })
@@ -55,13 +55,11 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
 
 async function fixNotes(program: ZlFixOptions): Promise<void> {
   // Convert propertyFilter strings to RegExp objects
-  let propertyRegex: RegExp[] = [];
+  var re: RegExp | undefined;
   if (program.propertyFilter && program.propertyFilter.length > 0) {
     try {
-      propertyRegex = program.propertyFilter.map((pattern) => {
-        const re = new RegExp(pattern as any);
-        return re.global ? new RegExp(re.source, re.flags.replace('g','')) : re;
-      });
+      const optionlist = program.propertyFilter.join("|");
+      const re = new RegExp(optionlist);
     } catch (e: any) {
       console.error(`Invalid --propertyFilter pattern: ${e?.message ?? e}`);
       process.exitCode = 2;
@@ -69,7 +67,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     }
   }
 
-  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex)];
+  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, [re ?? /.*/])];
   const knownRules: { [key: string]: BaseRule } = {};
   var ruleNames: string[] = [];
   importedRules.forEach((r) => { knownRules[r.name] = r; ruleNames.push(r.name); });
