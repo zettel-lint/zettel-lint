@@ -76,7 +76,7 @@ describe('fixerCommand (extended)', () => {
     ]);
     const ignore = parsed.opts().ignoreDirs;
     expect(Array.isArray(ignore)).toBe(true);
-    expect(ignore.map((s: string) => s.trim())).toEqual(['node_modules','bin']);
+    expect(ignore && ignore.map((s: string) => s.trim())).toEqual(['node_modules','bin']);
   });
 
   test('rules: trims whitespace (tolerant assertion)', () => {

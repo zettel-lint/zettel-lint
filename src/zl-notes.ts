@@ -16,11 +16,12 @@ export default function notesCommand() {
     .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
-    .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]")
+    .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]", false)
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('--no-wiki', "use [[wiki style]] links")
     .option('-v, --verbose', "Additional output")
+    .allowExcessArguments(true)
     .action((cmdObj) => { lintNotes(cmdObj) })
   return notes;
 }

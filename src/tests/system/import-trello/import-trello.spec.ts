@@ -1,8 +1,8 @@
 import { execa } from 'execa';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import importerCommand from '../../../zl-import';
+import { afterAll, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 const root = path.resolve(__dirname, '../../../..');
 const inputsDir = path.join(__dirname, 'inputs');

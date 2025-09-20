@@ -22,7 +22,7 @@ describe("zl-fix system test", () => {
     ["trailingNewline.md"],
     ["formatFrontmatter.md"],
     ["formatFrontmatterWithRegex.md"],
-  ])("should generate a %s file matching the expected output, ignoring timestamps", (filename) => {
+  ])("should generate a %s file matching the expected output, ignoring timestamps", (filename: string) => {
   const expectedOutputFile = join(__dirname, "expected", filename);
   const outputFile = join(__dirname, "outputs", filename);
 
