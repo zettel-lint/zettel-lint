@@ -32,6 +32,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-f, --property-filter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
+    .allowExcessArguments(true)
     .action(async (cmdObj) => { await fixNotes(cmdObj) })
   return fixer;
 }
