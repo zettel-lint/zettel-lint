@@ -6,6 +6,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from './rules/InlinePropertiesToFrontmatterRule.js';
+import { YAMLParseError } from 'yaml';
 
 interface ZlFixOptions {
   path: string; // Root path for search
@@ -145,7 +146,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
       } catch (error: any) {
         // Only rethrow if not ENOENT
         console.error(`Error processing file ${filename}:`, error);
-        if (error.code !== 'ENOENT') {
+        if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
           throw error;
         }
       }

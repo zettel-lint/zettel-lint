@@ -7,6 +7,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import { collectMatches } from "./RegexCollector.js";
 import { exit } from "process";
+import { YAMLParseError } from 'yaml';
 
 export default function notesCommand() {
   const notes = new Command('notes');
@@ -86,7 +87,7 @@ function lintNotes(program: any): void {
     } catch (error: any) {
       // Only rethrow if not ENOENT
       console.error(`Error processing file ${filename}:`, error);
-      if (error.code !== 'ENOENT') {
+      if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
         throw error;
       }
     }
