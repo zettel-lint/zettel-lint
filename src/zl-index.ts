@@ -105,6 +105,19 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
   };
 }
 
+/**
+ * Run the indexing process: scan Markdown files, collect metadata, render a references file from a template, and write the output.
+ *
+ * This function:
+ * - Prints a verbose header when requested.
+ * - Builds an ignore list (includes node_modules and any user-specified ignores).
+ * - Recursively finds `.md` files under `program.path`, invokes collectors on each file, and accumulates their results.
+ * - Continues processing other files if a per-file error occurs, logging the error; file-not-found errors (ENOENT) are ignored, other errors are propagated.
+ * - If both `referenceFile` and `templateFile` are provided, ensures the reference file directory exists, renders the template with collected references, and writes the result to `referenceFile`.
+ * - Exits the process with code 1 when required output/template inputs are missing, or with code 2 when the overall parsing/rendering fails.
+ *
+ * @param program - Indexer options controlling paths, ignores, output/template locations, debug/verbose flags, and task/wiki behavior.
+ */
 function indexer(program: ZlIndexOptions): void {
   printHeader(program);
 
