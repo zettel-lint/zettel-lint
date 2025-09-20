@@ -144,7 +144,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
         }
       } catch (error) {
         console.error(`Error processing file ${filename}:`, error);
-        throw error; // Re-throw to ensure Promise.all catches failures
+        // throw error; // Re-throw to ensure Promise.all catches failures
       }
     }));
   }
