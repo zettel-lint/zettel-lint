@@ -55,6 +55,28 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
   }
 }
 
+/**
+ * Apply configured fix rules to Markdown files under the specified path.
+ *
+ * Converts any provided property-filter patterns into RegExp objects, instantiates available rules,
+ * determines the active rule set, scans the filesystem for `*.md` files (respecting ignore lists),
+ * applies each active rule in sequence to each file's contents, and writes changed files to the
+ * configured output directory while preserving relative paths.
+ *
+ * program - Configuration for the run (path, rules, ignoreDirs, propertyFilter, outputDir, move, verbose).
+ *
+ * Side effects:
+ * - May write updated files under `program.outputDir`.
+ * - May create directories to mirror the input tree.
+ * - Logs validation/errors and progress to the console.
+ * - Sets `process.exitCode` to a non-zero value for certain failure conditions (invalid property-filter
+ *   patterns => 2, runtime errors during processing => 2, no active rules specified => 3).
+ *
+ * The function resolves when processing completes; non-ENOENT file errors are propagated and will
+ * be surfaced as failures (causing the process exit code to be set).
+ *
+ * @returns A promise that resolves once all files have been processed.
+ */
 async function fixNotes(program: ZlFixOptions): Promise<void> {
   // Convert propertyFilter strings to RegExp objects
   let propertyRegex: RegExp[] = [];
@@ -145,7 +167,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
           console.log(`No changes for ${filename}`);
         }
       } catch (error: any) {
-        // Only rethrow if not ENOENT
+        // Only rethrow if not ENOENT or YAMLParseError
         console.error(`Error processing file ${filename}:`, error);
         if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
           throw error;

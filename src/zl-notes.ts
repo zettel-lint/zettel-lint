@@ -41,6 +41,22 @@ function printHeader(program: any): void {
   }
 }
 
+/**
+ * Scan Markdown files under a root path and replace numeric bracketed IDs (e.g. `[20230901]`) with corresponding wiki-style links (e.g. `[[path/to/file]]`).
+ *
+ * Builds a mapping from file IDs (parsed via `idFromFilename`) to wiki links, then reads each `.md` file under `program.path` (respecting `program.ignoreDirs`), replaces occurrences that match the mapping, and writes the files back in-place.
+ *
+ * Side effects:
+ * - Modifies Markdown files on disk.
+ * - On unexpected errors during the top-level parse, logs the error and exits the process with code `2`.
+ *
+ * The function ignores missing-file errors (`ENOENT`) when processing individual files.
+ *
+ * @param program - Runtime options object. Expected properties:
+ *   - `path` (string): root directory to search for Markdown files.
+ *   - `ignoreDirs` (string[] | undefined): additional glob patterns to exclude.
+ *   - `verbose` (boolean | undefined): when true, prints progress details.
+ */
 function lintNotes(program: any): void {
   printHeader(program);
 
@@ -86,7 +102,7 @@ function lintNotes(program: any): void {
       
       await fs.writeFile(filename, newContents);
     } catch (error: any) {
-      // Only rethrow if not ENOENT
+      // Only rethrow if not ENOENT or YAMLParseError
       console.error(`Error processing file ${filename}:`, error);
       if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
         throw error;
