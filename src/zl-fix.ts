@@ -6,6 +6,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from './rules/InlinePropertiesToFrontmatterRule.js';
+import { YAMLParseError } from 'yaml';
 
 interface ZlFixOptions {
   path: string; // Root path for search
@@ -31,6 +32,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-f, --property-filter <regex...>', "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
+    .allowExcessArguments(true)
     .action(async (cmdObj) => { await fixNotes(cmdObj) })
   return fixer;
 }
@@ -165,9 +167,9 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
           console.log(`No changes for ${filename}`);
         }
       } catch (error: any) {
-        // Only rethrow if not ENOENT
+        // Only rethrow if not ENOENT or YAMLParseError
         console.error(`Error processing file ${filename}:`, error);
-        if (error.code !== 'ENOENT') {
+        if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
           throw error;
         }
       }

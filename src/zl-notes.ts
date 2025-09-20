@@ -7,6 +7,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import { collectMatches } from "./RegexCollector.js";
 import { exit } from "process";
+import { YAMLParseError } from 'yaml';
 
 export default function notesCommand() {
   const notes = new Command('notes');
@@ -15,11 +16,12 @@ export default function notesCommand() {
     .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
-    .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]")
+    .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]", false)
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('--no-wiki', "use [[wiki style]] links")
     .option('-v, --verbose', "Additional output")
+    .allowExcessArguments(true)
     .action((cmdObj) => { lintNotes(cmdObj) })
   return notes;
 }
@@ -100,9 +102,9 @@ function lintNotes(program: any): void {
       
       await fs.writeFile(filename, newContents);
     } catch (error: any) {
-      // Only rethrow if not ENOENT
+      // Only rethrow if not ENOENT or YAMLParseError
       console.error(`Error processing file ${filename}:`, error);
-      if (error.code !== 'ENOENT') {
+      if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
         throw error;
       }
     }
