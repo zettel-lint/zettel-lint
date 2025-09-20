@@ -18,6 +18,7 @@ import path from "path";
 import { exit } from "process";
 import { fileURLToPath } from 'url';
 import { glob } from "glob";
+import { YAMLParseError } from "yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,7 +133,7 @@ function indexer(program: ZlIndexOptions): void {
       } catch (error: any) {
         // Only rethrow if not ENOENT
         console.error(`Error processing file ${file}:`, error);
-        if (error.code !== 'ENOENT') {
+        if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
           throw error;
         }
       }
