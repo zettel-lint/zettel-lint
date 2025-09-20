@@ -121,12 +121,20 @@ function indexer(program: ZlIndexOptions): void {
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
 
     for await (const file of files) {
-      const wikiLinks = await collectFromFile(file, program);
-      if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
-        references.push(wikiLinks);
-      }
-      if (program.jsonDebugOutput) {
-        console.log(wikiLinks);
+      try {
+        const wikiLinks = await collectFromFile(file, program);
+        if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
+          references.push(wikiLinks);
+        }
+        if (program.jsonDebugOutput) {
+          console.log(wikiLinks);
+        }
+      } catch (error: any) {
+        // Only rethrow if not ENOENT
+        console.error(`Error processing file ${file}:`, error);
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
       }
     }
 
