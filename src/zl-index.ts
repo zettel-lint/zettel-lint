@@ -129,8 +129,12 @@ function indexer(program: ZlIndexOptions): void {
         if (program.jsonDebugOutput) {
           console.log(wikiLinks);
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Only rethrow if not ENOENT
         console.error(`Error processing file ${file}:`, error);
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
       }
     }
 
