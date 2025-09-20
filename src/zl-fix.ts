@@ -142,9 +142,12 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
         } else if (program.verbose) {
           console.log(`No changes for ${filename}`);
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Only rethrow if not ENOENT
         console.error(`Error processing file ${filename}:`, error);
-        // throw error; // Re-throw to ensure Promise.all catches failures
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
       }
     }));
   }
