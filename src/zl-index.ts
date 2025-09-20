@@ -131,7 +131,7 @@ function indexer(program: ZlIndexOptions): void {
           console.log(wikiLinks);
         }
       } catch (error: any) {
-        // Only rethrow if not ENOENT
+        // Only rethrow if not ENOENT or YAMLParseError
         console.error(`Error processing file ${file}:`, error);
         if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
           throw error;

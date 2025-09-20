@@ -86,7 +86,7 @@ function lintNotes(program: any): void {
       
       await fs.writeFile(filename, newContents);
     } catch (error: any) {
-      // Only rethrow if not ENOENT
+      // Only rethrow if not ENOENT or YAMLParseError
       console.error(`Error processing file ${filename}:`, error);
       if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
         throw error;

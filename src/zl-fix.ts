@@ -145,7 +145,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
           console.log(`No changes for ${filename}`);
         }
       } catch (error: any) {
-        // Only rethrow if not ENOENT
+        // Only rethrow if not ENOENT or YAMLParseError
         console.error(`Error processing file ${filename}:`, error);
         if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
           throw error;
