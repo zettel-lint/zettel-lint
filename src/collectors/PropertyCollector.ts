@@ -1,4 +1,4 @@
-import { formatData, invertDictionary } from "./types.js";
+import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 import { YamlHeaders } from "./Collector.js";
 
@@ -22,7 +22,7 @@ export class PropertyCollector extends RegexCollector {
    * Collects properties from YAML frontmatter and inline pairs.
    * Regex filters apply ONLY to inline pairs; YAML-derived keys/values are always included.
    */
-  collectProperties(content: string, regexes: Array<RegExp> = []): YamlHeaders {
+  collectProperties(content: string, regexes: Array<RegExp> = []): {properties: YamlHeaders, hasInline: boolean} {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
     const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
@@ -31,6 +31,7 @@ export class PropertyCollector extends RegexCollector {
     // Normalise supplied regexes to avoid stateful /g behaviour.
     const safeRegexes = regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r));
 
+    var hasInline = false;
     // Merge properties from both sources
     allKeys.forEach(key => {
       const yamlValues = yaml[key] || [];
@@ -38,13 +39,14 @@ export class PropertyCollector extends RegexCollector {
       if (safeRegexes.length === 0 || safeRegexes.some(r => r.test(key))) {
         pairValues = pairs[key] ?? [];
       }
+      if (pairValues.length > 0) { hasInline = true; }
       
       if (yamlValues.length > 0 || pairValues.length > 0) {
         result[key] = [...new Set([...yamlValues, ...pairValues])];
       }
     });
 
-    return result;
+    return { properties: result, hasInline };
   }
 
   private collectPairs(content: string): YamlHeaders {

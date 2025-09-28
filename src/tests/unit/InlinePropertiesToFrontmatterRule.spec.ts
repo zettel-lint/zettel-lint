@@ -67,6 +67,15 @@ tags:
     expect(rule.fix(input, 'test.md')).toBe(input);
   });
 
+  it('should return content unchanged if no inline properties found', () => {
+    const input = `---
+author: Charles Dickens
+---
+# Just a regular note
+With no inline properties.`;
+    expect(rule.fix(input, 'test.md')).toBe(input);
+  });
+
   it('should handle empty or invalid properties gracefully', () => {
     const input = `---
 empty:

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { TaskCollector } from '../../TaskCollector'
+import { TaskCollector } from '../../collectors/TaskCollector'
 
 test('empty file has no tasks', () => {
     var sut = new TaskCollector();

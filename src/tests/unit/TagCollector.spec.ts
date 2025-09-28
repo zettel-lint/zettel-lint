@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { TagCollector } from '../../TagCollector'
+import { TagCollector } from '../../collectors/TagCollector'
 
 test('empty file has no tags', () => {
     var sut = new TagCollector();

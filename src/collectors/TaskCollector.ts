@@ -1,4 +1,4 @@
-import { formatData, formatLink, invertDictionary } from "./types.js";
+import { formatData, formatLink, invertDictionary } from "../types.js";
 import { RegexCollector, collectMatches } from "./RegexCollector.js";
 
 export class TaskCollector extends RegexCollector {

@@ -1,5 +1,5 @@
 import Mustache from 'mustache';
-import { Collector } from './Collector.js';
+import { Collector } from './collectors/Collector.js';
 import { fileWikiLinks, formatData } from './types.js';
 
 export class Templator {

@@ -1,5 +1,5 @@
 import { BaseRule } from "./BaseRule.js";
-import { PropertyCollector } from "../PropertyCollector.js";
+import { PropertyCollector } from "../collectors/PropertyCollector.js";
 
 export class InlinePropertiesToFrontmatter extends BaseRule {
   readonly name = "inline-properties-to-frontmatter";
@@ -16,8 +16,14 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
 
   fix(content: string, filePath: string): string {
     // Collect all properties from both YAML and inline notation
-    const properties = this.propertyCollector.collectProperties(content, this.regexes);
+    const propertyCollector = this.propertyCollector.collectProperties(content, this.regexes);
+    if (!propertyCollector.hasInline) {
+      // If there are no inline properties, nothing to do
+      return content;
+    }
     
+    const properties = propertyCollector.properties;
+
     // If no properties found, return content unchanged
     if (Object.keys(properties).length === 0) {
       return content;
