@@ -24,13 +24,13 @@ The [zl.ts](src/zl.ts) file is the entry point for the command line tool. It use
 
 The [zl-index.ts](src/zl-index.ts) file is responsible for the `index` command (alias `create`), which is used to create new files that reference other files in the repository. Each markdown file in the repository is processed by a series of collectors, which look for specific features in the file. The collectors are:
 
-- [Collector](src/collectors/collector.ts) - the base class for all collectors
-  - [RegexCollector](src/collectors/regex-collector.ts) - a collector that uses a regular expression to find matches
-    - [ContextCollector](src/collectors/context-collector.ts) - a collector that looks for `@Context` GTD-style references
-    - [TagCollector](src/collectors/tag-collector.ts) - a collector that looks for `#hashtag` and GTD-style `+project` references
-    - [TaskCollector](src/collectors/task-collector.ts) - a collector that looks for `[ ] Tasks` and `(A) todo.txt style` references
-    - [WikiCollector](src/collectors/wiki-collector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]` references
-    - [PropertyCollector](src/PropertyCollector.ts) - a collector that looks for `Property:: value` references
+- [Collector](src/collectors/Collector.ts) - the base class for all collectors
+  - [RegexCollector](src/collectors/RegexCollector.ts) - a collector that uses a regular expression to find matches
+    - [ContextCollector](src/collectors/ContextCollector.ts) - a collector that looks for `@Context` GTD-style references
+    - [TagCollector](src/collectors/TagCollector.ts) - a collector that looks for `#hashtag` and todo.txt/GTD-style `+project` references
+    - [TaskCollector](src/collectors/TaskCollector.ts) - a collector that looks for `[ ] Tasks` and `(A) todo.txt style` references
+    - [WikiCollector](src/collectors/WikiCollector.ts) - a collector that looks for `[[WikiLinks]]` and Zettelkasten-style `[yymmddhhmmss]` references
+    - [PropertyCollector](src/collectors/PropertyCollector.ts) - a collector that looks for Obsidian dataview-style `[Property:: value]` references
 
 Once the input files have been processed, the [Templator](src/Templator.ts) uses `mustache` to render the output file, using the data collected by the collectors, and some additional annotations to support filtering notes `{{``tag[filter]``}}` and escaping markdown characters.
 

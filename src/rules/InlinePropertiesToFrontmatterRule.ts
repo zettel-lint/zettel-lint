@@ -1,5 +1,5 @@
 import { BaseRule } from "./BaseRule.js";
-import { PropertyCollector } from "../PropertyCollector.js";
+import { PropertyCollector } from "../collectors/PropertyCollector.js";
 
 export class InlinePropertiesToFrontmatter extends BaseRule {
   readonly name = "inline-properties-to-frontmatter";

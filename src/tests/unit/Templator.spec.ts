@@ -1,10 +1,10 @@
-import { ContextCollector } from '../../ContextCollector';
-import { TagCollector } from '../../TagCollector';
-import { TaskCollector } from '../../TaskCollector';
+import { ContextCollector } from '../../collectors/ContextCollector';
+import { TagCollector } from '../../collectors/TagCollector';
+import { TaskCollector } from '../../collectors/TaskCollector';
 import { Templator } from '../../Templator';
-import { WikiCollector } from '../../WikiCollector';
+import { WikiCollector } from '../../collectors/WikiCollector';
 import { describe, expect, test } from 'vitest';
-import { Collector } from '../../Collector';
+import { Collector } from '../../collectors/Collector';
 
 const full_template = `
 ---

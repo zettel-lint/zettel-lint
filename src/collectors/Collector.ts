@@ -1,4 +1,4 @@
-import { formatData, fileWikiLinks, invertData } from "./types.js";
+import { formatData, fileWikiLinks, invertData } from "../types.js";
 import { parse, stringify } from 'yaml';
 
 export interface YamlHeaders {

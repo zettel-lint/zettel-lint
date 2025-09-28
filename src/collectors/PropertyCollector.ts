@@ -1,4 +1,4 @@
-import { formatData, invertDictionary } from "./types.js";
+import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 import { YamlHeaders } from "./Collector.js";
 

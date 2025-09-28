@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { WikiCollector } from '../../WikiCollector'
+import { WikiCollector } from '../../collectors/WikiCollector'
 
 test('empty file has no links', () => {
     var sut = new WikiCollector();

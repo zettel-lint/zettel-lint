@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { PropertyCollector } from '../../PropertyCollector'
+import { PropertyCollector } from '../../collectors/PropertyCollector'
 
 test('empty file has no properties', () => {
     var sut = new PropertyCollector();

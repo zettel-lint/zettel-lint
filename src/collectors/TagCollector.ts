@@ -1,4 +1,4 @@
-import { fileWikiLinks, formatData, invertDictionary } from "./types.js";
+import { fileWikiLinks, formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 
 export class TagCollector extends RegexCollector {

@@ -5,7 +5,7 @@ import { idFromFilename } from "./file-handling.js";
 import { clear } from "console";
 import chalk from "chalk";
 import figlet from "figlet";
-import { collectMatches } from "./RegexCollector.js";
+import { collectMatches } from "./collectors/RegexCollector.js";
 import { exit } from "process";
 import { YAMLParseError } from 'yaml';
 
