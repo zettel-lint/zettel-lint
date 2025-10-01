@@ -19,9 +19,11 @@ jobs:
           const { context, github } = require('@actions/github');
           const core = require('@actions/core');
           const tagName = context.ref.replace('refs/tags/', '');
-          const { data: tags } = await github.rest.repos.listTags({
+          // Fetch all tags using pagination
+          const tags = await github.paginate(github.rest.repos.listTags, {
             owner: context.repo.owner,
             repo: context.repo.repo,
+            per_page: 100,
           });
 
           const currentTagIndex = tags.findIndex(tag => tag.name === tagName);
@@ -38,7 +40,11 @@ jobs:
             head: tagName,
           });
 
-          const commitMessages = commits.commits.map(commit => `- ${commit.commit.message}`).join('\n');
+          // Only use the first line of each commit message
+          const commitMessages = commits.commits.map(commit => {
+            const firstLine = commit.commit.message.split('\n')[0];
+            return `- ${firstLine}`;
+          }).join('\n');
           core.setOutput('notes', `Changes since ${previousTag}:\n\n${commitMessages}`);
 
     - name: Create GitHub Release
