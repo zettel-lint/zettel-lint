@@ -48,11 +48,11 @@ jobs:
           core.setOutput('notes', `Changes since ${previousTag}:\n\n${commitMessages}`);
 
     - name: Create GitHub Release
-      env:
-         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-         RELEASE_NOTES: ${{ steps.release_notes.outputs.notes }}
-      run: |
-         gh release create "${{ github.ref_name }}" \
-           --title "${{ github.ref_name }}" \
-           --notes "$RELEASE_NOTES" \
-           --verify-tag
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: |
+      echo "${{ steps.release_notes.outputs.notes }}" > release-notes.txt
+      gh release create "${{ github.ref_name }}" \
+        --title "${{ github.ref_name }}" \
+        --notes-file release-notes.txt \
+        --verify-tag
