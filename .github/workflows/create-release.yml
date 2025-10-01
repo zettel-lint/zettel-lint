@@ -48,7 +48,6 @@ jobs:
           core.setOutput('notes', `Changes since ${previousTag}:\n\n${commitMessages}`);
 
     - name: Create GitHub Release
-    - name: Create GitHub Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         RELEASE_NOTES: ${{ steps.release_notes.outputs.notes }}
