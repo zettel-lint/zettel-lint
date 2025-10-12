@@ -1,4 +1,3 @@
-import { basename } from 'path';
 
 export function idFromFilename(filename: string) : string {
   if (!filename) return '';
