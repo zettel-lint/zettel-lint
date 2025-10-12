@@ -29,4 +29,16 @@ describe('idFromFilename', () => {
   test('handles mixed path separators', () => {
     expect(idFromFilename('C:/notes\\12345678-note-title.md')).toBe('12345678');
   });
+
+  test('handles filename without hyphen', () => {
+    expect(idFromFilename('12345678.md')).toBe('12345678');
+  });
+
+  test('handles filename starting with hyphen', () => {
+    expect(idFromFilename('-note.md')).toBe('');
+  });
+
+  test('handles hidden files starting with dot', () => {
+    expect(idFromFilename('.hidden-123.md')).toBe('');
+  });
 });
