@@ -1,4 +1,9 @@
-
+/**
+ * Extracts the identifier portion from a filename or file path.
+ *
+ * @param filename - A filename or path; may include directories and extensions.
+ * @returns The substring before the first hyphen of the base filename (the base filename is taken before the first dot). Returns an empty string for falsy input or if no valid base name can be determined.
+ */
 export function idFromFilename(filename: string) : string {
   if (!filename) return '';
   
