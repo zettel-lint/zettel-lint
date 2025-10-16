@@ -59,24 +59,17 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
 /**
  * Apply configured fix rules to Markdown files under the specified path.
  *
- * Converts any provided property-filter patterns into RegExp objects, instantiates available rules,
- * determines the active rule set, scans the filesystem for `*.md` files (respecting ignore lists),
- * applies each active rule in sequence to each file's contents, and writes changed files to the
- * configured output directory while preserving relative paths.
- *
- * program - Configuration for the run (path, rules, ignoreDirs, propertyFilter, outputDir, move, verbose).
+ * Converts provided property-filter patterns to regular expressions, scans Markdown files
+ * under `program.path` (respecting `program.ignoreDirs`), applies the configured rules in sequence
+ * to each file's contents, and writes modified files to `program.outputDir` while preserving
+ * their relative paths.
  *
  * Side effects:
- * - May write updated files under `program.outputDir`.
- * - May create directories to mirror the input tree.
- * - Logs validation/errors and progress to the console.
- * - Sets `process.exitCode` to a non-zero value for certain failure conditions (invalid property-filter
- *   patterns => 2, runtime errors during processing => 2, no active rules specified => 3).
+ * - May create directories and write updated files under `program.outputDir`.
+ * - May set `process.exitCode` to `2` for invalid property-filter patterns or runtime errors,
+ *   and to `3` when no active rules are configured.
  *
- * The function resolves when processing completes; non-ENOENT file errors are propagated and will
- * be surfaced as failures (causing the process exit code to be set).
- *
- * @returns A promise that resolves once all files have been processed.
+ * @param program - Configuration options (root path, rules, ignoreDirs, propertyFilter, outputDir, move, verbose)
  */
 async function fixNotes(program: ZlFixOptions): Promise<void> {
   // Convert propertyFilter strings to RegExp objects
@@ -129,6 +122,11 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     process.exitCode = 3;
   }
 
+  /**
+   * Apply active fix rules to Markdown files under the configured path and write changed files to the output directory preserving relative paths.
+   *
+   * Scans for `.md` files (respecting the surrounding `ignoreList`), applies each `activeRule` in sequence to a file's contents, and, if any rule changes the contents, writes the updated file to `outputDir` using the file's relative path from `program.path`. Errors with code `ENOENT` or instances of `YAMLParseError` are logged and suppressed; other errors are rethrown.
+   */
   async function parseFiles() {
     printHeader(program);
 
