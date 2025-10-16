@@ -12,6 +12,10 @@ permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,7 +42,8 @@ jobs:
       - run: npm install -g npm@latest
       - run: npm ci
       - run: npm run-script create
-      - run: npm publish
+      - run: npm publish
+
 
   # publish-gpr:
   #   needs: build
