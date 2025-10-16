@@ -122,7 +122,7 @@ title: References
 * (D) Simplenote import => [Zettel Linter][tasks]
 * (E) Evernote import => [Zettel Linter][tasks]
 * (F) Wordpress import => [Zettel Linter][tasks]
-* (H) Pocket import => [Zettel Linter][tasks]
+* (H) Pocket import (CSV) => [Zettel Linter][tasks]
 * (I) OneNote import => [Zettel Linter][tasks]
 * (Y) The Journal import => [Zettel Linter][tasks]
 * (B) Export tasks to github issues => [Zettel Linter][tasks]
