@@ -116,7 +116,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * (D) Simplenote import 
 * (E) Evernote import 
 * (F) Wordpress import 
-* (H) Pocket import 
+* (H) Pocket import (CSV)
 * (I) OneNote import 
 * (Y) The Journal import 
 
