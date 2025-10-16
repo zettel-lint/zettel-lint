@@ -2,6 +2,7 @@ import { Command } from '@commander-js/extra-typings';
 import { glob } from "glob";
 import { promises as fs } from "fs";
 import { clear } from "console";
+import { join, relative, dirname } from "node:path";
 import chalk from "chalk";
 import figlet from "figlet";
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
@@ -100,13 +101,12 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
 
   printHeader(program, ruleNames);
 
-  var ignoreList = [program.path + "/**/node_modules/**"]; 
+  let ignoreList = [join(program.path, "**", "node_modules", "**")];
   if (program.ignoreDirs) {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
-  var outputDir = program.outputDir;
-  if (!outputDir.endsWith("/")) { outputDir += "/"; }
+  let outputDir = program.outputDir;
 
   const activeRules: BaseRule[] = [];
 
@@ -132,7 +132,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
   async function parseFiles() {
     printHeader(program);
 
-    const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
+    const files = await glob(join(program.path, "**", "*.md"), { ignore: ignoreList });
     console.log(files.length + " files found");
 
     if (program.verbose) {
@@ -155,9 +155,9 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
           }
         });
         if (fileChanged) {
-          const relativePath = filename.startsWith(program.path) ? filename.slice(program.path.length) : filename;
-          const outputPath = outputDir + relativePath;
-          const outputDirPath = outputPath.substring(0, outputPath.lastIndexOf("/"));
+          const relativePath = relative(program.path, filename);
+          const outputPath = join(outputDir, relativePath);
+          const outputDirPath = dirname(outputPath);
           await fs.mkdir(outputDirPath, { recursive: true }); // Ensure directory exists
           await fs.writeFile(outputPath, newContents, "utf8");
           if (program.verbose) {
