@@ -16,7 +16,7 @@ describe('path handling integration tests', () => {
     // Create a test file with some content
     await fs.writeFile(
       join(inputDir, 'test.md'),
-      '# Test Note\n\nThis is a test note with a property: value\n',
+      '# Test Note\n\nThis is a test note with a property: value',
       'utf8'
     );
 
@@ -25,7 +25,7 @@ describe('path handling integration tests', () => {
     await fs.mkdir(subDir, { recursive: true });
     await fs.writeFile(
       join(subDir, 'note with spaces.md'),
-      '# Test Note\n\nThis is another test note\n',
+      '# Test Note\n\nThis is another test note',
       'utf8'
     );
   });
@@ -54,8 +54,6 @@ describe('path handling integration tests', () => {
 
   test('preserves directory structure in output', async () => {
     const cmd = fixerCommand();
-    // Ensure output directory exists
-    await fs.mkdir(join(outputDir, 'My Notes'), { recursive: true });
     
     await cmd.parseAsync([
       'node', 'zl',
