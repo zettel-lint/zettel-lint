@@ -1,17 +1,23 @@
 import { describe, expect, test, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import { join, sep } from 'node:path';
+import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import fixerCommand from '../../../zl-fix';
 
-describe('path handling integration tests', async () => {
-  const tempDir = await mkdtemp(join(tmpdir(), 'test-', sep));
-  const testDir = join(tempDir, 'path-handling');
-  const inputDir = join(testDir, 'input');
-  const outputDir = join(testDir, 'output');
+describe('path handling integration tests', () => {
+  let tempDir: string;
+  let testDir: string;
+  let inputDir: string;
+  let outputDir: string;
 
   // Create test directories and sample files
   beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'test-', sep));
+    testDir = join(tempDir, 'path-handling');
+    inputDir = join(testDir, 'input');
+    outputDir = join(testDir, 'output');
+
     await fs.mkdir(inputDir, { recursive: true });
     await fs.mkdir(outputDir, { recursive: true });
     
