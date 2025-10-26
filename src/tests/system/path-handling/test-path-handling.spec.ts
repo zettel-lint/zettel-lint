@@ -40,7 +40,7 @@ describe('path handling integration tests', () => {
 
   // Clean up test directories
   afterEach(async () => {
-    await fs.rm(testDir, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true, maxRetries: 3 });
   });
 
   test('handles nested directories with platform-specific separators', async () => {
