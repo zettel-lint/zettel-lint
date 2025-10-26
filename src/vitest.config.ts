@@ -8,7 +8,6 @@ export default defineConfig({
     exclude: ['**/node_modules/**', '**/lib/**'],
     coverage: {
       reporter: ['text', 'json', 'html'],
-      all: true,
       include: ['src/**/*.ts'],
       exclude: [
         ...configDefaults.exclude,
@@ -16,4 +15,5 @@ export default defineConfig({
       ],
     },
   },
+
 });
