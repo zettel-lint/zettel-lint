@@ -3,6 +3,8 @@ import { defineConfig, configDefaults } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    // Run only tests from source files
+    include: ['src/**/*.spec.ts', 'src/**/*.test.ts', 'src/**/*.spec.js', 'src/**/*.test.js'], 
     globals: true,
     environment: 'node',
     exclude: ['**/node_modules/**', '**/lib/**'],
@@ -17,3 +19,4 @@ export default defineConfig({
   },
 
 });
+

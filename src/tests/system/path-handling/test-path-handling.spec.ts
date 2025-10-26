@@ -1,22 +1,30 @@
 import { describe, expect, test, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import { join, sep } from 'node:path';
+import { mkdtemp } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import fixerCommand from '../../../zl-fix';
 
 describe('path handling integration tests', () => {
-  const testDir = join('test-output', 'path-handling');
-  const inputDir = join(testDir, 'input');
-  const outputDir = join(testDir, 'output');
+  let tempDir: string;
+  let testDir: string;
+  let inputDir: string;
+  let outputDir: string;
 
   // Create test directories and sample files
   beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'test-'));
+    testDir = join(tempDir, 'path-handling');
+    inputDir = join(testDir, 'input');
+    outputDir = join(testDir, 'output');
+
     await fs.mkdir(inputDir, { recursive: true });
     await fs.mkdir(outputDir, { recursive: true });
     
     // Create a test file with some content
     await fs.writeFile(
       join(inputDir, 'test.md'),
-      '# Test Note\n\nThis is a test note with a property: value\n',
+      '# Test Note\n\nThis is a test note with a property: value',
       'utf8'
     );
 
@@ -25,14 +33,14 @@ describe('path handling integration tests', () => {
     await fs.mkdir(subDir, { recursive: true });
     await fs.writeFile(
       join(subDir, 'note with spaces.md'),
-      '# Test Note\n\nThis is another test note\n',
+      '# Test Note\n\nThis is another test note',
       'utf8'
     );
   });
 
   // Clean up test directories
   afterEach(async () => {
-    await fs.rm(testDir, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true, maxRetries: 3 });
   });
 
   test('handles nested directories with platform-specific separators', async () => {
@@ -54,8 +62,6 @@ describe('path handling integration tests', () => {
 
   test('preserves directory structure in output', async () => {
     const cmd = fixerCommand();
-    // Ensure output directory exists
-    await fs.mkdir(join(outputDir, 'My Notes'), { recursive: true });
     
     await cmd.parseAsync([
       'node', 'zl',
