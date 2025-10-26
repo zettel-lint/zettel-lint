@@ -4,7 +4,8 @@ import { join, sep } from 'node:path';
 import fixerCommand from '../../../zl-fix';
 
 describe('path handling integration tests', () => {
-  const testDir = join('test-output', 'path-handling');
+  const tempDir = await mkdtemp(join(tmpdir(), 'test-', sep));
+  const testDir = join(tempDir, 'path-handling');
   const inputDir = join(testDir, 'input');
   const outputDir = join(testDir, 'output');
 
