@@ -1,9 +1,10 @@
 import { describe, expect, test, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
 import { join, sep } from 'node:path';
+import { tmpdir } from 'node:os';
 import fixerCommand from '../../../zl-fix';
 
-describe('path handling integration tests', () => {
+describe('path handling integration tests', async () => {
   const tempDir = await mkdtemp(join(tmpdir(), 'test-', sep));
   const testDir = join(tempDir, 'path-handling');
   const inputDir = join(testDir, 'input');
