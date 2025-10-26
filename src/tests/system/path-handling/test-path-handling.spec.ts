@@ -13,7 +13,7 @@ describe('path handling integration tests', () => {
 
   // Create test directories and sample files
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'test-', sep));
+    tempDir = await mkdtemp(join(tmpdir(), 'test-'));
     testDir = join(tempDir, 'path-handling');
     inputDir = join(testDir, 'input');
     outputDir = join(testDir, 'output');
