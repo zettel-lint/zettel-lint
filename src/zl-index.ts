@@ -19,6 +19,13 @@ import { fileURLToPath } from 'url';
 import { glob } from "glob";
 import { YAMLParseError } from "yaml";
 
+class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigurationError';
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -159,13 +166,13 @@ function indexer(program: ZlIndexOptions): Promise<void> {
       const template = await fs.readFile(program.templateFile, "utf8");
       const templator = new Templator(references, collectors);
       if (program.verbose) {
-        console.log(templator.enhance(template));
+      console.log(templator.enhance(template));
       }
       const formatted = templator.render(template);
 
       await fs.writeFile(program.referenceFile, formatted);
     } else {
-      throw new Error("No output or template file found. Exiting.");
+      throw new ConfigurationError("No output or template file found");
     }
   }
 
@@ -173,7 +180,7 @@ function indexer(program: ZlIndexOptions): Promise<void> {
     () => { if (program.verbose) { console.log("Updated") } },
     (reason) => { 
       console.error("Error: " + reason); 
-      process.exitCode = reason.message === "No output or template file found" ? 1 : 2; 
+      process.exitCode = reason instanceof ConfigurationError ? 1 : 2;
     }
   )
 }
