@@ -118,7 +118,7 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
  *
  * @param program - Indexer options controlling paths, ignores, output/template locations, debug/verbose flags, and task/wiki behavior.
  */
-function indexer(program: ZlIndexOptions): void {
+function indexer(program: ZlIndexOptions): Promise<void> {
   printHeader(program);
 
   var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
@@ -170,7 +170,7 @@ function indexer(program: ZlIndexOptions): void {
     }
   }
 
-  parseFiles().then(
+  return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
     (reason) => { console.error("Error: " + reason); process.exitCode = 2; }
   )
