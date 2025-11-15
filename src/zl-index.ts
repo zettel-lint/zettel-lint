@@ -15,7 +15,6 @@ import { fileWikiLinks } from "./types.js";
 import { idFromFilename } from "./file-handling.js";
 import { Templator } from "./Templator.js";
 import path from "path";
-import { exit } from "process";
 import { fileURLToPath } from 'url';
 import { glob } from "glob";
 import { YAMLParseError } from "yaml";
@@ -167,12 +166,12 @@ function indexer(program: ZlIndexOptions): void {
       await fs.writeFile(program.referenceFile, formatted);
     } else {
       console.error("No output or template file found. Exiting.");
-      exit(1);
+      process.exitCode = 1;
     }
   }
 
   parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
-    (reason) => { console.error("Error: " + reason); exit(2); }
+    (reason) => { console.error("Error: " + reason); process.exitCode = 2; }
   )
 }
