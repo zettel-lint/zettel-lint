@@ -165,13 +165,15 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
       await fs.writeFile(program.referenceFile, formatted);
     } else {
-      console.error("No output or template file found. Exiting.");
-      process.exitCode = 1;
+      throw new Error("No output or template file found. Exiting.");
     }
   }
 
   return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
-    (reason) => { console.error("Error: " + reason); process.exitCode = 2; }
+    (reason) => { 
+      console.error("Error: " + reason); 
+      process.exitCode = reason.message === "No output or template file found" ? 1 : 2; 
+    }
   )
 }
