@@ -29,3 +29,8 @@ test('empty file has no links', () => {
     expect(sut.collect("[[Wiki-Link]]\"").toString())
         .toBe("[[Wiki-Link]]");
   });
+
+  test('rejects non-ASCII wiki links', () => {
+    var sut = new WikiCollector();
+    expect(sut.collect('[[Wïkï-Link]]')).toHaveLength(0);
+  });
