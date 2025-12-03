@@ -39,6 +39,54 @@ describe('fixerCommand', () => {
   });
 });
 
+describe('path handling', () => {
+  test('handles Windows-style paths', () => {
+    const cmd = fixerCommand();
+    const parsed = cmd.parse(['node', 'zl', '--path', 'C:\\Users\\test\\Documents', '--output-dir', 'D:\\Output']);
+    expect(parsed.opts().path).toBe('C:\\Users\\test\\Documents');
+    expect(parsed.opts().outputDir).toBe('D:\\Output');
+  });
+
+  test('handles Unix-style paths', () => {
+    const cmd = fixerCommand();
+    const parsed = cmd.parse(['node', 'zl', '--path', '/home/user/docs', '--output-dir', '/tmp/output']);
+    expect(parsed.opts().path).toBe('/home/user/docs');
+    expect(parsed.opts().outputDir).toBe('/tmp/output');
+  });
+
+  test('handles mixed path separators in ignore-dirs', () => {
+    const cmd = fixerCommand();
+    const parsed = cmd.parse([
+      'node', 'zl',
+      '--path', '.',
+      '--ignore-dirs', 'node_modules', 'test\\fixtures', 'docs/drafts'
+    ]);
+    expect(parsed.opts().ignoreDirs).toEqual(['node_modules', 'test\\fixtures', 'docs/drafts']);
+  });
+
+  test('handles relative paths', () => {
+    const cmd = fixerCommand();
+    const parsed = cmd.parse([
+      'node', 'zl',
+      '--path', './notes',
+      '--output-dir', '../output'
+    ]);
+    expect(parsed.opts().path).toBe('./notes');
+    expect(parsed.opts().outputDir).toBe('../output');
+  });
+
+  test('handles paths with spaces', () => {
+    const cmd = fixerCommand();
+    const parsed = cmd.parse([
+      'node', 'zl',
+      '--path', 'My Documents/Notes',
+      '--output-dir', 'Output Files/Fixed'
+    ]);
+    expect(parsed.opts().path).toBe('My Documents/Notes');
+    expect(parsed.opts().outputDir).toBe('Output Files/Fixed');
+  });
+});
+
 // --- Extended comprehensive tests (robust to unknown implementation details) ---
 const fresh = () => fixerCommand();
 

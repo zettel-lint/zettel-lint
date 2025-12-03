@@ -15,10 +15,16 @@ import { fileWikiLinks } from "./types.js";
 import { idFromFilename } from "./file-handling.js";
 import { Templator } from "./Templator.js";
 import path from "path";
-import { exit } from "process";
 import { fileURLToPath } from 'url';
 import { glob } from "glob";
 import { YAMLParseError } from "yaml";
+
+class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigurationError';
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -119,7 +125,7 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
  *
  * @param program - Indexer options controlling paths, ignores, output/template locations, debug/verbose flags, and task/wiki behavior.
  */
-function indexer(program: ZlIndexOptions): void {
+function indexer(program: ZlIndexOptions): Promise<void> {
   printHeader(program);
 
   var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
@@ -160,19 +166,21 @@ function indexer(program: ZlIndexOptions): void {
       const template = await fs.readFile(program.templateFile, "utf8");
       const templator = new Templator(references, collectors);
       if (program.verbose) {
-        console.log(templator.enhance(template));
+      console.log(templator.enhance(template));
       }
       const formatted = templator.render(template);
 
       await fs.writeFile(program.referenceFile, formatted);
     } else {
-      console.error("No output or template file found. Exiting.");
-      exit(1);
+      throw new ConfigurationError("No output or template file found");
     }
   }
 
-  parseFiles().then(
+  return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
-    (reason) => { console.error("Error: " + reason); exit(2); }
+    (reason) => { 
+      console.error("Error: " + reason); 
+      process.exitCode = reason instanceof ConfigurationError ? 1 : 2;
+    }
   )
 }

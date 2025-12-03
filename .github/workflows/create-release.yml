@@ -9,7 +9,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Generate Release Notes
       id: release_notes
@@ -19,9 +19,11 @@ jobs:
           const { context, github } = require('@actions/github');
           const core = require('@actions/core');
           const tagName = context.ref.replace('refs/tags/', '');
-          const { data: tags } = await github.rest.repos.listTags({
+          // Fetch all tags using pagination
+          const tags = await github.paginate(github.rest.repos.listTags, {
             owner: context.repo.owner,
             repo: context.repo.repo,
+            per_page: 100,
           });
 
           const currentTagIndex = tags.findIndex(tag => tag.name === tagName);
@@ -38,16 +40,20 @@ jobs:
             head: tagName,
           });
 
-          const commitMessages = commits.commits.map(commit => `- ${commit.commit.message}`).join('\n');
+          // Only use the first line of each commit message
+          const commitMessages = commits.commits.map(commit => {
+            const firstLine = commit.commit.message.split('\n')[0];
+            return `- ${firstLine}`;
+          }).join('\n');
           core.setOutput('notes', `Changes since ${previousTag}:\n\n${commitMessages}`);
 
     - name: Create GitHub Release
-      uses: actions/create-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: ${{ github.ref_name }}
-        body: ${{ steps.release_notes.outputs.notes }}
-        draft: false
-        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        RELEASE_NOTES: ${{ steps.release_notes.outputs.notes }}
+      run: |
+        printf '%s\n' "$RELEASE_NOTES" > release-notes.txt
+        gh release create "${{ github.ref_name }}" \
+          --title "${{ github.ref_name }}" \
+          --notes-file release-notes.txt \
+          --verify-tag
