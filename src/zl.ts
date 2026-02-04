@@ -12,7 +12,7 @@ import fixerCommand from "./zl-fix.js";
 // THIS import is outside `src/` folder so fails the build
 // import {version as packageVersion} from "../package.json";
 
-export const version = "0.13.7";
+export const version = "0.13.8";
 
 var program = new Command("zl")
   .version(version)
