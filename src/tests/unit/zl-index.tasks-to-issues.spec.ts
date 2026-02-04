@@ -3,7 +3,7 @@ import indexerCommand from '../../zl-index';
 
 // Mock node-fetch for GitHub API calls
 vi.mock('node-fetch', () => ({
-  default: vi.fn(async (url, opts) => {
+  default: vi.fn(async (url: string, opts?: RequestInit) => {
     if (url.includes('/search/issues')) {
       // Simulate no existing issues
       return { json: async () => ({ items: [] }) };
@@ -67,7 +67,7 @@ describe('indexerCommand --tasks-to-issues', () => {
   test('does not create duplicate issues if already exists', async () => {
     // Patch node-fetch to simulate existing open issue
     vi.doMock('node-fetch', () => ({
-      default: vi.fn(async (url, opts) => {
+      default: vi.fn(async (url: string, opts?: RequestInit) => {
         if (url.includes('/search/issues')) {
           return { json: async () => ({ items: [{ title: DUMMY_TASK, state: 'open' }] }) };
         }

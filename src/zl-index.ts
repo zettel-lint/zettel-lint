@@ -16,7 +16,7 @@ import { idFromFilename } from "./file-handling.js";
 import { Templator } from "./Templator.js";
 import path from "path";
 import { fileURLToPath } from 'url';
-import { glob } from "glob";
+// Import `glob` dynamically in `parseFiles` so tests can mock it via `vi.doMock('glob', ...)`.
 import { YAMLParseError } from "yaml";
 
 class ConfigurationError extends Error {
@@ -182,6 +182,7 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
   async function parseFiles() {
     var references: fileWikiLinks[] = [];
+    const { glob } = await import('glob');
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
     for await (const file of files) {
       try {
@@ -202,8 +203,6 @@ function indexer(program: ZlIndexOptions): Promise<void> {
     }
 
     if (program.tasksToIssues) {
-      // Gather all unique tasks from TaskCollector
-      const taskCollector = collectors.find(c => c.dataName === "Tasks") as TaskCollector;
       const allTasks: {task: string, file: string, title: string}[] = [];
       for (const ref of references) {
         const tasks = ref.matchData["Tasks"] || [];
