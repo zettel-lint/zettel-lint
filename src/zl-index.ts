@@ -124,7 +124,7 @@ async function createIssuesFromTasks(tasks: {task: string, file: string, title: 
   const fetch = (await import('node-fetch')).default;
   for (const t of tasks) {
     // Check for existing open issues with the same title
-    const searchUrl = `https://api.github.com/search/issues?q=repo:${owner}/${repoName}+in:title+${encodeURIComponent(t.task)}`;
+    const searchUrl = `https://api.github.com/search/issues?q=repo:${owner}/${repoName}+in:title+"${encodeURIComponent(t.task)}"`;
     const searchResp = await fetch(searchUrl, {
       headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
     });
