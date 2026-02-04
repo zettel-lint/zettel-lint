@@ -75,4 +75,13 @@ jobs:
             - src/zl.ts: Updated version string to ${{ env.new_version }}
             
             This PR was automatically created by the Bump Patch Version workflow.
+
+            ---
+
+            - [ ] close and re-open:
+
+            Bot PRs don't trigger pr actions... create-pull-request/docs/concepts-guidelines.md at main · peter-evans/create-pull-request
+
+            [create-pull-request/docs/concepts-guidelines.md at main](/peter-evans/create-pull-request/docs/concepts-guidelines.md)
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
