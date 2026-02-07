@@ -53,7 +53,7 @@ export class Templator {
                 const referencedIds = new Set<string>();
                 this.notes?.forEach(note => {
                     const refs = note.matchData["Links"] || [];
-                    refs.forEach(refId => referencedIds.add(refId));
+                    refs.forEach(refId => referencedIds.add(refId.replace(/[\[\]]/g, '')));
                 });
                 // Then filter notes based on the collected IDs
                 return this.notes?.filter(note => referencedIds.has(note.id ?? ""));
