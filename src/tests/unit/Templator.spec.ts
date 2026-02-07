@@ -243,29 +243,30 @@ title: References
         [new TagCollector, new TaskCollector, new WikiCollector, new ContextCollector]);
     expect(sut.render(full_template, new Date("2021-01-01"), new Date("2021-01-01"))).toBe(full_expected);
   });
-  // Dummy Collector for testing
-  class DummyCollector extends Collector {
-    dataName = 'Dummy';
-    extractAll(files: any[]) {
-      const map = new Map();
-      files.forEach(f => {
-        (f.matchData?.Dummy || []).forEach((d: string) => {
-          if (!map.has(d)) map.set(d, []);
-          map.get(d).push(f);
-        });
-      });
-      return map;
-    }
-    collect(content: string): string[] {
-      // Dummy implementation, just return an empty array
-      return [];
-    }
-    format(references: any[]): string {
-      return "Dummy";
-    }
-  }
 
   describe('Templator generated tests', () => {
+    // Dummy Collector for testing
+    class DummyCollector extends Collector {
+      dataName = 'Dummy';
+      extractAll(files: any[]) {
+        const map = new Map();
+        files.forEach(f => {
+          (f.matchData?.Dummy || []).forEach((d: string) => {
+            if (!map.has(d)) map.set(d, []);
+            map.get(d).push(f);
+          });
+        });
+        return map;
+      }
+      collect(content: string): string[] {
+        // Dummy implementation, just return an empty array
+        return [];
+      }
+      format(references: any[]): string {
+        return "Dummy";
+      }
+    }
+
     test('should render created and modified dates', () => {
       const sut = new Templator();
       const now = new Date();
