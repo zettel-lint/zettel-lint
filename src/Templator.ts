@@ -77,7 +77,7 @@ export class Templator {
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag?sort(by)/filter/`}}
-                    const query_extract = /^{{`(?<tag>\w+)(?:\?(?<fn>\w+)\((?<args>[\w\s,]*)\))*\/(?<filter>[^]*)\/`}}/;
+                    const query_extract = /^{{`(?<tag>\w+)(?:\?(?<fn>\w+)\((?<args>[\w\s,]*)\))*\/(?<filter>[\s\S]*)\/`}}/;
                     const [, tag, fn, args, filter] = query_extract.exec(text) || [];
                     
                     if(fn && fn.toLocaleUpperCase() !== "SORT") {

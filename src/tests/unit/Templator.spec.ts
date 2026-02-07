@@ -7,6 +7,28 @@ import { describe, expect, test } from 'vitest';
 import { Collector } from '../../collectors/Collector';
 import { formatData } from '../../types';
 
+// Dummy Collector for testing
+class DummyCollector extends Collector {
+  dataName = 'Dummy';
+  extractAll(files: any[]) {
+    const map = new Map();
+    files.forEach(f => {
+      (f.matchData?.Dummy || []).forEach((d: string) => {
+        if (!map.has(d)) map.set(d, []);
+        map.get(d).push(f);
+      });
+    });
+    return map;
+  }
+  collect(content: string): string[] {
+    // Dummy implementation, just return an empty array
+    return [];
+  }
+  format(references: any[]): string {
+    return "Dummy";
+  }
+}
+
 const full_template = `
 ---
 created: {{created}}
@@ -922,5 +944,606 @@ title: References
       const template = "{{?Tags/important/}}Found: {{key}}{{/?Tags}}";
       const result = sut.render(template);
       expect(result).toBe("Found: #important");
+    });
+
+    // Tests for the regex fix: [^]* -> [\s\S]*
+    test('query_filter should handle multiline filter patterns', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo\nbar', 'baz']}},
+        {id: 'y', wikiname: 'y', filename: './y.md', title: 'Y', fullpath: '', matchData: {Dummy: ['single']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Test that multiline content in filter patterns works correctly
+      const template = "{{?Dummy/foo[\\s\\S]*bar/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      // Should match the multiline "foo\nbar" entry
+      expect(result).toContain("* foo\nbar");
+      expect(result).not.toContain("* baz");
+      expect(result).not.toContain("* single");
+    });
+
+    test('query_filter should handle complex regex patterns with special characters', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {Dummy: ['test-123', 'test.456', 'test_789']}},
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Test pattern with hyphens and dots
+      const template = "{{?Dummy/test[-.]\\d+/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* test-123");
+      expect(result).toContain("* test.456");
+      expect(result).not.toContain("* test_789");
+    });
+
+    test('query_filter should handle empty filter patterns', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo', 'bar']}},
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Empty filter should match everything
+      const template = "{{?Dummy//}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* foo");
+      expect(result).toContain("* bar");
+    });
+
+    test('query_filter should handle filters with newlines and special chars', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['line1\nline2', 'single']}},
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Match patterns that span multiple lines
+      const template = "{{?Dummy/line1[\\s\\S]*line2/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* line1\nline2");
+      expect(result).not.toContain("* single");
+    });
+
+    // Edge case tests
+    test('should handle empty notes array', () => {
+      const sut = new Templator([]);
+      expect(sut.render("{{#notes}}{{id}}{{/notes}}")).toBe("");
+    });
+
+    test('should handle undefined notes', () => {
+      const sut = new Templator(undefined);
+      expect(sut.render("{{#notes}}{{id}}{{/notes}}")).toBe("");
+    });
+
+    test('should handle notes with missing optional fields', () => {
+      const notes = [
+        {id: 'x', wikiname: '', filename: undefined as any, title: '', fullpath: '', matchData: {}},
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#notes}}[{{id}}]{{/notes}}");
+      expect(result).toBe("[x]");
+    });
+
+    test('should handle collectors with no matching data', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {}},
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      const result = sut.render("{{#Dummy}}{{key}}{{/Dummy}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle multiple different collectors', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#tag1'], Contexts: ['@work']}},
+      ];
+      const collector1 = new TagCollector();
+      const collector2 = new ContextCollector();
+      const sut = new Templator(notes, [collector1, collector2]);
+      // Should handle multiple different collectors
+      const resultTags = sut.render("{{#Tags}}{{key}}{{/Tags}}");
+      const resultContexts = sut.render("{{#Contexts}}{{key}}{{/Contexts}}");
+      expect(resultTags).toContain("#tag1");
+      expect(resultContexts).toContain("@work");
+    });
+
+    test('should escape markdown special characters correctly', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'Title (with) (multiple) (parens)', fullpath: '', matchData: {}},
+      ];
+      const sut = new Templator(notes);
+      expect(sut.render("{{#notes}}{{{`title}}}{{/notes}}")).toBe("Title &lpar;with&rpar; &lpar;multiple&rpar; &lpar;parens&rpar;");
+    });
+
+    test('should handle orphans with no links', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {}},
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{key}}{{/Orphans}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle references with circular links', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {'Links': ['b']} as {[collector: string]: string[]}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {'Links': ['a']} as {[collector: string]: string[]}},
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#references}}{{id}},{{/references}}");
+      // References are notes that are linked TO by other notes
+      // a links to b, so b should be in references
+      // b links to a, so a should be in references
+      // Both are referenced, so both should appear
+      expect(result).toContain("a,");
+      expect(result).toContain("b,");
+    });
+
+    test('should handle sort with empty args', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['zebra', 'alpha', 'beta']}},
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      const result = sut.render("{{?Dummy?sort()//}}* {{key}}\n{{/?Dummy}}");
+      // Should sort alphabetically
+      expect(result.indexOf("alpha")).toBeLessThan(result.indexOf("beta"));
+      expect(result.indexOf("beta")).toBeLessThan(result.indexOf("zebra"));
+    });
+
+    test('should handle sort with non-existent key', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['item:value', 'other']}},
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      const result = sut.render("{{?Dummy?sort(nonexistent)//}}* {{key}}\n{{/?Dummy}}");
+      // Items without the key should be sorted to end (ZZZZZ)
+      expect(result).toBeTruthy();
+    });
+
+    test('should handle nested template syntax', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#tag1']}},
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      const template = "{{#Tags}}{{key}}: {{#value}}{{id}}{{/value}}{{/Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("#tag1");
+      expect(result).toContain("x");
+    });
+
+    test('should handle created and modified dates with specific values', () => {
+      const sut = new Templator([]);
+      const created = new Date('2020-01-01T00:00:00.000Z');
+      const modified = new Date('2021-01-01T00:00:00.000Z');
+      const result = sut.render("{{created}}|{{modified}}", created, modified);
+      expect(result).toBe("2020-01-01T00:00:00.000Z|2021-01-01T00:00:00.000Z");
+    });
+
+    test('should handle undefined created and modified dates', () => {
+      const sut = new Templator([]);
+      const beforeTime = new Date().getTime();
+      const result = sut.render("{{created}}|{{modified}}");
+      const afterTime = new Date().getTime();
+      // Should use current time when undefined
+      expect(result).toContain("T");
+      expect(result).toContain("Z");
+      const parts = result.split("|");
+      expect(parts.length).toBe(2);
+      const createdTime = new Date(parts[0]).getTime();
+      expect(createdTime).toBeGreaterThanOrEqual(beforeTime);
+      expect(createdTime).toBeLessThanOrEqual(afterTime);
+    });
+
+    test('should handle filter with regex metacharacters', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['(A)', '[B]', '{C}']}},
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      const template = "{{?Dummy/\\(A\\)/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* (A)");
+      expect(result).not.toContain("* [B]");
+      expect(result).not.toContain("* {C}");
+    });
+
+    test('should handle enhance with multiple operators in one template', () => {
+      const sut = new Templator([]);
+      const template = "{{?Tags//}} {{{`title}}} {{/?Tags}} {{?Tasks//}} {{`name}} {{/?Tasks}}";
+      const enhanced = sut.enhance(template);
+      // Should convert all operators
+      expect(enhanced).toContain("{{#query_filter}}");
+      expect(enhanced).toContain("{{#markdown_escape}}");
+      // Count occurrences
+      const queryCount = (enhanced.match(/{{#query_filter}}/g) || []).length;
+      const escapeCount = (enhanced.match(/{{#markdown_escape}}/g) || []).length;
+      expect(queryCount).toBe(2);
+      expect(escapeCount).toBe(2);
+    });
+
+    test('should handle getOrphans with mixed reference patterns', () => {
+      const notes = [
+        {id: 'real', wikiname: 'real', filename: './real.md', title: 'Real', fullpath: '', matchData: {} as {[collector: string]: string[]}},
+        {id: 'linker', wikiname: 'linker', filename: './linker.md', title: 'Linker', fullpath: '', matchData: {'Links': ['[real]', '[missing]', '[another-missing]']} as {[collector: string]: string[]}},
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{key}}: {{#value}}{{id}},{{/value}};{{/Orphans}}");
+      // Should list orphaned references
+      expect(result).toContain("linker:");
+      expect(result).toContain("[missing]");
+      expect(result).toContain("[another-missing]");
+      expect(result).not.toContain("[real]");
+    });
+
+    test('should handle listToNamedTuple with empty array', () => {
+      const sut = new Templator();
+      const tuple = ["key", []];
+      expect(sut.listToNamedTuple(tuple as any)).toEqual({key: "key", value: []});
+    });
+
+    test('should handle collector data extraction with duplicate entries', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {Tags: ['#duplicate', '#unique']}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {Tags: ['#duplicate']}},
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      const result = sut.render("{{#Tags}}{{key}}: {{#value}}{{id}},{{/value}}\n{{/Tags}}");
+      // #duplicate should list both files
+      expect(result).toContain("#duplicate: a,b,");
+      expect(result).toContain("#unique: a,");
+    });
+
+    test('query_filter should handle malformed query pattern missing filter section', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Malformed pattern - enhance will still try to process it
+      const template = "{{?Dummy}}content{{/?Dummy}}";
+      const enhanced = sut.enhance(template);
+      // Enhance converts {{?...}} to query_filter even if malformed
+      expect(enhanced).toContain("{{#query_filter}}");
+    });
+
+    test('query_filter should handle sort and filter together with no matches', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['apple', 'banana', 'cherry']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Sort but filter out everything
+      const template = "{{?Dummy?sort()/zebra/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      // Should return empty since no items match 'zebra'
+      expect(result).toBe("");
+    });
+
+    test('query_filter should handle multiple sort operations in single template', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {
+          Tags: ['#zebra', '#apple', '#banana'],
+          Contexts: ['@work', '@home', '@school']
+        }}
+      ];
+      const sut = new Templator(notes, [new TagCollector(), new ContextCollector()]);
+      const template = "{{?Tags?sort()//}}{{key}},{{/?Tags}} | {{?Contexts?sort()//}}{{key}},{{/?Contexts}}";
+      const result = sut.render(template);
+      // Both should be sorted independently
+      expect(result).toContain("#apple,#banana,#zebra,");
+      expect(result).toContain("@home,@school,@work,");
+    });
+
+    test('should handle viewProps being modified between renders', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {}}
+      ];
+      const sut = new Templator(notes);
+      const created1 = new Date('2020-01-01');
+      const modified1 = new Date('2020-06-01');
+      const result1 = sut.render("{{created}}", created1, modified1);
+
+      const created2 = new Date('2021-01-01');
+      const modified2 = new Date('2021-06-01');
+      const result2 = sut.render("{{created}}", created2, modified2);
+
+      // Each render should use the dates passed to it
+      expect(result1).toBe(created1.toISOString());
+      expect(result2).toBe(created2.toISOString());
+    });
+
+    test('should handle orphans with fullpath undefined', () => {
+      const notes = [
+        {id: 'source', wikiname: 'source', filename: './source.md', title: 'Source', fullpath: '', matchData: {'Links': ['[missing]']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{#value}}fullpath={{fullpath}};{{/value}}{{/Orphans}}");
+      // fullpath should be undefined in orphan formatData
+      expect(result).toContain("fullpath=;");
+    });
+
+    test('should handle data extraction when collector returns empty map', () => {
+      class EmptyCollector extends Collector {
+        dataName = 'Empty';
+        extractAll(files: any[]) {
+          return new Map();
+        }
+        collect(content: string): string[] {
+          return [];
+        }
+        format(references: any[]): string {
+          return "Empty";
+        }
+      }
+
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {}}
+      ];
+      const collector = new EmptyCollector();
+      const sut = new Templator(notes, [collector]);
+
+      expect(sut.data.has('Empty')).toBe(true);
+      expect(sut.data.get('Empty')?.size).toBe(0);
+      const result = sut.render("{{#Empty}}{{key}}{{/Empty}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle complex filter pattern with lookahead', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo123', 'bar123', 'baz']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Positive lookahead pattern
+      const template = "{{?Dummy/\\w+(?=123)/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* foo123");
+      expect(result).toContain("* bar123");
+      expect(result).not.toContain("* baz");
+    });
+
+    test('should handle query_filter with whitespace in args', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {
+          Tasks: ['Task key: value', 'Another key: other', 'No key']
+        }}
+      ];
+      const sut = new Templator(notes, [new TaskCollector()]);
+      // Args with spaces
+      const template = "{{?Tasks?sort(key)//}}{{key}};{{/?Tasks}}";
+      const result = sut.render(template);
+      // Should handle 'key:' as sort argument
+      expect(result).toContain("Task key: value");
+    });
+
+    test('should handle references when note ids contain special characters', () => {
+      const notes = [
+        {id: 'note-with-dashes', wikiname: 'note-with-dashes', filename: './note.md', title: 'Note', fullpath: '', matchData: {} as {[collector: string]: string[]}},
+        {id: 'linker', wikiname: 'linker', filename: './linker.md', title: 'Linker', fullpath: '', matchData: {'Links': ['note-with-dashes']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#references}}[{{id}}]{{/references}}");
+      expect(result).toBe("[note-with-dashes]");
+    });
+
+    test('should handle orphans when note id contains brackets', () => {
+      const notes = [
+        {id: 'note[1]', wikiname: 'note1', filename: './note1.md', title: 'Note 1', fullpath: '', matchData: {'Links': ['[missing]']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{key}};{{/Orphans}}");
+      expect(result).toContain("note[1]");
+    });
+
+    test('should handle multiple collectors storing data independently', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo'], Contexts: ['@bar']}}
+      ];
+
+      const sut = new Templator(notes, [new TagCollector(), new ContextCollector()]);
+      // Both collectors should store their data independently
+      expect(sut.data.has('Tags')).toBe(true);
+      expect(sut.data.has('Contexts')).toBe(true);
+      expect(sut.data.get('Tags')?.has('#foo')).toBe(true);
+      expect(sut.data.get('Contexts')?.has('@bar')).toBe(true);
+    });
+
+    test('should handle enhance with adjacent operators', () => {
+      const sut = new Templator();
+      const template = "{{`title}}{{{`description}}}";
+      const enhanced = sut.enhance(template);
+      // Both should be wrapped in markdown_escape
+      expect(enhanced).toContain("{{#markdown_escape}}{{title}}{{/markdown_escape}}");
+      expect(enhanced).toContain("{{#markdown_escape}}{{{description}}}{{/markdown_escape}}");
+    });
+
+    test('should handle render with many notes for stress testing', () => {
+      const notes = Array.from({length: 100}, (_, i) => ({
+        id: `note${i}`,
+        wikiname: `note${i}`,
+        filename: `./note${i}.md`,
+        title: `Note ${i}`,
+        fullpath: '',
+        matchData: {}
+      }));
+      const sut = new Templator(notes);
+      const template = "{{#notes}}[{{id}}]{{/notes}}";
+      const result = sut.render(template);
+      // Should render all 100 notes
+      expect(result).toContain("[note0]");
+      expect(result).toContain("[note50]");
+      expect(result).toContain("[note99]");
+    });
+
+    test('should handle query_filter with case-sensitive regex', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['FOO', 'foo', 'Foo']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Case-sensitive match - regex tests against rendered output including "* "
+      const template = "{{?Dummy/\\* foo/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* foo");
+      expect(result).not.toContain("* FOO");
+      expect(result).not.toContain("* Foo");
+    });
+
+    test('should handle orphans bag property contains full note object', () => {
+      const notes = [
+        {id: 'source', wikiname: 'source', filename: './source.md', title: 'Source Note', fullpath: '/path', matchData: {'Links': ['[missing]']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      // The bag should contain references to the source notes
+      const result = sut.render("{{#Orphans}}{{#value}}{{#bag}}{{title}},{{/bag}}{{/value}}{{/Orphans}}");
+      expect(result).toContain("Source Note");
+    });
+
+    test('should handle collector with null or undefined entries in matchData', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo', null as any, undefined as any, 'bar']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      const result = sut.render("{{#Dummy}}{{key}},{{/Dummy}}");
+      // Should handle null/undefined gracefully
+      expect(result).toBeTruthy();
+    });
+
+    test('should handle markdown_escape with empty string', () => {
+      const notes = [{id: 'n1', wikiname: 'n1', filename: './n1.md', title: '', fullpath: '', matchData: {}}];
+      const sut = new Templator(notes);
+      expect(sut.render("{{#notes}}{{{`title}}}{{/notes}}")).toBe("");
+    });
+
+    test('should handle query_filter regex with anchors', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['start_middle_end', 'start_only', 'end_only']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      // Match strings containing 'start' - regex tests against rendered output
+      const template = "{{?Dummy/start/}}* {{key}}{{/?Dummy}}";
+      const result = sut.render(template);
+      expect(result).toContain("* start_middle_end");
+      expect(result).toContain("* start_only");
+      expect(result).not.toContain("* end_only");
+    });
+
+    test('should handle sort with numeric-like keys', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['item:10', 'item:2', 'item:1', 'item:20']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+      const template = "{{?Dummy?sort(item)//}}{{key}},{{/?Dummy}}";
+      const result = sut.render(template);
+      // Should sort as strings, so: "1" < "10" < "2" < "20"
+      const idx1 = result.indexOf('item:1,');
+      const idx10 = result.indexOf('item:10,');
+      const idx2 = result.indexOf('item:2,');
+      const idx20 = result.indexOf('item:20,');
+      expect(idx1).toBeLessThan(idx10);
+      expect(idx10).toBeLessThan(idx2);
+      expect(idx2).toBeLessThan(idx20);
+    });
+
+    test('should handle references with brackets in different formats', () => {
+      const notes = [
+        {id: 'target', wikiname: 'target', filename: './target.md', title: 'Target', fullpath: '', matchData: {} as {[collector: string]: string[]}},
+        {id: 'source1', wikiname: 'source1', filename: './source1.md', title: 'Source 1', fullpath: '', matchData: {'Links': ['target']} as {[collector: string]: string[]}},
+        {id: 'source2', wikiname: 'source2', filename: './source2.md', title: 'Source 2', fullpath: '', matchData: {'Links': ['[target]']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#references}}{{id}},{{/references}}");
+      // Should include target (both formats reference it after bracket removal)
+      expect(result).toBe("target,");
+    });
+
+    test('should handle queryCount across multiple renders', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Dummy: ['foo']}}
+      ];
+      const collector = new DummyCollector();
+      const sut = new Templator(notes, [collector]);
+
+      const initialCount = sut.viewProps.queryCount;
+      sut.render("{{?Dummy/foo/}}{{key}}{{/?Dummy}}");
+      const countAfterFirst = sut.viewProps.queryCount;
+      sut.render("{{?Dummy/foo/}}{{key}}{{/?Dummy}}");
+      const countAfterSecond = sut.viewProps.queryCount;
+
+      // queryCount should increase with each query
+      expect(countAfterFirst).toBeGreaterThan(initialCount);
+      expect(countAfterSecond).toBeGreaterThan(countAfterFirst);
+    });
+
+    test('should handle template with mustache comments', () => {
+      const sut = new Templator([]);
+      const template = "{{! This is a comment }}{{created}}";
+      const created = new Date('2020-01-01');
+      const result = sut.render(template, created);
+      // Comment should be ignored, date should render
+      expect(result).toContain("2020-01-01");
+      expect(result).not.toContain("This is a comment");
+    });
+
+    test('should handle deeply nested data structure in collectors', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {
+          Tags: ['#level1'],
+          Contexts: ['@context1']
+        }},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {
+          Tags: ['#level1', '#level2'],
+          Contexts: ['@context1', '@context2']
+        }}
+      ];
+      const sut = new Templator(notes, [new TagCollector(), new ContextCollector()]);
+      const template = "{{#Tags}}{{key}}: {{#value}}{{title}}|{{/value}}; {{/Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("#level1: A|B|");
+      expect(result).toContain("#level2: B|");
+    });
+
+    test('should handle integration scenario with all collectors and filters', () => {
+      const notes = [
+        {id: 'project', wikiname: 'project', filename: './project.md', title: 'Project', fullpath: '',
+          matchData: {
+            'Tags': ['#important', '#work'],
+            'Contexts': ['@office'],
+            'Tasks': ['(A) Complete task due:2021-01-01'],
+            'Links': ['[reference]']
+          } as {[collector: string]: string[]}
+        },
+        {id: 'notes', wikiname: 'notes', filename: './notes.md', title: 'Notes', fullpath: '',
+          matchData: {
+            'Tags': ['#important'],
+            'Links': ['[project]']
+          } as {[collector: string]: string[]}
+        }
+      ];
+      const sut = new Templator(notes, [new TagCollector(), new ContextCollector(), new TaskCollector()]);
+
+      // Test filter, sort, and multiple collectors together
+      const template = `
+        {{?Tags?sort()/important/}}Tag: {{key}}
+        {{/?Tags}}
+        {{#Contexts}}Context: {{key}}
+        {{/Contexts}}
+        {{?Tasks?sort(due)//}}Task: {{key}}
+        {{/?Tasks}}
+      `;
+      const result = sut.render(template);
+
+      expect(result).toContain("Tag: #important");
+      expect(result).toContain("Context: @office");
+      expect(result).toContain("Task: (A) Complete task due:2021-01-01");
+      expect(result).not.toContain("#work"); // Filtered out
     });
   });
