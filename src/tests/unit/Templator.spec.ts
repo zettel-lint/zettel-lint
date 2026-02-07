@@ -772,7 +772,7 @@ title: References
         {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {}}
       ];
       const sut = new Templator(notes);
-      const result = sut.render("{{`#Orphans`}}{{key}}{{/Orphans}}");
+      const result = sut.render("{{#Orphans}}{{key}}{{/Orphans}}");
       expect(result).toBe("");
     });
 
