@@ -110,7 +110,14 @@ export class Templator {
                         ntag = sorted;                           
                     }
 
-                    const rr = new RegExp(filter);
+                    let rr: RegExp;
+                    try {
+                        rr = new RegExp(filter);
+                    } catch (error) {
+                        const errorMsg = error instanceof Error ? error.message : 'Invalid regex pattern';
+                        return `{{\`error in filter: ${errorMsg}\`}}`;
+                    }
+
                     const filtered = "q" + view.queryCount++;
                     Object.defineProperty(view, filtered, {
                         value: function() {
