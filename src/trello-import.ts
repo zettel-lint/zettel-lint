@@ -199,9 +199,8 @@ export default class TrelloImport implements BaseImporter {
     try {
       await fs.writeFile(outputFilename, 
         header + 
-        card.desc + 
-        "\n\n---\n\n## Checklists\n\n" + 
-        card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") +
+        card.desc + 
+        (card.idChecklists.length > 0 ? "\n\n---\n\n## Checklists\n\n" + card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") : "") +
         (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
         , { });
         return true;     
