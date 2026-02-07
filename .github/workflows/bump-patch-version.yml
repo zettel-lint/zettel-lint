@@ -31,19 +31,15 @@ jobs:
           CURRENT_VERSION=$(node -p "require('./package.json').version")
           echo "current_version=${CURRENT_VERSION}" >> $GITHUB_ENV
 
-      - name: Calculate new version
+      - name: Bump patch version
         run: |
-          CURRENT_VERSION=${{ env.current_version }}
-          NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
+          npm version patch --no-git-tag-version
+          NEW_VERSION=$(node -p "require('./package.json').version")
           echo "new_version=${NEW_VERSION}" >> $GITHUB_ENV
 
       - name: Create branch
         run: |
           git checkout -b bump-version-${{ env.new_version }}
-
-      - name: Update package.json
-        run: |
-          sed -i 's/"version": "${{ env.current_version }}"/"version": "${{ env.new_version }}"/' package.json
 
       - name: Update version in TypeScript file
         run: |
@@ -56,6 +52,7 @@ jobs:
           git add package.json package-lock.json src/zl.ts
           git commit -m "chore: bump version to ${{ env.new_version }}"
           git push origin bump-version-${{ env.new_version }}
+
       - name: Create Pull Request with GitHub CLI
         run: |
           gh pr create \
@@ -67,13 +64,13 @@ jobs:
         env:
           PR_BODY: |
             ## What's Changed
-            
+
             Bump version from ${{ env.current_version }} to ${{ env.new_version }}
-            
+
             ### Files Changed
             - package.json: Updated version to ${{ env.new_version }}
             - src/zl.ts: Updated version string to ${{ env.new_version }}
-            
+
             The Bump Patch Version workflow automatically created this PR.
 
             ---
