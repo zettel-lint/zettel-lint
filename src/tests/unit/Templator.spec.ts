@@ -648,3 +648,279 @@ title: References
       expect(result).toContain("source,");
     });
   });
+  describe('Templator regex error handling in query_filter', () => {
+    test('should handle invalid regex pattern with unclosed bracket', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo', '#bar']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Invalid regex with unclosed bracket
+      const template = "{{?Tags/[foo/}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("error in filter:");
+      expect(result).toContain("Unterminated character class");
+    });
+
+    test('should handle invalid regex pattern with unclosed parenthesis', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Invalid regex with unclosed parenthesis
+      const template = "{{?Tags/(foo/}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("error in filter:");
+      expect(result).toContain("Unterminated group");
+    });
+
+    test('should handle invalid regex pattern with invalid escape sequence', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Invalid regex with bad escape at end
+      const template = "{{?Tags/foo\\/}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("error in filter:");
+    });
+
+    test('should handle invalid regex pattern with invalid quantifier', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Invalid regex with quantifier without target
+      const template = "{{?Tags/*foo/}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("error in filter:");
+      expect(result).toContain("Nothing to repeat");
+    });
+
+    test('should handle valid complex regex pattern', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo', '#bar', '#foobar']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Valid complex regex - should match #foo and #foobar but not #bar
+      const template = "{{?Tags/foo/}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("* #foo");
+      expect(result).toContain("* #foobar");
+      expect(result).not.toContain("* #bar");
+    });
+
+    test('should handle empty filter string as valid regex', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo', '#bar']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Empty filter matches everything
+      const template = "{{?Tags//}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("* #foo");
+      expect(result).toContain("* #bar");
+    });
+
+    test('should handle regex with special characters properly escaped', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo.bar', '#foo-bar']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Match literal dot
+      const template = "{{?Tags/\\.bar/}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("* #foo.bar");
+      expect(result).not.toContain("* #foo-bar");
+    });
+
+    test('should handle regex error with sorting function', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo', '#bar']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Invalid regex with sorting should still show error
+      const template = "{{?Tags?sort()/[invalid/}}* {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("error in filter:");
+    });
+
+    test('should handle valid regex with sorting function', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#zebra', '#apple', '#banana']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Valid regex with sorting
+      const template = "{{?Tags?sort()//}}{{key}},{{/?Tags}}";
+      const result = sut.render(template);
+      // Should be sorted alphabetically and all included (empty filter)
+      expect(result).toBe("#apple,#banana,#zebra,");
+    });
+  });
+
+  describe('Templator edge cases and boundary conditions', () => {
+    test('should handle notes with no matchData', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#orphans}}{{key}}{{/orphans}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle empty notes array', () => {
+      const sut = new Templator([]);
+      const result = sut.render("{{#notes}}{{id}}{{/notes}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle undefined notes', () => {
+      const sut = new Templator(undefined);
+      const result = sut.render("{{#notes}}{{id}}{{/notes}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle notes with undefined id', () => {
+      const notes = [
+        {id: undefined as any, wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#notes}}[{{id}}]{{/notes}}");
+      expect(result).toBe("[]");
+    });
+
+    test('should handle orphans with no filename', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: undefined as any, title: 'A', fullpath: '', matchData: {} as {[collector: string]: string[]}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {Links: ['[missing]']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{key}}:{{#value}}{{id}},{{/value}};{{/Orphans}}");
+      expect(result).toContain("b:[missing]");
+    });
+
+    test('should handle multiple orphaned links in single note', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {} as {[collector: string]: string[]}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {Links: ['[x]', '[y]', '[z]']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{key}}:{{#value}}{{id}},{{/value}};{{/Orphans}}");
+      expect(result).toBe("b:[x],[y],[z],;");
+    });
+
+    test('should handle mix of existing and orphaned links', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {} as {[collector: string]: string[]}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {Links: ['[a]', '[missing]', '[a]']} as {[collector: string]: string[]}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{key}}:{{#value}}{{id}},{{/value}};{{/Orphans}}");
+      // Only [missing] should be in orphans
+      expect(result).toBe("b:[missing],;");
+    });
+
+    test('should handle references when no notes link to anything', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {}},
+        {id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: {}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#references}}{{id}},{{/references}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle note that references itself', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {Links: ['a']}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#references}}{{id}},{{/references}}");
+      expect(result).toBe("a,");
+    });
+
+    test('should handle sorting with empty collection', () => {
+      const sut = new Templator([], [new TagCollector]);
+      const template = "{{?Tags?sort()//}}{{key}},{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toBe("");
+    });
+
+    test('should handle sorting by non-existent key', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo', '#bar']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // Sort by 'missing' key that doesn't exist - should default to 'ZZZZZ'
+      const template = "{{?Tags?sort(missing)//}}{{key}},{{/?Tags}}";
+      const result = sut.render(template);
+      // Both should have same sort value (ZZZZZ) so original order preserved
+      expect(result).toBe("#foo,#bar,");
+    });
+
+    test('should handle multiple consecutive filters', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#foo', '#bar', '#baz']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      // First filter for 'b', then another template
+      const template = "{{?Tags/b/}}{{key}},{{/?Tags}}{{?Tags/foo/}}{{key}},{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toContain("#bar,#baz,");
+      expect(result).toContain("#foo,");
+    });
+
+    test('should preserve created and modified dates across multiple renders', () => {
+      const sut = new Templator();
+      const created = new Date('2020-01-01');
+      const modified = new Date('2021-01-01');
+      const result1 = sut.render("{{created}}", created, modified);
+      const result2 = sut.render("{{modified}}", created, modified);
+      expect(result1).toBe(created.toISOString());
+      expect(result2).toBe(modified.toISOString());
+    });
+
+    test('should handle template with no mustache tags', () => {
+      const sut = new Templator();
+      const template = "Just plain text with no tags";
+      const result = sut.render(template);
+      expect(result).toBe("Just plain text with no tags");
+    });
+
+    test('should handle enhance with no special operators', () => {
+      const sut = new Templator();
+      const template = "{{#notes}}{{title}}{{/notes}}";
+      const result = sut.enhance(template);
+      expect(result).toBe("{{#notes}}{{title}}{{/notes}}");
+    });
+
+    test('should handle note with empty Links array', () => {
+      const notes = [
+        {id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: {Links: []}}
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{#Orphans}}{{key}}{{/Orphans}}");
+      expect(result).toBe("");
+    });
+
+    test('should handle complex nested template structure', () => {
+      const notes = [
+        {id: 'x', wikiname: 'x', filename: './x.md', title: 'X', fullpath: '', matchData: {Tags: ['#important']}}
+      ];
+      const collector = new TagCollector();
+      const sut = new Templator(notes, [collector]);
+      const template = "{{?Tags/important/}}Found: {{key}}{{/?Tags}}";
+      const result = sut.render(template);
+      expect(result).toBe("Found: #important");
+    });
+  });
