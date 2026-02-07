@@ -297,7 +297,7 @@ title: References
         {id: 'c', wikiname: 'c', filename: './c.md', title: 'C', fullpath: '', matchData: {}}
       ];
       const sut = new Templator(notes);
-      // Only 'c' is orphan (not referenced and doesn't reference others)
+      // Note 'b' has orphan links (references non-existent 'x')
       const result = sut.render("{{#Orphans}}{{key}}: {{#value}}{{id}}, {{/value}}{{/Orphans}}");
       expect(result).toContain("b: x");
       expect(result).not.toContain("a:");
