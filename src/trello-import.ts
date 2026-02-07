@@ -202,7 +202,7 @@ export default class TrelloImport implements BaseImporter {
         card.desc + 
         "\n\n---\n\n## Checklists\n\n" + 
         card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") +
-        (filenames.length > 0 ? "---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
+        (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
         , { });
         return true;     
     } catch (error) {
