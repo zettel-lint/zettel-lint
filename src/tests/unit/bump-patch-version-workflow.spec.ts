@@ -116,14 +116,22 @@ describe('bump-patch-version workflow', () => {
 
     test('all critical steps are present in order', () => {
       const stepNames = steps.map(s => s.name).filter(Boolean);
-      expect(stepNames).toContain('Setup Node.js');
-      expect(stepNames).toContain('Configure Git');
-      expect(stepNames).toContain('Get current version');
-      expect(stepNames).toContain('Bump patch version');
-      expect(stepNames).toContain('Create branch');
-      expect(stepNames).toContain('Update version in TypeScript file');
-      expect(stepNames).toContain('Commit changes');
-      expect(stepNames).toContain('Create Pull Request with GitHub CLI');
+      const expectedOrder = [
+        'Setup Node.js',
+        'Configure Git',
+        'Get current version',
+        'Bump patch version',
+        'Create branch',
+        'Update version in TypeScript file',
+        'Commit changes',
+        'Create Pull Request with GitHub CLI',
+      ];
+      let lastIndex = -1;
+      for (const name of expectedOrder) {
+        const idx = stepNames.indexOf(name);
+        expect(idx).toBeGreaterThan(lastIndex);
+        lastIndex = idx;
+      }
     });
   });
 
@@ -300,6 +308,18 @@ describe('bump-patch-version workflow', () => {
             });
           }
         }
+
+        // Also scan step.env for env variable references
+        if (step.env) {
+          const envContent = JSON.stringify(step.env);
+          const envUseMatches = envContent.match(/\$\{\{\s*env\.(\w+)\s*\}\}/g);
+          if (envUseMatches) {
+            envUseMatches.forEach((match: string) => {
+              const varName = match.match(/env\.(\w+)/)?.[1];
+              if (varName) varsUsed.add(varName);
+            });
+          }
+        }
       });
 
       // Verify all used env vars are set
@@ -416,7 +436,7 @@ describe('bump-patch-version workflow', () => {
 
     test('checkout uses GITHUB_TOKEN not default token', () => {
       const checkoutStep = workflow.jobs['bump-version'].steps[0];
-      // Explicit token ensures workflow can trigger other workflows
+      // Explicit token is used for checkout authentication and PR creation
       expect(checkoutStep.with.token).toBe('${{ secrets.GITHUB_TOKEN }}');
     });
 
@@ -466,12 +486,19 @@ describe('bump-patch-version workflow', () => {
       // Should not contain hardcoded semver patterns (except in action versions)
       // We look for version references that aren't from env vars or action versions
       const versionPattern = /["']?\d+\.\d+\.\d+["']?/g;
-      const matches = allContent.match(versionPattern) || [];
+      const nonActionVersions: string[] = [];
 
-      // Filter out action versions (those with @v prefix)
-      const nonActionVersions = matches.filter(m => {
-        const idx = allContent.indexOf(m);
-        return idx === -1 || !allContent.substring(Math.max(0, idx - 5), idx).includes('@v');
+      // Use matchAll to get each match with its proper index
+      const matches = Array.from(allContent.matchAll(versionPattern));
+      matches.forEach(match => {
+        if (match.index !== undefined) {
+          const idx = match.index;
+          const contextBefore = allContent.substring(Math.max(0, idx - 5), idx);
+          // Only filter out if preceded by @v (action version pattern)
+          if (!contextBefore.includes('@v')) {
+            nonActionVersions.push(match[0]);
+          }
+        }
       });
 
       // Should be empty or very few (might catch action versions we didn't filter)
