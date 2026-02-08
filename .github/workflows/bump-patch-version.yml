@@ -69,6 +69,7 @@ jobs:
 
             ### Files Changed
             - package.json: Updated version to ${{ env.new_version }}
+            - package-lock.json: Updated version to ${{ env.new_version }}
             - src/zl.ts: Updated version string to ${{ env.new_version }}
 
             The Bump Patch Version workflow automatically created this PR.
