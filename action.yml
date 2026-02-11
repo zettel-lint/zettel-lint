@@ -1,0 +1,42 @@
+name: 'Zettel Lint'
+description: 'Run zettel-lint to validate your zettelkasten'
+author: 'Craig Nicol'
+
+inputs:
+  path:
+    description: 'Path to scan for zettel notes'
+    required: false
+    default: '.'
+  
+  force:
+    description: 'Force validation without confirmation prompts'
+    required: false
+    default: 'false'
+  
+  format:
+    description: 'Output format (text, json, html)'
+    required: false
+    default: 'text'
+  
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: 'false'
+
+outputs:
+  result:
+    description: 'Zettel lint result (success, warning, error)'
+  
+  summary:
+    description: 'Summary of lint results'
+  
+  file:
+    description: 'Path to generated report file (if format=html or json)'
+
+runs:
+  using: 'node22'
+  main: 'action.js'
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
