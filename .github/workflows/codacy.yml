@@ -72,6 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
+      actions: read # required for private repositories
     strategy:
       fail-fast: false
       matrix:
@@ -89,4 +90,5 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ matrix.sarif_file }}
+          category: codacy-${{ strategy.job-index }}
           wait-for-processing: true
