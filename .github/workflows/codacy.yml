@@ -58,7 +58,7 @@ jobs:
         id: split-sarif
         run: |
           bash .github/reformat-sarif.sh results.sarif
-          echo "files=$(ls sarif-parts/*.sarif | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> $GITHUB_OUTPUT
+          echo "files=$(find sarif-parts -name '*.sarif' | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
 
       - name: Upload SARIF parts artifact
         uses: actions/upload-artifact@v4
@@ -73,6 +73,7 @@ jobs:
     permissions:
       security-events: write
     strategy:
+      fail-fast: false
       matrix:
         sarif_file: ${{ fromJson(needs.codacy-security-scan.outputs.sarif_files) }}
     

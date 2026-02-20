@@ -33,5 +33,5 @@ while read -r i run; do
     fi
 
     # Add run to part file
-    jq ".runs += [${run}]" "$PART_FILE" > "$PART_FILE.tmp" && mv "$PART_FILE.tmp" "$PART_FILE"
+    jq --argjson run "$run" '.runs += [$run]' "$PART_FILE" > "$PART_FILE.tmp" && mv "$PART_FILE.tmp" "$PART_FILE"
 done
