@@ -84,8 +84,8 @@ jobs:
           path: .
 
       - name: show files
-        run: ls -l sarif-parts
-        
+        run: ls -l 
+
       - name: Upload SARIF results file
         uses: github/codeql-action/upload-sarif@v4
         with:
