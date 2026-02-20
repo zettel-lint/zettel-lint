@@ -33,6 +33,8 @@ jobs:
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     name: Codacy Security Scan
     runs-on: ubuntu-latest
+    outputs:
+      sarif_files: ${{ steps.split-sarif.outputs.files }}
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout code
@@ -53,24 +55,36 @@ jobs:
 
       # Reformat and split SARIF file into multiple parts
       - name: Reformat and Split SARIF results
-        run: bash .github/reformat-sarif.sh results.sarif
+        id: split-sarif
+        run: |
+          bash .github/reformat-sarif.sh results.sarif
+          echo "files=$(ls sarif-parts/*.sarif | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> $GITHUB_OUTPUT
 
-      - name: Install latest gh CLI
-        run: |
-          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-          && sudo apt update \
-          && sudo apt install gh -y
-      
-      # Upload the split SARIF files to GitHub Code Scanning
-      - name: Upload split SARIF results
-        run: |
-          for f in sarif-parts/*.sarif; do
-            if [ -f "$f" ]; then
-              gh code-scanning upload-sarif --sarif "$f" --ref ${{ github.ref }} --commit ${{ github.sha }}
-            fi
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload SARIF parts artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarif-parts
+          path: sarif-parts
+
+  upload-sarif-parts:
+    name: Upload SARIF Parts
+    needs: codacy-security-scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    strategy:
+      matrix:
+        sarif_file: ${{ fromJson(needs.codacy-security-scan.outputs.sarif_files) }}
+    
+    steps:
+      - name: Download SARIF parts artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sarif-parts
+          path: .
+
+      - name: Upload SARIF results file
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ matrix.sarif_file }}
+          wait-for-processing: true
