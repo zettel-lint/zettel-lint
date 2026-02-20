@@ -51,9 +51,14 @@ jobs:
           # Adjust severity of non-security issues
           gh-code-scanning-compat: false
 
+      # Reformat SARIF file to create a unique category for each run to support GitHub Actions June 2025 update
+      - name: Reformat SARIF results
+        run: |
+          bash .github/reformat-sarif.sh results.sarif results.reformatted.sarif
+      
       # Upload the SARIF file generated in the previous step to GitHub Code Scanning
       - name: Upload SARIF results file
         uses: github/codeql-action/upload-sarif@v4
         with:
-          sarif_file: results.sarif
+          sarif_file: results.reformatted.sarif
           wait-for-processing: true
