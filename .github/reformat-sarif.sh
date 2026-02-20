@@ -1,16 +1,37 @@
 #!/bin/bash
-# .github/reformat-sarif.sh
 set -euo pipefail
 
-if [[ "$#" -ne 2 ]]; then
-  echo "Usage: $0 <input-sarif> <output-sarif>"
+if [[ "$#" -ne 1 ]]; then
+  echo "Usage: $0 <input-sarif>"
   exit 1
 fi
 
-INPUT_FILE="$1"
-OUTPUT_FILE="$2"
+INPUT_FILE=$1
+OUTPUT_DIR=sarif-parts
+rm -rf "$OUTPUT_DIR"
+mkdir -p "$OUTPUT_DIR"
 
-# This jq command iterates through the 'runs' array.
-# For each run, it appends the index of the run in the array to the tool driver name.
-# This creates a unique name for each tool run, e.g., "codacy-0", "codacy-1".
-jq '.runs = (.runs | to_entries | map(.value.tool.driver.name = "\(.value.tool.driver.name)-\(.key)" | .value))' "$INPUT_FILE" > "$OUTPUT_FILE"
+# Common properties for all SARIF files
+VERSION=$(jq -r '.version' "$INPUT_FILE")
+SCHEMA=$(jq -r '.["$schema"]' "$INPUT_FILE")
+
+# Process each run
+jq -c '.runs[]' "$INPUT_FILE" |
+nl -v0 | # add line numbers (0-indexed)
+while read -r i run; do
+    # Rename tool
+    run=$(echo "$run" | jq ".tool.driver.name += \"-$i\"")
+
+    # Determine which part file it goes to
+    part=$((i / 20))
+    PART_FILE="$OUTPUT_DIR/results.part-$part.sarif"
+    
+    # Initialize part file if it's new
+    if [ ! -f "$PART_FILE" ]; then
+        jq -n --arg version "$VERSION" --arg schema "$SCHEMA" \
+            '{version: $version, "$schema": $schema, runs: []}' > "$PART_FILE"
+    fi
+
+    # Add run to part file
+    jq ".runs += [${run}]" "$PART_FILE" > "$PART_FILE.tmp" && mv "$PART_FILE.tmp" "$PART_FILE"
+done
