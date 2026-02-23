@@ -61,7 +61,7 @@ jobs:
           echo "files=$(find sarif-parts -name '*.sarif' | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> "$GITHUB_OUTPUT"
 
       - name: Upload SARIF parts artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: sarif-parts
           path: sarif-parts
