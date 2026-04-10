@@ -1,7 +1,6 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
-import axios from 'axios';
 import { glob } from 'glob';
 
 // Mock dependencies
@@ -11,8 +10,6 @@ vi.mock('fs', () => ({
     writeFile: vi.fn(),
   }
 }));
-
-vi.mock('axios');
 
 vi.mock('glob', () => ({
   glob: vi.fn(),
@@ -217,7 +214,7 @@ describe('TrelloImport', () => {
   describe('saveAttachments', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(axios.get).mockResolvedValue({ data: Buffer.from('test data') });
+      vi.mocked(fetch).mockResolvedValue({ data: Buffer.from('test data') });
     });
 
     test('saves file attachments successfully', async () => {
@@ -229,7 +226,7 @@ describe('TrelloImport', () => {
 
       const result = await importer.saveAttachments('/output/', [attachment]);
 
-      expect(axios.get).toHaveBeenCalledWith('https://example.com/test.png', { responseType: 'arraybuffer' });
+      expect(fetch).toHaveBeenCalledWith('https://example.com/test.png');
       expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer));
       expect(result).toEqual(['![Test Image](/output/test.png)']);
     });
@@ -243,7 +240,7 @@ describe('TrelloImport', () => {
 
       const result = await importer.saveAttachments('/output/', [attachment]);
 
-      expect(axios.get).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
       expect(fs.writeFile).not.toHaveBeenCalled();
       expect(result).toEqual(['[External Link](https://example.com/page)']);
     });
@@ -257,7 +254,7 @@ describe('TrelloImport', () => {
 
       const result = await importer.saveAttachments('/output/', [attachment]);
 
-      expect(axios.get).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
       expect(result).toEqual(['[Null File](https://example.com/null)']);
     });
 
@@ -269,7 +266,7 @@ describe('TrelloImport', () => {
 
       const result = await importer.saveAttachments('/output/', attachments);
 
-      expect(axios.get).toHaveBeenCalledTimes(2);
+      expect(fetch).toHaveBeenCalledTimes(2);
       expect(fs.writeFile).toHaveBeenCalledTimes(2);
       expect(result).toHaveLength(2);
       expect(result[0]).toContain('File 1');
@@ -279,14 +276,14 @@ describe('TrelloImport', () => {
     test('handles empty attachments array', async () => {
       const result = await importer.saveAttachments('/output/', []);
 
-      expect(axios.get).not.toHaveBeenCalled();
+      expect(fetch).not.toHaveBeenCalled();
       expect(fs.writeFile).not.toHaveBeenCalled();
       expect(result).toEqual([]);
     });
 
     test('continues on error and logs to console', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      vi.mocked(axios.get).mockRejectedValueOnce(new Error('Network error'));
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
       const attachment = createAttachmentInfo({ fileName: 'test.png' });
 
       const result = await importer.saveAttachments('/output/', [attachment]);
@@ -320,7 +317,7 @@ describe('TrelloImport', () => {
   describe('writeCard', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(axios.get).mockResolvedValue({ data: Buffer.from('test') });
+      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
     test('writes card without checklists or attachments', async () => {
@@ -457,7 +454,7 @@ describe('TrelloImport', () => {
   describe('importAsync', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(axios.get).mockResolvedValue({ data: Buffer.from('test') });
+      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
     test('returns error when no files match glob pattern', async () => {
@@ -642,14 +639,14 @@ describe('TrelloImport', () => {
   describe('downloadBoardJson', () => {
     test('downloads board by valid ID', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(axios.get).mockResolvedValue({ data: mockBoard });
+      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
 
       const result = await TrelloImport.downloadBoardJson({
         boardIdOrName: '507f1f77bcf86cd799439011',
         apiKey: 'test-key',
       });
 
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('507f1f77bcf86cd799439011'),
       );
       expect(result).toEqual(mockBoard);
@@ -657,14 +654,14 @@ describe('TrelloImport', () => {
 
     test('downloads board by 8-character ID', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(axios.get).mockResolvedValue({ data: mockBoard });
+      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
 
       const result = await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
         apiKey: 'test-key',
       });
 
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('abc12345'),
       );
       expect(result).toEqual(mockBoard);
@@ -677,9 +674,9 @@ describe('TrelloImport', () => {
         { id: 'board2', name: 'Other Board' },
       ];
       const mockBoard = createTrelloBoardInfo({ id: 'board1', name: 'My Board' });
-      vi.mocked(axios.get)
-        .mockResolvedValueOnce({ data: mockBoards })
-        .mockResolvedValueOnce({ data: mockBoard });
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoards) })
+        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoard) });
 
       const result = await TrelloImport.downloadBoardJson({
         boardIdOrName: 'My Board',
@@ -687,10 +684,10 @@ describe('TrelloImport', () => {
         token: 'test-token',
       });
 
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('/members/me/boards'),
       );
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('board1'),
       );
       expect(result).toEqual(mockBoard);
@@ -711,7 +708,7 @@ describe('TrelloImport', () => {
         { id: 'board1', name: 'Board One' },
         { id: 'board2', name: 'Board Two' },
       ];
-      vi.mocked(axios.get).mockResolvedValue({ data: mockBoards });
+      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoards) });
 
       await expect(
         TrelloImport.downloadBoardJson({
@@ -724,7 +721,7 @@ describe('TrelloImport', () => {
 
     test('includes token in board download URL when provided', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(axios.get).mockResolvedValue({ data: mockBoard });
+      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
@@ -732,28 +729,28 @@ describe('TrelloImport', () => {
         token: 'test-token',
       });
 
-      expect(axios.get).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
         expect.stringContaining('&token=test-token'),
       );
     });
 
     test('omits token from URL when not provided', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(axios.get).mockResolvedValue({ data: mockBoard });
+      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
         apiKey: 'test-key',
       });
 
-      const url = vi.mocked(axios.get).mock.calls[0][0];
+      const url = vi.mocked(fetch).mock.calls[0][0];
       expect(url).not.toContain('&token=');
     });
 
     test('logs verbose output when enabled', async () => {
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(axios.get).mockResolvedValue({ data: mockBoard });
+      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
@@ -771,9 +768,9 @@ describe('TrelloImport', () => {
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const mockBoards = [{ id: 'board1', name: 'My Board' }];
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(axios.get)
-        .mockResolvedValueOnce({ data: mockBoards })
-        .mockResolvedValueOnce({ data: mockBoard });
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoards) })
+        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'My Board',
@@ -792,7 +789,7 @@ describe('TrelloImport', () => {
     });
 
     test('handles API errors gracefully', async () => {
-      vi.mocked(axios.get).mockRejectedValue(new Error('API Error'));
+      vi.mocked(fetch).mockRejectedValue(new Error('API Error'));
 
       await expect(
         TrelloImport.downloadBoardJson({
@@ -863,7 +860,7 @@ describe('TrelloImport', () => {
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
-      vi.mocked(axios.get).mockResolvedValue({ data: Buffer.from('test') });
+      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(Buffer.from('test')) });
 
       const result = await importer.importAsync('*.json', '/output/');
 
