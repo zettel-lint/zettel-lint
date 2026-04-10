@@ -1,7 +1,6 @@
 import { BaseImporter, ErrorResponse } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "fs";
-import axios from "axios";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -114,8 +113,8 @@ export default class TrelloImport implements BaseImporter {
         throw new Error("A Trello token (--trello-token) is required to look up boards by name.");
       }
       const boardsUrl = `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${token}`;
-      const boardsRes = await axios.get(boardsUrl);
-      const boards = boardsRes.data;
+      const boardsRes = await fetch(boardsUrl);
+      const boards = await boardsRes.json();
       const found = boards.find((b: any) => b.name === boardIdOrName);
       if (!found) {
         throw new Error(`Could not find Trello board with name: ${boardIdOrName}`);
@@ -129,8 +128,8 @@ export default class TrelloImport implements BaseImporter {
     if (verbose) {
       console.log(`Downloading Trello board ${boardIdOrName}`);
     }
-    const res = await axios.get(url);
-    return res.data;
+    const res = await fetch(url);
+    return res.json();
   }
   async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
@@ -157,9 +156,9 @@ export default class TrelloImport implements BaseImporter {
         continue;
       }      
       try {
-        const response = await axios.get(attachment.url, { responseType: "arraybuffer"});
-        const data = await response.data;
-        await fs.writeFile(outputFilename, data);
+        const response = await fetch(attachment.url);
+        const data = await response.arrayBuffer();
+        await fs.writeFile(outputFilename, Buffer.from(data));
         filenames.push("![" + attachment.name + "](" + outputFilename + ")");
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
@@ -199,7 +198,8 @@ export default class TrelloImport implements BaseImporter {
     try {
       await fs.writeFile(outputFilename, 
         header + 
-        card.desc + 
+        card.desc + 
+
         (card.idChecklists.length > 0 ? "\n\n---\n\n## Checklists\n\n" + card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") : "") +
         (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
         , { });
