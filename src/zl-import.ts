@@ -71,12 +71,13 @@ async function importer(program: ZlImportOptions): Promise<void> {
     ) {
       // Download board JSON from Trello API using TrelloImport helper
       try {
-        const boardJson = await TrelloImport.downloadBoardJson({
+        const options = {
           boardIdOrName: program.trelloBoard,
           apiKey: program.trelloApiKey,
           token: program.trelloToken,
           verbose: program.verbose
-        });
+        };
+        const boardJson = await TrelloImport.downloadBoardJson(options);
         if (program.jsonDebugOutput) {
           console.log("Trello board JSON:", JSON.stringify(boardJson, null, 2));
         } else {
@@ -88,7 +89,7 @@ async function importer(program: ZlImportOptions): Promise<void> {
         await fsPromises.mkdir(program.outputFolder, { recursive: true });
         await fsPromises.writeFile(tempFile, JSON.stringify(boardJson, null, 2));
         // Now import as usual
-        response = await (new TrelloImport).importAsync(tempFile, program.outputFolder);
+        response = await (new TrelloImport).importAsync(tempFile, program.outputFolder, options);
       } catch (err: any) {
         console.error("Failed to process Trello board:", err.message || err);
         response = { success: false, message: "Failed to process Trello board: " + (err.message || err) };
@@ -96,7 +97,7 @@ async function importer(program: ZlImportOptions): Promise<void> {
     } else {
       switch (program.source) {
         case "trello":
-          response = await (new TrelloImport).importAsync(program.path, program.outputFolder);
+          response = await (new TrelloImport).importAsync(program.path, program.outputFolder, options);
           break;
         case "unknown":
           await delay(100);
