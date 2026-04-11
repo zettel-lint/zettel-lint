@@ -16,8 +16,6 @@ vi.mock('glob', () => ({
   glob: vi.fn(),
 }));
 
-global.fetch = vi.fn();
-
 // Helper to create test data
 const createTrelloCheckItemInfo = (overrides = {}) => ({
   id: 'item1',
@@ -112,6 +110,11 @@ describe('TrelloImport', () => {
   beforeEach(() => {
     importer = new TrelloImport();
     vi.clearAllMocks();
+    vi.stubGlobal('fetch', vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   describe('sortableDate', () => {
