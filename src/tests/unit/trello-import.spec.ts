@@ -2,7 +2,6 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
-import { arrayBuffer } from 'stream/consumers';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -104,6 +103,7 @@ const createTrelloBoardInfo = (overrides = {}) => ({
   ...overrides,
 });
 
+const options = { boardIdOrName: 'board1', apiKey: 'api_key', token: 'token' };
 describe('TrelloImport', () => {
   let importer: TrelloImport;
 
@@ -230,7 +230,7 @@ describe('TrelloImport', () => {
         url: 'https://example.com/test.png',
       });
 
-      const result = await importer.saveAttachments('/output/', [attachment]);
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
 
       expect(fetch).toHaveBeenCalledWith('https://example.com/test.png');
       expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer));
@@ -244,7 +244,7 @@ describe('TrelloImport', () => {
         url: 'https://example.com/page',
       });
 
-      const result = await importer.saveAttachments('/output/', [attachment]);
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
 
       expect(fetch).not.toHaveBeenCalled();
       expect(fs.writeFile).not.toHaveBeenCalled();
@@ -258,7 +258,7 @@ describe('TrelloImport', () => {
         url: 'https://example.com/null',
       });
 
-      const result = await importer.saveAttachments('/output/', [attachment]);
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
 
       expect(fetch).not.toHaveBeenCalled();
       expect(result).toEqual(['[Null File](https://example.com/null)']);
@@ -270,7 +270,7 @@ describe('TrelloImport', () => {
         createAttachmentInfo({ fileName: 'file2.jpg', name: 'File 2', url: 'https://example.com/2.jpg' }),
       ];
 
-      const result = await importer.saveAttachments('/output/', attachments);
+      const result = await importer.saveAttachments('/output/', options, attachments);
 
       expect(fetch).toHaveBeenCalledTimes(2);
       expect(fs.writeFile).toHaveBeenCalledTimes(2);
@@ -280,7 +280,7 @@ describe('TrelloImport', () => {
     });
 
     test('handles empty attachments array', async () => {
-      const result = await importer.saveAttachments('/output/', []);
+      const result = await importer.saveAttachments('/output/', options, []);
 
       expect(fetch).not.toHaveBeenCalled();
       expect(fs.writeFile).not.toHaveBeenCalled();
@@ -292,7 +292,7 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
       const attachment = createAttachmentInfo({ fileName: 'test.png' });
 
-      const result = await importer.saveAttachments('/output/', [attachment]);
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Could not write file'));
       expect(result).toEqual([]);
@@ -330,7 +330,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo({ name: 'Simple Card', desc: 'Simple description' });
       const lists = { list1: createTrelloListInfo() };
 
-      const result = await importer.writeCard('/output/', 'Test Board', card, {}, lists);
+      const result = await importer.writeCard('/output/', options, 'Test Board', card, {}, lists);
 
       expect(result).toBe(true);
       expect(fs.writeFile).toHaveBeenCalled();
@@ -353,7 +353,7 @@ describe('TrelloImport', () => {
       const checklists = { cl1: checklist };
       const lists = { list1: createTrelloListInfo() };
 
-      const result = await importer.writeCard('/output/', 'Board', card, checklists, lists);
+      const result = await importer.writeCard('/output/', options, 'Board', card, checklists, lists);
 
       expect(result).toBe(true);
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
@@ -368,7 +368,7 @@ describe('TrelloImport', () => {
       });
       const lists = { list1: createTrelloListInfo() };
 
-      const result = await importer.writeCard('/output/', 'Board', card, {}, lists);
+      const result = await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       expect(result).toBe(true);
       // Index 0 is the attachment file, index 1 is the card markdown file
@@ -380,7 +380,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo({ closed: true });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain('closed: true');
@@ -390,7 +390,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo({ isTemplate: true });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain('template: true');
@@ -405,7 +405,7 @@ describe('TrelloImport', () => {
       });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain('tags:Important #Bug_Fix');
@@ -417,7 +417,7 @@ describe('TrelloImport', () => {
         list1: createTrelloListInfo({ name: 'Published Articles' }),
       };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain('published: true');
@@ -429,7 +429,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo();
       const lists = { list1: createTrelloListInfo() };
 
-      const result = await importer.writeCard('/output/', 'Board', card, {}, lists);
+      const result = await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       expect(result).toBe(false);
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Could not write file'));
@@ -440,7 +440,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo({ name: 'Test@Card#Name$With%Special&Chars' });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const filename = vi.mocked(fs.writeFile).mock.calls[0][0] as string;
       expect(filename).toMatch(/Test-Card-Name-With-Special-Chars\.md$/);
@@ -450,7 +450,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo({ shortUrl: 'https://trello.com/c/abc123' });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
@@ -466,7 +466,7 @@ describe('TrelloImport', () => {
     test('returns error when no files match glob pattern', async () => {
       vi.mocked(glob).mockResolvedValue([]);
 
-      const result = await importer.importAsync('*.json', '/output/');
+      const result = await importer.importAsync('*.json', '/output/', options);
 
       expect(result.success).toBe(false);
       expect(result.message).toContain('No files found');
@@ -481,7 +481,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      const result = await importer.importAsync('board.json', '/output/');
+      const result = await importer.importAsync('board.json', '/output/', options);
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('1 cards found');
@@ -498,7 +498,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      await importer.importAsync('*.json', '/output');
+      await importer.importAsync('*.json', '/output/', options);
 
       const filename = vi.mocked(fs.writeFile).mock.calls[0]?.[0] as string;
       expect(filename).toContain('/output/');
@@ -520,7 +520,7 @@ describe('TrelloImport', () => {
         .mockResolvedValueOnce(JSON.stringify(board1))
         .mockResolvedValueOnce(JSON.stringify(board2));
 
-      const result = await importer.importAsync('*.json', '/output/');
+      const result = await importer.importAsync('*.json', '/output/', options);
 
       expect(result.success).toBe(true);
       expect(result.message).toContain('2 cards found');
@@ -540,7 +540,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      const result = await importer.importAsync('*.json', '/output/');
+      const result = await importer.importAsync('*.json', '/output/', options);
 
       expect(result.message).toContain('2 cards found');
       expect(result.message).toContain('1 notes created');
@@ -559,7 +559,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      const result = await importer.importAsync('*.json', '/output/');
+      const result = await importer.importAsync('*.json', '/output/', options);
 
       expect(result.message).toContain('2 cards found');
       expect(result.message).toContain('1 notes created');
@@ -581,7 +581,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      const result = await importer.importAsync('*.json', '/output/');
+      const result = await importer.importAsync('*.json', '/output/', options);
 
       expect(result.message).toContain('2 cards found');
       expect(result.message).toContain('1 notes created');
@@ -604,7 +604,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      await importer.importAsync('*.json', '/output/');
+      await importer.importAsync('*.json', '/output/', options);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain('### Tasks');
@@ -622,7 +622,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      await importer.importAsync('*.json', '/output/');
+      await importer.importAsync('*.json', '/output/', options);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain("list: 'In Progress'");
@@ -635,7 +635,7 @@ describe('TrelloImport', () => {
       vi.mocked(glob).mockResolvedValue(['board1.json', 'board2.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
 
-      await importer.importAsync('*.json', '/output/');
+      await importer.importAsync('*.json', '/output/', options);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('2 files found'));
       consoleWarnSpy.mockRestore();
@@ -811,7 +811,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo({ desc: '' });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain('## Test Card');
@@ -821,7 +821,7 @@ describe('TrelloImport', () => {
       const card = createTrelloCardInfo({ name: 'Card: With / Special \\ Characters?' });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const filename = vi.mocked(fs.writeFile).mock.calls[0][0] as string;
       // Should sanitize special characters in filename (check basename only, not path)
@@ -838,7 +838,7 @@ describe('TrelloImport', () => {
       });
       const lists = { list1: createTrelloListInfo() };
 
-      await importer.writeCard('/output/', 'Board', card, {}, lists);
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain('tags:Label_With_Spaces_');
@@ -868,7 +868,7 @@ describe('TrelloImport', () => {
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
       vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
 
-      const result = await importer.importAsync('*.json', '/output/');
+      const result = await importer.importAsync('*.json', '/output/', options);
 
       expect(result.success).toBe(true);
       const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string; // [0] is attachment, [1] is card
