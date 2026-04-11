@@ -298,6 +298,17 @@ describe('TrelloImport', () => {
       expect(result).toEqual([]);
       consoleErrorSpy.mockRestore();
     });
+
+    test('no file written if fetch fails', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: false, statusText: 'Not Found' });
+      const attachment = createAttachmentInfo({ url: 'https://example.com/missing.png' });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(fetch).toHaveBeenCalledWith('https://example.com/missing.png');
+      expect(fs.writeFile).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
   });
 
   describe('sanitiseName', () => {
@@ -700,7 +711,25 @@ describe('TrelloImport', () => {
       consoleLogSpy.mockRestore();
     });
 
-    test('throws error when board name lookup requires token but none provided', async () => {
+    test('throws error when board ID is invalid and name lookup fails', async () => {
+      const mockBoards = [
+        { id: 'board1', name: 'My Board' },
+        { id: 'board2', name: 'Other Board' },
+      ];
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoards) });
+
+      await expect(
+        TrelloImport.downloadBoardJson({
+          boardIdOrName: 'Invalid Board',
+          apiKey: 'test-key',
+          token: 'test-token',
+        })
+      ).rejects.toThrow('Could not find Trello board');
+    });
+
+    test('throws error when fetch returns unsuccessful HTTP status during board download', async () => {
+      vi.mocked(fetch).mockResolvedValue({ ok: false, statusText: 'Not Found' });
+
       await expect(
         TrelloImport.downloadBoardJson({
           boardIdOrName: 'My Board Name',
