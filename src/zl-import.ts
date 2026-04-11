@@ -4,7 +4,7 @@ import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
 import { Command } from '@commander-js/extra-typings';
-import TrelloImport from "./trello-import.js";
+import TrelloImport, { TrelloOptions } from "./trello-import.js";
 import { ErrorResponse } from "./base-importer.js";
 
 interface ZlImportOptions {
@@ -64,19 +64,23 @@ async function importer(program: ZlImportOptions): Promise<void> {
 
   async function parseFiles() {
     let response: ErrorResponse;
+      const options : TrelloOptions = {
+        verbose: program.verbose,
+        boardIdOrName: program.trelloBoard || "<missing>",
+        apiKey: program.trelloApiKey || "<missing>",
+        token: program.trelloToken || "<missing>",
+      };
     if (
       program.source === "trello" &&
       program.trelloApiKey &&
       program.trelloBoard
     ) {
+      options.apiKey = program.trelloApiKey;
+      options.boardIdOrName = program.trelloBoard;
+      options.token = program.trelloToken;
+
       // Download board JSON from Trello API using TrelloImport helper
       try {
-        const options = {
-          boardIdOrName: program.trelloBoard,
-          apiKey: program.trelloApiKey,
-          token: program.trelloToken,
-          verbose: program.verbose
-        };
         const boardJson = await TrelloImport.downloadBoardJson(options);
         if (program.jsonDebugOutput) {
           console.log("Trello board JSON:", JSON.stringify(boardJson, null, 2));

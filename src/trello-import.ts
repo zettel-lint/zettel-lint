@@ -103,6 +103,14 @@ export type TrelloOptions = ImportOptions & {
 };
 
 export default class TrelloImport implements BaseImporter {
+  private static async fetchJsonOrThrow(url: string, context: string): Promise<any> {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${context}: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
   static async downloadBoardJson(options: TrelloOptions): Promise<any> {
     let { boardIdOrName, apiKey, token, verbose } = options;
     // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
@@ -114,8 +122,7 @@ export default class TrelloImport implements BaseImporter {
         throw new Error("A Trello token (--trello-token) is required to look up boards by name.");
       }
       const boardsUrl = `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${token}`;
-      const boardsRes = await fetch(boardsUrl);
-      const boards = await boardsRes.json();
+      const boards = await TrelloImport.fetchJsonOrThrow(boardsUrl, "Trello board lookup");
       const found = boards.find((b: any) => b.name === boardIdOrName);
       if (!found) {
         throw new Error(`Could not find Trello board with name: ${boardIdOrName}`);
@@ -129,8 +136,7 @@ export default class TrelloImport implements BaseImporter {
     if (verbose) {
       console.log(`Downloading Trello board ${boardIdOrName}`);
     }
-    const res = await fetch(url);
-    return res.json();
+    return TrelloImport.fetchJsonOrThrow(url, "Trello board download");
   }
   async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
@@ -159,6 +165,9 @@ export default class TrelloImport implements BaseImporter {
       }      
       try {
         const response = await fetch(attachment.url);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
+        }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
         filenames.push("![" + attachment.name + "](" + outputFilename + ")");
