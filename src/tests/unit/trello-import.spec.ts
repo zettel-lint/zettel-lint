@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
+import { arrayBuffer } from 'stream/consumers';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -14,6 +15,8 @@ vi.mock('fs', () => ({
 vi.mock('glob', () => ({
   glob: vi.fn(),
 }));
+
+global.fetch = vi.fn();
 
 // Helper to create test data
 const createTrelloCheckItemInfo = (overrides = {}) => ({
@@ -214,7 +217,7 @@ describe('TrelloImport', () => {
   describe('saveAttachments', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(fetch).mockResolvedValue({ data: Buffer.from('test data') });
+      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test data')) });
     });
 
     test('saves file attachments successfully', async () => {
@@ -860,7 +863,7 @@ describe('TrelloImport', () => {
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
-      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(Buffer.from('test')) });
+      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
 
       const result = await importer.importAsync('*.json', '/output/');
 
