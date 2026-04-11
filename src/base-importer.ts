@@ -4,6 +4,11 @@ export class ErrorResponse {
 
 }
 
+export type ImportOptions = {
+    verbose?: boolean;
+    [key: string]: any; // Allow additional options
+}
+
 export interface BaseImporter {
-    importAsync(globpattern: string, outputFolder: string) : Promise<ErrorResponse>;
+    importAsync(globpattern: string, outputFolder: string, options: ImportOptions) : Promise<ErrorResponse>;
 }

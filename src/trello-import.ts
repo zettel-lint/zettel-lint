@@ -1,4 +1,4 @@
-import { BaseImporter, ErrorResponse } from "./base-importer.js"
+import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "fs";
 import { min } from "./types.js";
@@ -96,13 +96,14 @@ function sortableDate(d: Date) : string {
   return ("" + d).replace(/[^0-9]/g,"").substring(0,14);
 }
 
+export type TrelloOptions = ImportOptions & {
+  boardIdOrName: string;
+  apiKey: string;
+  token?: string;
+};
+
 export default class TrelloImport implements BaseImporter {
-  static async downloadBoardJson(options: {
-    boardIdOrName: string,
-    apiKey: string,
-    token?: string,
-    verbose?: boolean
-  }): Promise<any> {
+  static async downloadBoardJson(options: TrelloOptions): Promise<any> {
     let { boardIdOrName, apiKey, token, verbose } = options;
     // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
     if (!/^([0-9a-f]{8}|[0-9a-f]{24})$/i.test(boardIdOrName)) {
@@ -143,13 +144,14 @@ export default class TrelloImport implements BaseImporter {
       cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + ci.due.toISOString() : "")).join("\n");
   }
 
-  async saveAttachments(outputFolder: string, attachments: AttachmentInfo[]) : Promise<string[]> {
+  async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
     var filenames: string[] = [];
 
     for await (var attachment of attachments) {
       const outputFilename = outputFolder + attachment.fileName;  
-      // TODO : Add Verbose clause here
-      // console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
+      if (options.verbose) {
+       console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
+      }
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
         filenames.push("[" + attachment.name + "](" + attachment.url + ")");
@@ -168,6 +170,7 @@ export default class TrelloImport implements BaseImporter {
   }
 
   async writeCard(outputFolder: string,
+      options: TrelloOptions,
       boardName: string,
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
@@ -176,7 +179,7 @@ export default class TrelloImport implements BaseImporter {
       sortableDate(card.dateLastActivity) + 
       "-" + this.sanitiseName(card) + ".md";
 
-    const filenames = await this.saveAttachments(outputFolder + "attachments/", card.attachments || []);
+    const filenames = await this.saveAttachments(outputFolder + "attachments/", options, card.attachments || []);
 
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
@@ -196,7 +199,7 @@ export default class TrelloImport implements BaseImporter {
       "\n\n";
     
     try {
-      await fs.writeFile(outputFilename, 
+      await fs.writeFile(outputFilename,
         header + 
         card.desc + 
 
@@ -214,7 +217,7 @@ export default class TrelloImport implements BaseImporter {
     return card.name.replace(/[^A-Za-z0-9]/gm, '-').slice(0, min(50, card.name.length));
   }
 
-  async importAsync(globpattern: string, outputFolder: string): Promise<ErrorResponse> {
+  async importAsync(globpattern: string, outputFolder: string, options: TrelloOptions): Promise<ErrorResponse> {
     // Ensure output folder exists and has a path separator at the end
     if (!outputFolder.endsWith("/")) {
       outputFolder += "/";
@@ -243,7 +246,7 @@ export default class TrelloImport implements BaseImporter {
         labels[label.id] = label;
       })
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && await this.writeCard(outputFolder, notes.name, note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
           totalNotes++;
         }
       }
