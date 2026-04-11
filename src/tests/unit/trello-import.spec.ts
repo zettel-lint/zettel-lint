@@ -2,7 +2,6 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
-import { ok } from 'assert';
 
 // Mock dependencies
 vi.mock('fs', () => ({
