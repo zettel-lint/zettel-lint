@@ -75,9 +75,6 @@ async function importer(program: ZlImportOptions): Promise<void> {
       program.trelloApiKey &&
       program.trelloBoard
     ) {
-      options.apiKey = program.trelloApiKey;
-      options.boardIdOrName = program.trelloBoard;
-      options.token = program.trelloToken;
 
       // Download board JSON from Trello API using TrelloImport helper
       try {
