@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
+import { ok } from 'assert';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -220,7 +221,7 @@ describe('TrelloImport', () => {
   describe('saveAttachments', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test data')) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test data')) });
     });
 
     test('saves file attachments successfully', async () => {
@@ -323,7 +324,7 @@ describe('TrelloImport', () => {
   describe('writeCard', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
+      vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
     test('writes card without checklists or attachments', async () => {
@@ -460,7 +461,7 @@ describe('TrelloImport', () => {
   describe('importAsync', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
+      vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
     test('returns error when no files match glob pattern', async () => {
@@ -645,7 +646,7 @@ describe('TrelloImport', () => {
   describe('downloadBoardJson', () => {
     test('downloads board by valid ID', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
 
       const result = await TrelloImport.downloadBoardJson({
         boardIdOrName: '507f1f77bcf86cd799439011',
@@ -660,7 +661,7 @@ describe('TrelloImport', () => {
 
     test('downloads board by 8-character ID', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
 
       const result = await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
@@ -681,8 +682,8 @@ describe('TrelloImport', () => {
       ];
       const mockBoard = createTrelloBoardInfo({ id: 'board1', name: 'My Board' });
       vi.mocked(fetch)
-        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoards) })
-        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoard) });
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoards) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
 
       const result = await TrelloImport.downloadBoardJson({
         boardIdOrName: 'My Board',
@@ -714,7 +715,7 @@ describe('TrelloImport', () => {
         { id: 'board1', name: 'Board One' },
         { id: 'board2', name: 'Board Two' },
       ];
-      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoards) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoards) });
 
       await expect(
         TrelloImport.downloadBoardJson({
@@ -727,7 +728,7 @@ describe('TrelloImport', () => {
 
     test('includes token in board download URL when provided', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
@@ -742,7 +743,7 @@ describe('TrelloImport', () => {
 
     test('omits token from URL when not provided', async () => {
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
@@ -756,7 +757,7 @@ describe('TrelloImport', () => {
     test('logs verbose output when enabled', async () => {
       const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       const mockBoard = createTrelloBoardInfo();
-      vi.mocked(fetch).mockResolvedValue({ json: () => Promise.resolve(mockBoard) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'abc12345',
@@ -775,8 +776,8 @@ describe('TrelloImport', () => {
       const mockBoards = [{ id: 'board1', name: 'My Board' }];
       const mockBoard = createTrelloBoardInfo();
       vi.mocked(fetch)
-        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoards) })
-        .mockResolvedValueOnce({ json: () => Promise.resolve(mockBoard) });
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoards) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
 
       await TrelloImport.downloadBoardJson({
         boardIdOrName: 'My Board',
@@ -866,7 +867,7 @@ describe('TrelloImport', () => {
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
-      vi.mocked(fetch).mockResolvedValue({ arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
+      vi.mocked(fetch).mockResolvedValue({ ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
 
       const result = await importer.importAsync('*.json', '/output/', options);
 
