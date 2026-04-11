@@ -11,6 +11,7 @@
     "start": "nodemon --watch 'src/**/*.ts' --exec tsx src/zl.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
+    "lint": "tsc --noEmit",
     "test": "vitest --run",
     "help": "npm run-script zl -- --version && npm run-script zl -- --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
