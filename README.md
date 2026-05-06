@@ -1,8 +1,16 @@
 ---
-
 title: Readme
 references: [00000001]
 notes: YAML top matter is supported
+---
+
+✨ Use of LLMs
+
+This project has used LLMs in the following ways. If you disagree with using LLMs, this project may not be for you. I am experimenting with their use on this project, and will declare their use on any other projects.
+
+CodeRabbit: This is an LLM-based Code Review tool, mainly used to provide a second pair of eyes on code I have written. It has also created a few documentation and unit test code changes, and created new issues as a result of these code reviews.
+
+GitHub Copilot: Using the ChatGPT and Anthropic Claude models to write code to resolve issues, and to review human-authored changes prior to committing. All generated code has been reviewedby human to ensure future maintenance and security are maintained, and any code which does not meet these standards has been rejected.
 
 ---
 
