@@ -45,8 +45,8 @@ describe('bump-patch-version workflow', () => {
     });
 
     test('has checkout step with correct configuration', () => {
-      const checkoutStep = steps[0];
-      expect(checkoutStep.uses).toBe('actions/checkout@v6.0.2');
+      const checkoutStep = steps[1];
+      expect(checkoutStep.uses).toBe('actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd');
       expect(checkoutStep.with['fetch-depth']).toBe(0);
       expect(checkoutStep.with.token).toBe('${{ secrets.GITHUB_TOKEN }}');
     });
@@ -54,7 +54,7 @@ describe('bump-patch-version workflow', () => {
     test('has setup node step with Node.js 22', () => {
       const setupNodeStep = steps.find(s => s.name === 'Setup Node.js');
       expect(setupNodeStep).toBeDefined();
-      expect(setupNodeStep.uses).toBe('actions/setup-node@v6');
+      expect(setupNodeStep.uses).toBe('actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e');
       expect(setupNodeStep.with['node-version']).toBe('22');
     });
 
@@ -214,13 +214,17 @@ describe('bump-patch-version workflow', () => {
 
   describe('security and permissions', () => {
     test('uses specific action versions (not latest)', () => {
-      const checkoutStep = workflow.jobs['bump-version'].steps[0];
-      expect(checkoutStep.uses).toMatch(/@v\d+\.\d+\.\d+/);
+      const checkoutStep = workflow.jobs['bump-version'].steps.find(
+        (s: any) => s.uses.startsWith('actions/checkout')
+      );
+      expect(checkoutStep).toBeDefined();
+
+      expect(checkoutStep.uses).toMatch(/@[a-f0-9]{40}/);
 
       const setupNodeStep = workflow.jobs['bump-version'].steps.find(
         (s: any) => s.name === 'Setup Node.js'
       );
-      expect(setupNodeStep.uses).toMatch(/@v\d+/);
+      expect(setupNodeStep.uses).toMatch(/@[a-f0-9]{40}/);
     });
 
     test('uses github-actions bot identity', () => {
@@ -260,7 +264,9 @@ describe('bump-patch-version workflow', () => {
     });
 
     test('uses fetch-depth 0 for full history', () => {
-      const checkoutStep = workflow.jobs['bump-version'].steps[0];
+      const checkoutStep = workflow.jobs['bump-version'].steps.find(
+        (s: any) => s.uses.startsWith('actions/checkout')
+      );
       expect(checkoutStep.with['fetch-depth']).toBe(0);
     });
   });
@@ -435,7 +441,9 @@ describe('bump-patch-version workflow', () => {
     });
 
     test('checkout uses GITHUB_TOKEN not default token', () => {
-      const checkoutStep = workflow.jobs['bump-version'].steps[0];
+      const checkoutStep = workflow.jobs['bump-version'].steps.find(
+        (s: any) => s.uses.startsWith('actions/checkout')
+      );
       // Explicit token is used for checkout authentication and PR creation
       expect(checkoutStep.with.token).toBe('${{ secrets.GITHUB_TOKEN }}');
     });
