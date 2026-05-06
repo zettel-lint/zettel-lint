@@ -38,6 +38,10 @@ jobs:
           node-version: 22
           cache: npm
           registry-url: https://registry.npmjs.org/
+      
+      # Install legacy npm first, as a workaround for https://github.com/nodejs/node/issues/62425
+      - run: npm install -g npm@10.9.8
+
       # Ensure npm 11.5.1 or later is installed
       - run: npm install -g npm@latest
       - run: npm ci
