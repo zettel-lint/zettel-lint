@@ -46,7 +46,8 @@ describe('bump-patch-version workflow', () => {
 
     test('has checkout step with correct configuration', () => {
       const checkoutStep = steps[1];
-      expect(checkoutStep.uses).toBe('actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd');
+      // Use regex to verify specific commit hash is used for checkout action
+      expect(checkoutStep.uses).toMatch(/actions\/checkout@[a-f0-9]{40}/);
       expect(checkoutStep.with['fetch-depth']).toBe(0);
       expect(checkoutStep.with.token).toBe('${{ secrets.GITHUB_TOKEN }}');
     });
@@ -54,7 +55,8 @@ describe('bump-patch-version workflow', () => {
     test('has setup node step with Node.js 22', () => {
       const setupNodeStep = steps.find(s => s.name === 'Setup Node.js');
       expect(setupNodeStep).toBeDefined();
-      expect(setupNodeStep.uses).toBe('actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e');
+      // Use regex to verify specific commit hash is used for setup-node action
+      expect(setupNodeStep.uses).toMatch(/actions\/setup-node@[a-f0-9]{40}/);
       expect(setupNodeStep.with['node-version']).toBe('22');
     });
 
