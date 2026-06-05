@@ -34,7 +34,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
     .allowExcessArguments(true)
-    .action(async (cmdObj) => { await fixNotes(cmdObj) })
+    .action(async (cmdObj) => { await fixNotes(cmdObj as ZlFixOptions) })
   return fixer;
 }
 
