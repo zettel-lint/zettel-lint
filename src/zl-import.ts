@@ -32,7 +32,7 @@ export default function importerCommand() : Command<[], ZlImportOptions>{
     .option('--trello-token <token>', 'Trello API token (required if using board name)')
     .option('--json-debug-output', "Output JSON intermediate representations", false)
     .option('-v, --verbose', "Additional output", false)
-    .action(async (cmdObj: ZlImportOptions) => { await importer(cmdObj) })
+    .action(async (cmdObj) => { await importer(cmdObj as ZlImportOptions) })
   return idxer;
 }
 
