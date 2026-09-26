@@ -38,6 +38,7 @@ export interface ZlIndexOptions {
   showOrphans: boolean; // Output list of orphaned links to console
   taskDisplay: 'none' | 'by-file' | 'by-priority'; // Display tasks
   jsonDebugOutput: boolean; // Output JSON intermediate representations
+  ignoreNumericTags: boolean; // Ignore tags that start with a number or are numeric
   wiki: boolean; // Use [[wiki style]] links
   verbose: boolean; // Additional output
   // Additional options, required for Command compatibility
@@ -63,6 +64,7 @@ export default function indexerCommand() : Command<[], ZlIndexOptions> {
       return value as 'none' | 'by-file' | 'by-priority';
     }, "by-file")
     .option('--json-debug-output', "Output JSON intermediate representations", false)
+    .option('--ignore-numeric-tags', "Ignore tags that start with a number or are numeric", false)
     .option('--no-wiki', "use [[wiki style]] links", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await indexer(cmdObj as ZlIndexOptions) })
