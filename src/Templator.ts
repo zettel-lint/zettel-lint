@@ -16,7 +16,7 @@ export class Templator {
 
         return this.notes.filter(note => {
             const refs = note.matchData["Links"] || [];
-            return refs.length > 0 && refs.some(refId => !fileIds.has(refId));
+            return refs.some(refId => !fileIds.has(refId));
         }).map(note => {
             // return a copy of the note with only the refs that aren't in WikiCollector
             const refs = note.matchData["Links"] || [];
@@ -59,7 +59,7 @@ export class Templator {
                 return this.notes?.filter(note => referencedIds.has(note.id ?? ""));
             })(),
             on(){
-                var view = this;
+                const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag[filter]`}}
                     const query_end = text.indexOf("`}}") + 3
