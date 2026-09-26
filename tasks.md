@@ -43,7 +43,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * Issue 502: Fix ErrorResponse type mismatch in src/zl-import.ts
 * Issue 500: Fix Trello import bugs: missing concatenation, regex pattern, and date handling
 * Issue 497: Normalize fixture markdown files in import-trello expected outputs
-* Issues 852 / 853: Set up ESLint configuration for TypeScript and Node.js
+* Issue #852 (PR #853): Set up ESLint configuration for TypeScript and Node.js
 
 ### New Issues to Create for 1.0.0
 * Audit and freeze CLI options, flags, and exit codes across subcommands (`zl index`, `zl fix`, `zl import`) for 1.0.0 interface stability
