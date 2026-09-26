@@ -145,3 +145,32 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 
 ## Tasks
 
+
+## Issue Reviews and Proposed Fixes
+
+Review of open issues with 0 comments and suggested fixes:
+
+* **#765**: Archive anything older than 7 days in `done.txt`
+  * *Suggested Fix:* Implement an archiving command or option in `zl todo` to move completed tasks older than 7 days to `archive.txt`.
+* **#764**: Re-write Trello links as references on import
+  * *Suggested Fix:* Update `src/trello-import.ts` link processing logic to convert Trello card/board URLs into Zettelkasten reference links upon import.
+* **#683**: Suggest tags based on note content
+  * *Suggested Fix:* Implement keyword/term extraction across notes to suggest existing or new tags based on content similarity.
+* **#682**: Find Related Notes - grep for note title, tags (without #) and any titles within new notes
+  * *Suggested Fix:* Add a soft-reference collector that greps note titles, un-prefixed tags, and embedded titles to suggest related notes below backlinks.
+* **#518**: Create obsidian wrapper for npm package
+  * *Suggested Fix:* Build an Obsidian plugin wrapper/adapter interface invoking core `zl` functions.
+* **#502**: Fix ErrorResponse type mismatch in `src/zl-import.ts`
+  * *Suggested Fix:* Change `ErrorResponse` in `src/base-importer.ts` from a class to a type alias or interface (`type ErrorResponse = { success: boolean; message: string };`).
+* **#500**: Fix Trello import bugs: missing concatenation, regex pattern, and date handling
+  * *Suggested Fix:* Add missing `+` string concatenation operator in header construction, fix regex to `/[^A-Za-z0-9]/g`, and wrap `ci.due` in `new Date(ci.due).toISOString()`.
+* **#497**: Normalize fixture markdown files in import-trello expected outputs
+  * *Suggested Fix:* Strip trailing space bullet `* `, convert line endings to LF, and ensure exactly one trailing newline at EOF in `src/tests/system/import-trello/expected/`.
+* **#488**: Fix indentation and line endings in CodeQL workflow
+  * *Suggested Fix:* Re-indent step items under `steps:` in `.github/workflows/codeql-analysis.yml` by two spaces and convert CRLF line endings to LF.
+* **#446**: Add attachments to trello import
+  * *Suggested Fix:* Update `src/trello-import.ts` to parse `card.attachments` and append attachment links under `## Attachments`.
+* **#414**: Find a way to handle multiple files from a template
+  * *Suggested Fix:* Update template rendering engine to support returning or generating multiple target markdown files from a single template execution.
+* **#408**: Create a set operator to remove duplicates from lists
+  * *Suggested Fix:* Add a template filter/operator (e.g., `{{?set}}` or `distinct`) to deduplicate lists in mustache templates.
