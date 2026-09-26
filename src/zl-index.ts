@@ -46,6 +46,11 @@ export interface ZlIndexOptions {
 }
 
 
+/**
+ * Create the index command with its options, defaults, and indexing action.
+ *
+ * @returns The configured command, also available through the `create` alias.
+ */
 export default function indexerCommand() : Command<[], ZlIndexOptions> {
   const idxer = new Command<[], ZlIndexOptions>('index');
   idxer
@@ -71,6 +76,11 @@ export default function indexerCommand() : Command<[], ZlIndexOptions> {
   return idxer;
 }
 
+/**
+ * Clear the terminal and print the indexer banner and settings when verbose output is enabled.
+ *
+ * @param program - Indexer options controlling verbosity and the settings displayed.
+ */
 function printHeader(program: ZlIndexOptions): void {
   if (program.verbose) {
     clear();
