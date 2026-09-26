@@ -1,6 +1,7 @@
-export interface ErrorResponse {
-    readonly success: boolean;
-    readonly message: string;
+export class ErrorResponse {
+    readonly success: boolean = false;
+    readonly message : string = "";
+
 }
 
 export type ImportOptions = {
