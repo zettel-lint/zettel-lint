@@ -66,3 +66,15 @@ test('empty file has no tags', () => {
     expect(sut.collect("Sometimes a #parent[child tag is #nested]."))
       .toEqual(["#parent", "#nested"]);
   });
+
+  test('filters tags that start with a number when ignoreNumericTags is true', () => {
+    var sut = new TagCollector();
+    expect(sut.collector("file.md", "Content with #12345678 and #tag1 and #2026-tag and #tag-2026", { ignoreNumericTags: true }))
+      .toEqual(["#tag1", "#tag-2026"]);
+  });
+
+  test('includes numeric tags when ignoreNumericTags is false or not set', () => {
+    var sut = new TagCollector();
+    expect(sut.collector("file.md", "Content with #12345678 and #tag1", { ignoreNumericTags: false }))
+      .toEqual(["#12345678", "#tag1"]);
+  });
