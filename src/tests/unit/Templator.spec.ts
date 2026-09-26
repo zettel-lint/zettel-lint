@@ -1586,21 +1586,6 @@ title: References
       expect(countTag1).toBe(1);
     });
 
-    test('should support ?unique(), ?dedupe(), and ?distinct() aliases', () => {
-      const notes = [
-        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#t1'] } },
-        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#t1'] } }
-      ];
-      const sut = new Templator(notes, [new TagCollector()]);
-
-      const resUnique = sut.render("{{?Tags?unique()//}}{{key}},{{/?Tags}}");
-      const resDedupe = sut.render("{{?Tags?dedupe()//}}{{key}},{{/?Tags}}");
-      const resDistinct = sut.render("{{?Tags?distinct()//}}{{key}},{{/?Tags}}");
-
-      expect(resUnique).toBe("#t1,");
-      expect(resDedupe).toBe("#t1,");
-      expect(resDistinct).toBe("#t1,");
-    });
 
     test('should deduplicate nested value arrays inside collector objects', () => {
       const notes = [

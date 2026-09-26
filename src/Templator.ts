@@ -77,7 +77,7 @@ export class Templator {
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag?sort(by)?set()/filter/`}}
-                    const query_extract = /^{{`(?<tag>\w+)(?<fns>(?:\?[\w\s,()]*)*)\/(?<filter>[\s\S]*)\/`}}/;
+                    const query_extract = /^{{`(?<tag>\w+)(?<fns>[^/]*)\/(?<filter>[\s\S]*)\/`}}/;
                     const match = query_extract.exec(text);
                     if (!match || !match.groups) {
                         return render(text);
@@ -90,7 +90,7 @@ export class Templator {
                         args: m[2] ? m[2].trim() : ""
                     }));
 
-                    const validFunctions = new Set(["SORT", "SET", "UNIQUE", "DEDUPE", "DISTINCT"]);
+                    const validFunctions = new Set(["SORT", "SET"]);
                     for (const call of fnCalls) {
                         if (!validFunctions.has(call.fn)) {
                             return `{{\`unknown function: ${call.fn.toLowerCase()}\`}}`;
@@ -126,7 +126,7 @@ export class Templator {
                                                     if ('key' in c && typeof c.key === 'string') {
                                                         return c.key.split(ccarg)[1] || "ZZZZZ";
                                                     }
-                                                    if (args in c) {
+                                                    if (Object.prototype.hasOwnProperty.call(c, args)) {
                                                         return String(c[args]);
                                                     }
                                                 }
@@ -137,14 +137,14 @@ export class Templator {
                                             };
                                         }
                                         list = list.sort(comparator);
-                                    } else if (["SET", "UNIQUE", "DEDUPE", "DISTINCT"].includes(fn)) {
+                                    } else if (fn === "SET") {
                                         const seen = new Set<string>();
                                         const deduplicated: any[] = [];
 
                                         for (const item of list) {
                                             let itemKey: string;
                                             if (args && args.length > 0 && item && typeof item === 'object') {
-                                                if (args in item) {
+                                                if (Object.prototype.hasOwnProperty.call(item, args)) {
                                                     itemKey = String(item[args]);
                                                 } else if ('key' in item && typeof item.key === 'string' && item.key.includes(args + ":")) {
                                                     itemKey = item.key.split(args + ":")[1] || item.key;
