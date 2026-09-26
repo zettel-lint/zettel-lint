@@ -46,6 +46,13 @@ export interface ZlIndexOptions {
 }
 
 
+/**
+ * Creates the `index` command (alias `create`) with indexing options and an async action.
+ * Numeric tags are included unless `--ignore-numeric-tags` is enabled.
+ *
+ * @returns A command ready to register or parse. Running its action scans Markdown files
+ * and writes the reference file, overwriting it if it exists.
+ */
 export default function indexerCommand() : Command<[], ZlIndexOptions> {
   const idxer = new Command<[], ZlIndexOptions>('index');
   idxer
