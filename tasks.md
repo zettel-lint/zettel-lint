@@ -32,6 +32,25 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
   * [Obsidian](https://obsidian.md)
 * (✔) See [FOAM](https://foambubble.github.io/foam/) for VS Code-based solution
 
+## 1.0.0 Milestone Tasks ("First public release with stable interface")
+
+### Currently Assigned Issues
+* Issue 551: Create github actions wrapper for the npm package
+
+### Existing Issues to Assign to 1.0.0
+* Issue 519: Create standalone cli wrapper for npm package
+* Issue 518: Create obsidian wrapper for npm package
+* Issue 502: Fix ErrorResponse type mismatch in src/zl-import.ts
+* Issue 500: Fix Trello import bugs: missing concatenation, regex pattern, and date handling
+* Issue 497: Normalize fixture markdown files in import-trello expected outputs
+* Issues 852 / 853: Set up ESLint configuration for TypeScript and Node.js
+
+### New Issues to Create for 1.0.0
+* Audit and freeze CLI options, flags, and exit codes across subcommands (`zl index`, `zl fix`, `zl import`) for 1.0.0 interface stability
+* Formally remove or finalize deprecation of `zl notes` subcommand in favor of `zl fix`
+* Update README.md, CLI `--help` strings, and documentation for 1.0.0 release
+* Verify automated release workflow and npm publishing for 1.0.0 tag release
+
 ## `zl *` Tasks
 
 * x 2025-05-13 (C) Should take seconds to run, at most, on 10000 file example repo
