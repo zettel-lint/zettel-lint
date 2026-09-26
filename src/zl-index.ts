@@ -103,7 +103,7 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
 
   const contents = await fs.readFile(filename, "utf8");
 
-  var matchData: {[collector: string]: string[]} = {}
+  const matchData: {[collector: string]: string[]} = {}
   collectors.forEach(element => {
     matchData[element.dataName] = element.collector(filename, contents, program);
   });
@@ -137,14 +137,14 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
 function indexer(program: ZlIndexOptions): Promise<void> {
   printHeader(program);
 
-  var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
+  let ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
   if (program.ignoreDirs) {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
 
   async function parseFiles() {
-    var references: fileWikiLinks[] = [];
+    const references: fileWikiLinks[] = [];
 
     // options is optional
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });

@@ -3,7 +3,7 @@ import { RegexCollector } from "./RegexCollector.js";
 
 export class WikiCollector extends RegexCollector {
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
-    var result = new Map<string, formatData[]>();
+    const result = new Map<string, formatData[]>();
     
     files
       ?.filter(ref => ref.id != undefined)
@@ -13,11 +13,11 @@ export class WikiCollector extends RegexCollector {
     return result;
   }
   public extractData(ref: fileWikiLinks): formatData {
-    var data = super.extractData(ref);
+    const data = super.extractData(ref);
     return {...data, bag: collectBacklinks([data]).get(ref.filename ?? "") ?? []}
   }  
   protected format(references: formatData[]): string {
-    var backList: { [target: string]: string[]; } = invertDictionary(references);
+    const backList: { [target: string]: string[]; } = invertDictionary(references);
 
     return references.map(r => "* " + formatLink(r) + " = `" + r.filename + "`:\n  * " + (r.data.length > 0 ? r.data : "No links") + "\n  * " + (backList["[" + (r.id ?? "") + "]"] ?? "No backlinks")).join("\n");
   }

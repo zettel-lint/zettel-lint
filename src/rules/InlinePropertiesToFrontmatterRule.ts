@@ -40,7 +40,7 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
     const yamlContent = this.propertyCollector.writeHeader(properties);
 
     // Remove existing YAML frontmatter if present
-    var contentWithoutYaml = content.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '');
+    let contentWithoutYaml = content.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '');
 
     // Remove inline properties
     if (this.move) {

@@ -59,6 +59,7 @@ export class Templator {
                 return this.notes?.filter(note => referencedIds.has(note.id ?? ""));
             })(),
             on(){
+                // eslint-disable-next-line @typescript-eslint/no-this-alias
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag[filter]`}}
@@ -74,6 +75,7 @@ export class Templator {
                 }
             },
             query_filter() {
+                // eslint-disable-next-line @typescript-eslint/no-this-alias
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag?sort(by)?set()/filter/`}}
@@ -221,18 +223,8 @@ export class Templator {
             // Escaped and non-escaped versions
             .replace(/{{{[``](\w+)}}}/g, "{{#markdown_escape}}{{{$1}}}{{/markdown_escape}}")
             .replace(/{{[``](\w+)}}/g, "{{#markdown_escape}}{{$1}}{{/markdown_escape}}")
-            .replace(/{{[\?]([^}]+)}}/g, "{{#query_filter}}{{`$1`}}")
-            .replace(/{{\/[\?](\w*)}}/g, "{{/query_filter}}")
-            .replace(/{{[\%]([^}]+)}}/g, (_, expr: string) => {
-                const slashIdx = expr.indexOf('/');
-                if (slashIdx !== -1) {
-                    const tagAndFns = expr.slice(0, slashIdx);
-                    const filterAndRest = expr.slice(slashIdx);
-                    return `{{#query_filter}}{{\`${tagAndFns}?set()${filterAndRest}\`}}`;
-                }
-                return `{{#query_filter}}{{\`${expr}?set()//\`}}`;
-            })
-            .replace(/{{\/[\%](\w*)}}/g, "{{/query_filter}}")
+            .replace(/{{[?]([^}]+)}}/g, "{{#query_filter}}{{`$1`}}")
+            .replace(/{{\/[?](\w*)}}/g, "{{/query_filter}}")
 /*            .replace(/{{[\@]([^}]+)}}/g, "{{#on}}{{`$1`}}")
             .replace(/{{\/[\@](\w+)}}/g, "{{/on}}")
 */            ;

@@ -29,7 +29,7 @@ export function min(x: number, y: number): number | undefined {
 }
 
 export function collectBacklinks(references: formatData[]) {
-  var tagList = new Map<string, string[]>();
+  const tagList = new Map<string, string[]>();
 
   references.forEach(ref => {
     const tags = ref.data;
@@ -47,7 +47,7 @@ export function collectBacklinks(references: formatData[]) {
 }
 
 export function invertDictionary(references: formatData[]) {
-  var tagList: { [tag: string]: string[]; } = {};
+  const tagList: { [tag: string]: string[]; } = {};
 
   references.forEach(ref => {
     const tags = ref.data;
@@ -64,7 +64,7 @@ export function invertDictionary(references: formatData[]) {
 }
 
 export function invertData(references: formatData[]) {
-  var tagList = new Map<string, formatData[]>();
+  const tagList = new Map<string, formatData[]>();
 
   if (references == undefined) { return tagList; }
 
@@ -72,7 +72,7 @@ export function invertData(references: formatData[]) {
     const tags = ref.data;
     if (tags != undefined) {
       tags.forEach(tag => {
-        var current = tagList.get(tag) ?? [];
+        const current = tagList.get(tag) ?? [];
         current.push({...ref, name: tag, data: [formatLink(ref)]});
 
         tagList.set(tag, current);

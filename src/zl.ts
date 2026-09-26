@@ -14,7 +14,7 @@ import fixerCommand from "./zl-fix.js";
 
 export const version = "0.13.14";
 
-var program = new Command("zl")
+const program = new Command("zl")
   .version(version)
   .description("A linter/compiler for Zettel markdown repositories")
   .option('--verbose')

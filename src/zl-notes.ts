@@ -16,7 +16,7 @@ export default function notesCommand() {
     .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
-    .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]", false)
+    .option('-w, --wiki-links-from-id', "Turns [\\d*]-style links into [[wiki-links]]", false)
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('--no-wiki', "use [[wiki style]] links")
@@ -60,12 +60,12 @@ function printHeader(program: any): void {
 function lintNotes(program: any): void {
   printHeader(program);
 
-  var ignoreList = [program.path + "/**/node_modules/**"]; 
+  let ignoreList = [program.path + "/**/node_modules/**"];
   if (program.ignoreDirs) {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
-  var links: {[id: string]: string} = {};
+  const links: {[id: string]: string} = {};
 
   function mapWikiLinks(files: string[]) {
     const root = program.path.replace(/\\/g, "/");
@@ -83,14 +83,14 @@ function lintNotes(program: any): void {
     try {
       const contents = await fs.readFile(filename, "utf8");
       const matches = collectMatches(contents, linkRegex, false);
-      
+
       let newContents = contents;
       if (matches.length > 0) {
         if(program.verbose) {
           console.log("Found links:", matches);
           matches.forEach(match => console.log("Mapping " + match + " to " + links[match]));
         }
-        
+
         matches.forEach(match => {
           if (links[match]) {
             newContents = newContents.replace(match, links[match]);
@@ -99,7 +99,7 @@ function lintNotes(program: any): void {
       } else if(program.verbose) {
         console.log("No numeric links found in", filename);
       }
-      
+
       await fs.writeFile(filename, newContents);
     } catch (error: any) {
       // Only rethrow if not ENOENT or YAMLParseError

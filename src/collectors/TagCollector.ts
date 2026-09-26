@@ -1,11 +1,11 @@
-import { fileWikiLinks, formatData, invertDictionary } from "../types.js";
+import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 
 export class TagCollector extends RegexCollector {
   protected format(references: formatData[]): string {
-    var tagList: { [tag: string]: string[]; } = invertDictionary(references);
+    const tagList: { [tag: string]: string[]; } = invertDictionary(references);
 
-    var result: string = "";
+    let result: string = "";
     Object.keys(tagList).sort().forEach(tag => {
       result += "* " + tag + " : " + tagList[tag].join() + "\n";
     });

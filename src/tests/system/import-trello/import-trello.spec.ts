@@ -12,7 +12,9 @@ const expectedDir = path.join(__dirname, 'expected');
 async function cleanOutputs() {
   try {
     await fs.rm(outputsDir, { recursive: true, force: true });
-  } catch {}
+  } catch {
+    // Ignore error if folder doesn't exist
+  }
   await fs.mkdir(outputsDir, { recursive: true });
   // restore .gitignore
   const gitignorePath = path.join(outputsDir, '.gitignore');

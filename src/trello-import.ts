@@ -3,10 +3,6 @@ import { glob } from "glob";
 import { promises as fs } from "fs";
 import { min } from "./types.js";
 
-class NoteInfo {
-  readonly count: number = 0;
-}
-
 class TrelloCheckItemInfo {
   readonly id: string = "";
   readonly idChecklist: string = "";
@@ -112,7 +108,8 @@ export default class TrelloImport implements BaseImporter {
   }
 
   static async downloadBoardJson(options: TrelloOptions): Promise<any> {
-    let { boardIdOrName, apiKey, token, verbose } = options;
+    let boardIdOrName = options.boardIdOrName;
+    const { apiKey, token, verbose } = options;
     // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
     if (!/^([0-9a-f]{8}|[0-9a-f]{24})$/i.test(boardIdOrName)) {
       if (verbose) {
@@ -151,9 +148,9 @@ export default class TrelloImport implements BaseImporter {
   }
 
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
-    var filenames: string[] = [];
+    const filenames: string[] = [];
 
-    for await (var attachment of attachments) {
+    for await (const attachment of attachments) {
       const outputFilename = outputFolder + attachment.fileName;  
       if (options.verbose) {
        console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
@@ -232,11 +229,11 @@ export default class TrelloImport implements BaseImporter {
       outputFolder += "/";
     }
     const files = await glob(globpattern);
-    var totalCards = 0;
-    var totalNotes = 0;
-    var checklists : { [id: string]: TrelloChecklistInfo; } = {};
-    var lists : { [id: string]: TrelloListInfo; } = {};
-    var labels : { [id: string]: TrelloLabelInfo; } = {};
+    let totalCards = 0;
+    let totalNotes = 0;
+    const checklists : { [id: string]: TrelloChecklistInfo; } = {};
+    const lists : { [id: string]: TrelloListInfo; } = {};
+    const labels : { [id: string]: TrelloLabelInfo; } = {};
     if (files.length === 0) {
       return { success: false, message: "No files found matching " + globpattern };
     } else  {
