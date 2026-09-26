@@ -118,12 +118,24 @@ describe('TrelloImport', () => {
   });
 
   describe('sortableDate', () => {
-    test('converts Date to sortable string format', () => {
-      // Access the module to test the sortableDate function indirectly
-      const date = new Date('2024-01-15T10:30:45Z');
-      // sortableDate is not exported, so we test it indirectly through writeCard
-      // For now, we'll test the behavior through integration
-      expect(date).toBeDefined();
+    test('converts Date or string to sortable string format via writeCard filename', async () => {
+      const cardWithDateObj = createTrelloCardInfo({
+        name: 'Date Test',
+        dateLastActivity: new Date('2024-01-15T10:30:45Z') as any,
+      });
+      const cardWithDateStr = createTrelloCardInfo({
+        name: 'String Test',
+        dateLastActivity: '2024-01-15T10:30:45.000Z' as any,
+      });
+      const lists = { list1: createTrelloListInfo() };
+
+      await importer.writeCard('/output/', options, 'Board', cardWithDateObj, {}, lists);
+      const filename1 = vi.mocked(fs.writeFile).mock.calls[0][0] as string;
+      expect(filename1).toContain('20240115103045-Date-Test.md');
+
+      await importer.writeCard('/output/', options, 'Board', cardWithDateStr, {}, lists);
+      const filename2 = vi.mocked(fs.writeFile).mock.calls[1][0] as string;
+      expect(filename2).toContain('20240115103045-String-Test.md');
     });
   });
 
@@ -168,6 +180,19 @@ describe('TrelloImport', () => {
       const result = importer.writeCheckList(checklist);
 
       expect(result).toContain('### My Checklist');
+      expect(result).toContain('* [ ] Task 1');
+      expect(result).toContain('due:2024-01-15T10:00:00.000Z');
+    });
+
+    test('formats checklist item with string due date (from JSON)', () => {
+      const checkItem = createTrelloCheckItemInfo({ state: 'incomplete', name: 'Task 1', due: '2024-01-15T10:00:00.000Z' as any });
+      const checklist = createTrelloChecklistInfo({
+        name: 'String Due Checklist',
+        checkItems: [checkItem],
+      });
+
+      const result = importer.writeCheckList(checklist);
+
       expect(result).toContain('* [ ] Task 1');
       expect(result).toContain('due:2024-01-15T10:00:00.000Z');
     });
@@ -419,7 +444,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags:Important #Bug_Fix');
+      expect(content).toContain('tags: #Important #Bug_Fix');
     });
 
     test('sets published flag based on list name', async () => {
@@ -870,7 +895,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags:Label_With_Spaces_');
+      expect(content).toContain('tags: #Label_With_Spaces_');
     });
 
     test('processes board with all entity types', async () => {

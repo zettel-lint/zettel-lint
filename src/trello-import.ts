@@ -87,13 +87,14 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
-function sortableDate(d: Date) : string {
+function sortableDate(d: Date | string) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
 
   // WTF - card.dateLastActivity is a Date without any date methods.
 
-  return ("" + d).replace(/[^0-9]/g,"").substring(0,14);
+  const dateStr = typeof d === "string" ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
+  return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
 export type TrelloOptions = ImportOptions & {
@@ -147,7 +148,7 @@ export default class TrelloImport implements BaseImporter {
 
   writeCheckList(cl: TrelloChecklistInfo) {
     return "### " + cl.name + "\n\n" +
-      cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + ci.due.toISOString() : "")).join("\n");
+      cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + new Date(ci.due).toISOString() : "")).join("\n");
   }
 
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
@@ -195,7 +196,7 @@ export default class TrelloImport implements BaseImporter {
       "\nmodified: " + card.dateLastActivity +
       "\ntitle: '" + card.name + "'" +
       "\nsource: Trello" + 
-      "\ntags:" + card.labels.map(l => l.name.replace(/[^a-zA-Z0-9]/g, "_")).join(" #") +
+      "\ntags:" + (card.labels.length > 0 ? " #" + card.labels.map(l => l.name.replace(/[^A-Za-z0-9]/g, "_")).join(" #") : "") +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
@@ -223,7 +224,7 @@ export default class TrelloImport implements BaseImporter {
   }
 
   private sanitiseName(card: TrelloCardInfo) {
-    return card.name.replace(/[^A-Za-z0-9]/gm, '-').slice(0, min(50, card.name.length));
+    return card.name.replace(/[^A-Za-z0-9]/g, '-').slice(0, min(50, card.name.length));
   }
 
   async importAsync(globpattern: string, outputFolder: string, options: TrelloOptions): Promise<ErrorResponse> {
