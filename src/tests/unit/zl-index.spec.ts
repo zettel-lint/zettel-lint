@@ -27,4 +27,9 @@ describe('indexerCommand', () => {
       expect(opts.opts().path).toBe(".");
       expect(opts.opts().verbose).toBe(true);
     });
+
+    test('can parse ignore-numeric-tags option', () => {
+      const opts = indexerCommand().parse(["node", "zl", "--ignore-numeric-tags"]);
+      expect(opts.opts().ignoreNumericTags).toBe(true);
+    });
 });
