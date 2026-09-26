@@ -1,4 +1,4 @@
-import { getInput, setOutput, setFailed } from '@actions/core';
+import { getInput, setFailed, setOutput } from '@actions/core';
 import { exec } from '@actions/exec';
 
 async function run() {
@@ -10,7 +10,7 @@ async function run() {
     const verbose = getInput('verbose') === 'true';
 
     // Build zettel-lint command
-    let command = 'npx zettel-lint';
+    const command = 'npx zettel-lint';
     const args = ['--path', path];
 
     if (force) {
@@ -29,7 +29,6 @@ async function run() {
       case 'html':
         args.push('--format', 'html', '--output', 'zettel-lint-report.html');
         break;
-      case 'text':
       default:
         // Default text output
         break;
@@ -53,7 +52,7 @@ async function run() {
           }
         }
       });
-    } catch (error) {
+    } catch {
       exitCode = 2;
     }
 
