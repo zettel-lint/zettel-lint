@@ -1547,3 +1547,101 @@ title: References
       expect(result).not.toContain("#work"); // Filtered out
     });
   });
+
+  describe('Templator set operator and deduplication query functions', () => {
+    test('should support % set operator syntax on collector lists', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#work', '#urgent'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#work'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{%Tags}}* {{key}}\n{{/%Tags}}");
+      expect(result).toContain("* #work");
+      expect(result).toContain("* #urgent");
+      const countWork = (result.match(/\* #work/g) || []).length;
+      expect(countWork).toBe(1);
+    });
+
+    test('should support % set operator syntax with regex filter', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#work', '#personal'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#work'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{%Tags/work/}}* {{key}}\n{{/%Tags}}");
+      expect(result).toContain("* #work");
+      expect(result).not.toContain("#personal");
+    });
+
+    test('should support ?set() query function', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#tag1', '#tag1'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#tag1', '#tag2'] } }
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{?Tags?set()//}}* {{key}}\n{{/?Tags}}");
+      expect(result).toContain("* #tag1");
+      expect(result).toContain("* #tag2");
+      const countTag1 = (result.match(/\* #tag1/g) || []).length;
+      expect(countTag1).toBe(1);
+    });
+
+    test('should support ?unique(), ?dedupe(), and ?distinct() aliases', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#t1'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#t1'] } }
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+
+      const resUnique = sut.render("{{?Tags?unique()//}}{{key}},{{/?Tags}}");
+      const resDedupe = sut.render("{{?Tags?dedupe()//}}{{key}},{{/?Tags}}");
+      const resDistinct = sut.render("{{?Tags?distinct()//}}{{key}},{{/?Tags}}");
+
+      expect(resUnique).toBe("#t1,");
+      expect(resDedupe).toBe("#t1,");
+      expect(resDistinct).toBe("#t1,");
+    });
+
+    test('should deduplicate nested value arrays inside collector objects', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'Note A', fullpath: '', matchData: { Links: ['[target]'] } },
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'Note A', fullpath: '', matchData: { Links: ['[target]'] } }
+      ];
+      const sut = new Templator(notes, [new WikiCollector()]);
+      const result = sut.render("{{?Links?set()//}}{{#value}}{{id}},{{/value}}{{/?Links}}");
+      expect(result).toBe("a,");
+    });
+
+    test('should support chaining ?sort() and ?set()', () => {
+      const notes = [
+        { id: 'z', wikiname: 'z', filename: './z.md', title: 'Z', fullpath: '', matchData: { Tags: ['#zebra'] } },
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#apple'] } },
+        { id: 'a2', wikiname: 'a2', filename: './a2.md', title: 'A2', fullpath: '', matchData: { Tags: ['#apple'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{?Tags?sort()?set()//}}{{key}},{{/?Tags}}");
+      expect(result).toBe("#apple,#zebra,");
+    });
+
+    test('should support deduplication on objects with id/filename (notes list)', () => {
+      const notes = [
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'Note 1', fullpath: '', matchData: {} },
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'Note 1 Duplicate', fullpath: '', matchData: {} },
+        { id: 'n2', wikiname: 'n2', filename: './n2.md', title: 'Note 2', fullpath: '', matchData: {} },
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{?notes?set()//}}[{{id}}]{{/?notes}}");
+      expect(result).toBe("[n1][n2]");
+    });
+
+    test('should support argument-based deduplication with ?set(args)', () => {
+      const notes = [
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'SameTitle', fullpath: '', matchData: {} },
+        { id: 'n2', wikiname: 'n2', filename: './n2.md', title: 'SameTitle', fullpath: '', matchData: {} },
+        { id: 'n3', wikiname: 'n3', filename: './n3.md', title: 'OtherTitle', fullpath: '', matchData: {} },
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{?notes?set(title)//}}[{{title}}]{{/?notes}}");
+      expect(result).toBe("[SameTitle][OtherTitle]");
+    });
+  });
