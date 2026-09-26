@@ -30,11 +30,6 @@ export class Templator {
         ;
     }
 
-    /**
-     * Builds the template view with notes, references, orphan links, and section helpers.
-     * When both arguments are supplied, extracts collector data as key/value lists;
-     * collectors supplied without files expose empty lists. Extraction errors propagate.
-     */
     constructor(files: fileWikiLinks[] | undefined = undefined,
         collectors: Collector[] | undefined = undefined) {
         this.notes = files;
@@ -78,31 +73,6 @@ export class Templator {
                     return render(text).replace(/\(/g, "&lpar;").replace(/\)/g, "&rpar;");
                 }
             },
-            /**
-             * Returns a Mustache section callback that transforms a list and filters each
-             * item's rendered body with a case-sensitive regex; an empty regex matches all.
-             * The callback receives the enhanced query header and body plus Mustache's renderer.
-             *
-             * Supports case-insensitive sort and set operations, applied in query order
-             * without modifying the source arrays. Sort compares key, then id or string
-             * representations when key is absent. With an argument, it compares the segment
-             * after "argument:" in string keys, or an own property for items without string
-             * keys; unavailable segments/properties use "ZZZZZ".
-             *
-             * Set keeps the first item for each key, falling back through id, filename,
-             * and JSON serialization; primitives use their string representations.
-             * Its argument selects an own property converted to a string, then a segment
-             * after "argument:" in a string key (an empty segment uses the whole key),
-             * otherwise the default identity. Retained items' value arrays are also
-             * deduplicated by id, filename, or JSON serialization, with primitives stringified.
-             * Falsy query values produce no items; other non-array values bypass transforms.
-             *
-             * Invoking the callback adds query properties to the view and advances queryCount.
-             * Unrecognized query headers are rendered as received. Unknown operations and
-             * invalid regexes return diagnostic template text; rendering, transformation,
-             * and view-property definition errors propagate, including JSON serialization
-             * errors for circular values or BigInt values when that fallback is used.
-             */
             query_filter() {
                 const view = this;
                 return function(text: string, render: any) {
@@ -246,13 +216,6 @@ export class Templator {
         return {key: input[0], value: input[1]};
     }
 
-    /**
-     * Returns a template with backtick variables wrapped for parenthesis escaping and
-     * query blocks expanded into Mustache helper sections, preserving double/triple braces.
-     * Percent blocks such as {{%Tags}}...{{/%Tags}} append set() after any explicit
-     * operations and use an empty filter when no slash is present; an existing filter
-     * is preserved. Expansion does not render the template or validate query syntax.
-     */
     enhance(template: string): string {
         return template
             // Escaped and non-escaped versions
