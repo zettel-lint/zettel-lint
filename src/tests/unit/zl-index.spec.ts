@@ -22,11 +22,6 @@ describe('indexerCommand', () => {
       expect(opts.opts().verbose).toBe(true);
     });
 
-    test('can parse ignoreNumericTags option', () => {
-      const opts = indexerCommand().parse(["node", "zl", "--ignore-numeric-tags"]);
-      expect(opts.opts().ignoreNumericTags).toBe(true);
-    });
-
     test('can parse multiple options', () => {
       const opts = indexerCommand().parse(["node", "zl", "--path", ".", "--verbose"]);
       expect(opts.opts().path).toBe(".");

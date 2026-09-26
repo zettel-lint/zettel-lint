@@ -39,18 +39,12 @@ export interface ZlIndexOptions {
   taskDisplay: 'none' | 'by-file' | 'by-priority'; // Display tasks
   jsonDebugOutput: boolean; // Output JSON intermediate representations
   wiki: boolean; // Use [[wiki style]] links
-  ignoreNumericTags: boolean; // Ignore tags that start with a number
   verbose: boolean; // Additional output
   // Additional options, required for Command compatibility
   [key: string]: any; // Allow additional options
 }
 
 
-/**
- * Create the index command with its options, defaults, and indexing action.
- *
- * @returns The configured command, also available through the `create` alias.
- */
 export default function indexerCommand() : Command<[], ZlIndexOptions> {
   const idxer = new Command<[], ZlIndexOptions>('index');
   idxer
@@ -70,17 +64,11 @@ export default function indexerCommand() : Command<[], ZlIndexOptions> {
     }, "by-file")
     .option('--json-debug-output', "Output JSON intermediate representations", false)
     .option('--no-wiki', "use [[wiki style]] links", false)
-    .option('--ignore-numeric-tags', "Ignore tags that start with a number", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await indexer(cmdObj as ZlIndexOptions) })
   return idxer;
 }
 
-/**
- * Clear the terminal and print the indexer banner and settings when verbose output is enabled.
- *
- * @param program - Indexer options controlling verbosity and the settings displayed.
- */
 function printHeader(program: ZlIndexOptions): void {
   if (program.verbose) {
     clear();
@@ -95,9 +83,6 @@ function printHeader(program: ZlIndexOptions): void {
     console.log("Using template file: " + program.templateFile)
     console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
     console.log("Displaying Tasks " + program.taskDisplay);
-    if (program.ignoreNumericTags) {
-      console.log("Ignoring numeric tags");
-    }
   }
 }
 

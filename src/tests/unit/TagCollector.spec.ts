@@ -66,15 +66,3 @@ test('empty file has no tags', () => {
     expect(sut.collect("Sometimes a #parent[child tag is #nested]."))
       .toEqual(["#parent", "#nested"]);
   });
-
-  test('ignores tags that start with a number when ignoreNumericTags is true (Issue #902 build failure example)', () => {
-    var sut = new TagCollector();
-    expect(sut.collector("tasks.md", "Issues #852 and #853 in CI build failure #123", { ignoreNumericTags: true }))
-      .toEqual([]);
-  });
-
-  test('keeps non-numeric tags while ignoring tags starting with a number when ignoreNumericTags is true', () => {
-    var sut = new TagCollector();
-    expect(sut.collector("tasks.md", "Issue #852 and valid #hashtag and #release", { ignoreNumericTags: true }))
-      .toEqual(["#hashtag", "#release"]);
-  });
