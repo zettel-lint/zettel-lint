@@ -29,13 +29,19 @@ This checklist covers repository administrative settings, security configuration
 
 ---
 
-## 3. CI/CD Secrets & Permissions
-- [ ] **NPM Publishing Token**:
-  - [ ] Generate an npm automation access token on [npmjs.com](https://www.npmjs.com/).
-  - [ ] Add the token as a repository secret named `NPM_TOKEN` under **Settings > Secrets and variables > Actions**.
+## 3. CI/CD Publishing & Permissions
+
+- [ ] **npm Trusted Publishing**:
+  - [ ] Configure npm trusted publishing for package `zettel-lint`, repository
+    `zettel-lint/zettel-lint`, and workflow
+    `.github/workflows/npm-publish.yml`.
+  - [ ] For eligible public package publishes from a public repository, npm
+    generates provenance automatically when trusted publishing is used.
 - [ ] **GitHub Actions Workflow Permissions**:
   - Go to **Settings > Actions > General**.
-  - [ ] Verify **Workflow permissions** are set to "Read and write permissions" (or configured with explicit `permissions` block in workflow YAML files) to allow automated tagging and release creation.
+  - [ ] Keep default workflow permissions read-only. Grant write permissions
+    only to workflows or jobs that need them for version updates, tags, or
+    releases.
 
 ---
 
@@ -52,7 +58,6 @@ This checklist covers repository administrative settings, security configuration
 ## 5. Package Registry & External Services
 - [ ] **NPM Package Management**:
   - [ ] Verify package ownership and maintainers on `npmjs.com/package/zettel-lint`.
-  - [ ] Confirm package provenance is enabled for builds.
 - [ ] **Integration Services (if applicable)**:
   - [ ] Verify Codacy / Codecov / CodeQL integrations have appropriate repository permissions and webhooks active.
 
