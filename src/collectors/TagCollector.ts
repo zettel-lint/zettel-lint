@@ -21,6 +21,11 @@ export class TagCollector extends RegexCollector {
     result = result
       .concat(tags?.map((tg :string) => tg.startsWith("#") ? tg : "#" + tg) || [])
       .filter(tg => tg.length > 0 && tg != "#");
+
+    if (this.programArgs?.ignoreNumericTags) {
+      result = result.filter(tg => !/^#\d/.test(tg));
+    }
+
     return result;
   }
   readonly dataName = "Tags";
