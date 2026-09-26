@@ -73,6 +73,7 @@ Options:
 * `-o, --show-orphans` - Output list of orphaned links to console
 * `-t, --task-display <format>` - Display tasks format: 'none', 'by-file', or 'by-priority' (default: 'by-file')
 * `--json-debug-output` - Output JSON intermediate representations
+* `--ignore-numeric-tags` - Ignore tags that start with a number or are numeric
 * `--no-wiki` - Disable wiki-style links
 * `-v, --verbose` - Show additional output
 
