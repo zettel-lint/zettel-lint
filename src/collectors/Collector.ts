@@ -7,16 +7,16 @@ export interface YamlHeaders {
 
 export abstract class Collector {
   abstract readonly dataName: string;
-  protected yaml: any;
-  protected programArgs: any;
-  public collector(filename: string, content: string, program: any): string[] {
+  protected yaml: unknown;
+  protected programArgs: Record<string, unknown> | undefined;
+  public collector(filename: string, content: string, program: Record<string, unknown>): string[] {
     this.programArgs = program;
     if (this.shouldCollect(filename)) {
       return this.collect(content);
     }
     return [];
   }
-  protected shouldCollect(filename: string): boolean { return true; }
+  protected shouldCollect(_filename: string): boolean { return true; }
   protected abstract collect(content: string): string[];
   private listOf(value: string): string[] {
     if (value.trim().startsWith("[")) {
@@ -36,11 +36,11 @@ export abstract class Collector {
     const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
     const yamlData = parse(header);
     const result: YamlHeaders = { };
-    
+
     if (!yamlData || typeof yamlData !== 'object') {
       return result;
     }
-    
+
     Object.entries(yamlData).forEach(([key, value]) => {
       if (key === 'tags') {
         result[key] = Array.isArray(value)
@@ -51,7 +51,7 @@ export abstract class Collector {
         result[key] = arr.map(v => String(v));
       }
     });
-    
+
     return result;
   }
   public extractData(ref: fileWikiLinks): formatData {

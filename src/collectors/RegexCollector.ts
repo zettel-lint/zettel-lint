@@ -1,8 +1,8 @@
 import { Collector } from "./Collector.js";
 
 export function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
-  var result: string[] = [];
-  var next: RegExpExecArray | null;
+  const result: string[] = [];
+  let next: RegExpExecArray | null;
   do {
     next = regex.exec(contents);
     if (next) {

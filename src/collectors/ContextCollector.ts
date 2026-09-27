@@ -3,9 +3,9 @@ import { RegexCollector } from "./RegexCollector.js";
 
 export class ContextCollector extends RegexCollector {
   protected format(references: formatData[]): string {
-    var tagList: { [tag: string]: string[]; } = invertDictionary(references);
+    const tagList: { [tag: string]: string[]; } = invertDictionary(references);
 
-    var result: string = "";
+    let result: string = "";
     Object.keys(tagList).forEach(tag => {
       result += "* " + tag + " : " + tagList[tag].join() + "\n";
     });
@@ -13,5 +13,5 @@ export class ContextCollector extends RegexCollector {
     return result;
   };
   readonly dataName = "Contexts";
-  readonly regex = /[ ^](\@[a-zA-Z0-9]+)/g;
+  readonly regex = /[ ^](@[a-zA-Z0-9]+)/g;
 }

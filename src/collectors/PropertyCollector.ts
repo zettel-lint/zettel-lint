@@ -14,7 +14,7 @@ export class PropertyCollector extends RegexCollector {
       .join('');
   }
 
-  collect(content: string): string[] {
+  collect(_content: string): string[] {
     return [];
   }
 
@@ -31,7 +31,7 @@ export class PropertyCollector extends RegexCollector {
     // Normalise supplied regexes to avoid stateful /g behaviour.
     const safeRegexes = regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r));
 
-    var hasInline = false;
+    let hasInline = false;
     // Merge properties from both sources
     allKeys.forEach(key => {
       const yamlValues = yaml[key] || [];
@@ -40,7 +40,7 @@ export class PropertyCollector extends RegexCollector {
         pairValues = pairs[key] ?? [];
       }
       if (pairValues.length > 0) { hasInline = true; }
-      
+
       if (yamlValues.length > 0 || pairValues.length > 0) {
         result[key] = [...new Set([...yamlValues, ...pairValues])];
       }

@@ -9,6 +9,15 @@ import { collectMatches } from "./collectors/RegexCollector.js";
 import { exit } from "process";
 import { YAMLParseError } from 'yaml';
 
+interface ZlNotesOptions {
+  path: string;
+  ignoreDirs?: string[];
+  verbose?: boolean;
+  daily?: boolean;
+  wikiLinksFromId?: boolean;
+  [key: string]: unknown;
+}
+
 export default function notesCommand() {
   const notes = new Command('notes');
   notes
@@ -16,17 +25,17 @@ export default function notesCommand() {
     .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")
-    .option('-w, --wiki-links-from-id', "Turns [\d*]-style links into [[wiki-links]]", false)
+    .option('-w, --wiki-links-from-id', "Turns [\\d*]-style links into [[wiki-links]]", false)
     .option('-o, --show-orphans', "Output list of orphaned links to console")
     .option('--json-debug-output', "Output JSON intermediate representations")
     .option('--no-wiki', "use [[wiki style]] links")
     .option('-v, --verbose', "Additional output")
     .allowExcessArguments(true)
-    .action((cmdObj) => { lintNotes(cmdObj) })
+    .action((cmdObj) => { lintNotes(cmdObj as ZlNotesOptions) })
   return notes;
 }
 
-function printHeader(program: any): void {
+function printHeader(program: ZlNotesOptions): void {
   if (program.verbose) {
     clear();
     console.log(
@@ -57,15 +66,15 @@ function printHeader(program: any): void {
  *   - `ignoreDirs` (string[] | undefined): additional glob patterns to exclude.
  *   - `verbose` (boolean | undefined): when true, prints progress details.
  */
-function lintNotes(program: any): void {
+function lintNotes(program: ZlNotesOptions): void {
   printHeader(program);
 
-  var ignoreList = [program.path + "/**/node_modules/**"]; 
+  let ignoreList = [program.path + "/**/node_modules/**"];
   if (program.ignoreDirs) {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
-  var links: {[id: string]: string} = {};
+  const links: {[id: string]: string} = {};
 
   function mapWikiLinks(files: string[]) {
     const root = program.path.replace(/\\/g, "/");
@@ -83,14 +92,14 @@ function lintNotes(program: any): void {
     try {
       const contents = await fs.readFile(filename, "utf8");
       const matches = collectMatches(contents, linkRegex, false);
-      
+
       let newContents = contents;
       if (matches.length > 0) {
         if(program.verbose) {
           console.log("Found links:", matches);
           matches.forEach(match => console.log("Mapping " + match + " to " + links[match]));
         }
-        
+
         matches.forEach(match => {
           if (links[match]) {
             newContents = newContents.replace(match, links[match]);
@@ -99,12 +108,13 @@ function lintNotes(program: any): void {
       } else if(program.verbose) {
         console.log("No numeric links found in", filename);
       }
-      
+
       await fs.writeFile(filename, newContents);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Only rethrow if not ENOENT or YAMLParseError
       console.error(`Error processing file ${filename}:`, error);
-      if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
+      const errCode = (error as { code?: string })?.code;
+      if (errCode !== 'ENOENT' && !(error instanceof YAMLParseError)) {
         throw error;
       }
     }

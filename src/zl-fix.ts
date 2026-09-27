@@ -96,7 +96,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
 
   const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex)];
   const knownRules: { [key: string]: BaseRule } = {};
-  var ruleNames: string[] = [];
+  const ruleNames: string[] = [];
   importedRules.forEach((r) => { knownRules[r.name] = r; ruleNames.push(r.name); });
 
   printHeader(program, ruleNames);
@@ -106,14 +106,14 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
-  let outputDir = program.outputDir;
+  const outputDir = program.outputDir;
 
   const activeRules: BaseRule[] = [];
 
   if (program.rules) {
     // remove duplicates
     (new Set(program.rules)).forEach((r) => {
-      if (!knownRules.hasOwnProperty(r)) {
+      if (!Object.prototype.hasOwnProperty.call(knownRules, r)) {
         console.error(`Unknown rule: ${r}. Ignoring.`);
       }
       else {

@@ -38,7 +38,6 @@ export interface ZlIndexOptions {
   showOrphans: boolean; // Output list of orphaned links to console
   taskDisplay: 'none' | 'by-file' | 'by-priority'; // Display tasks
   jsonDebugOutput: boolean; // Output JSON intermediate representations
-  ignoreNumericTags: boolean; // Ignore tags that start with a number or are numeric
   wiki: boolean; // Use [[wiki style]] links
   verbose: boolean; // Additional output
   // Additional options, required for Command compatibility
@@ -46,13 +45,6 @@ export interface ZlIndexOptions {
 }
 
 
-/**
- * Creates the `index` command (alias `create`) with indexing options and an async action.
- * Numeric tags are included unless `--ignore-numeric-tags` is enabled.
- *
- * @returns A command ready to register or parse. Running its action scans Markdown files
- * and writes the reference file, overwriting it if it exists.
- */
 export default function indexerCommand() : Command<[], ZlIndexOptions> {
   const idxer = new Command<[], ZlIndexOptions>('index');
   idxer
@@ -71,7 +63,6 @@ export default function indexerCommand() : Command<[], ZlIndexOptions> {
       return value as 'none' | 'by-file' | 'by-priority';
     }, "by-file")
     .option('--json-debug-output', "Output JSON intermediate representations", false)
-    .option('--ignore-numeric-tags', "Ignore tags that start with a number or are numeric", false)
     .option('--no-wiki', "use [[wiki style]] links", false)
     .option('-v, --verbose', "Additional output", false)
     .action(async (cmdObj) => { await indexer(cmdObj as ZlIndexOptions) })
@@ -103,7 +94,7 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
 
   const contents = await fs.readFile(filename, "utf8");
 
-  var matchData: {[collector: string]: string[]} = {}
+  const matchData: {[collector: string]: string[]} = {}
   collectors.forEach(element => {
     matchData[element.dataName] = element.collector(filename, contents, program);
   });
@@ -137,14 +128,14 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
 function indexer(program: ZlIndexOptions): Promise<void> {
   printHeader(program);
 
-  var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
+  let ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
   if (program.ignoreDirs) {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
 
   async function parseFiles() {
-    var references: fileWikiLinks[] = [];
+    const references: fileWikiLinks[] = [];
 
     // options is optional
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
