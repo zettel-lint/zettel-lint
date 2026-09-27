@@ -11,7 +11,11 @@ Refer to [package.json](package.json) for all available npm scripts, project dep
 ## Core Principles for Agents
 
 - **Language & Runtime:** TypeScript targeting Node.js (>= 22.12.0).
-- **Build, Testing & Quality:** Run `npm run build` (`tsc -p .`), `npm test` (Vitest), and `npm run lint` (`tsc --noEmit`). Ensure all builds, tests, and type checks pass cleanly. (See `package.json` for all available scripts).
+- **Build, Testing & Quality:**
+  - **Build:** `npm run build` (`tsc -p .`)
+  - **Testing:** `npm test` (Vitest)
+  - **Lint & Type Check:** `npm run lint` (`tsc --noEmit`)
+  - Ensure all builds, tests, and type checks pass cleanly before submitting.
 - **Prefer Stable APIs:** Favor established, stable APIs and standard libraries over experimental or volatile dependencies.
 - **Template-First Architecture:** Prefer adding new output formatting or data options to Mustache templates (`Templator.ts` / `src/*.mustache`) rather than adding new CLI options or flags.
 - **Small, Focused PRs:** Keep PRs small, incremental, and focused on a single feature, bug fix, or task.
