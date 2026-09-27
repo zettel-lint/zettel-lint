@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
-import TrelloImport from '../../trello-import.js';
+import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
 
@@ -217,6 +217,37 @@ describe('TrelloImport', () => {
     });
   });
 
+  describe('writeComments', () => {
+    test('formats comments with author and ISO date', () => {
+      const comment = new TrelloCommentInfo('Great card!', new Date('2024-01-15T12:00:00Z'), 'Alice');
+      const result = importer.writeComments([comment]);
+
+      expect(result).toContain('### Alice (2024-01-15T12:00:00.000Z)');
+      expect(result).toContain('Great card!');
+    });
+
+    test('handles missing author gracefully', () => {
+      const comment = new TrelloCommentInfo('Anonymous comment', new Date('2024-01-15T12:00:00Z'), '');
+      const result = importer.writeComments([comment]);
+
+      expect(result).toContain('### Unknown (2024-01-15T12:00:00.000Z)');
+      expect(result).toContain('Anonymous comment');
+    });
+
+    test('handles multiple comments', () => {
+      const comments = [
+        new TrelloCommentInfo('First comment', new Date('2024-01-15T12:00:00Z'), 'Alice'),
+        new TrelloCommentInfo('Second comment', new Date('2024-01-15T13:00:00Z'), 'Bob'),
+      ];
+      const result = importer.writeComments(comments);
+
+      expect(result).toContain('### Alice');
+      expect(result).toContain('First comment');
+      expect(result).toContain('### Bob');
+      expect(result).toContain('Second comment');
+    });
+  });
+
   describe('saveAttachments', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
@@ -371,6 +402,22 @@ describe('TrelloImport', () => {
       expect(content).toContain('## Checklists');
       expect(content).toContain('### My Tasks');
       expect(content).toContain('Task 1');
+    });
+
+    test('writes card with comments', async () => {
+      const card = createTrelloCardInfo({ id: 'card1' });
+      const lists = { list1: createTrelloListInfo() };
+      const comments = [
+        new TrelloCommentInfo('Looks good!', new Date('2024-01-15T12:00:00Z'), 'Jane Doe'),
+      ];
+
+      const result = await importer.writeCard('/output/', options, 'Board', card, {}, lists, comments);
+
+      expect(result).toBe(true);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain('## Comments');
+      expect(content).toContain('### Jane Doe (2024-01-15T12:00:00.000Z)');
+      expect(content).toContain('Looks good!');
     });
 
     test('writes card with attachments', async () => {
@@ -883,15 +930,30 @@ describe('TrelloImport', () => {
       const list = createTrelloListInfo();
       const label = createTrelloLabelInfo();
       const card = createTrelloCardInfo({
+        id: 'card1',
         idChecklists: ['cl1'],
         labels: [label],
         attachments: [createAttachmentInfo({ fileName: 'file.png' })],
       });
+      const action = {
+        id: 'act1',
+        type: 'commentCard',
+        date: '2024-01-15T12:00:00Z',
+        data: {
+          text: 'Integration comment test',
+          card: { id: 'card1' },
+        },
+        memberCreator: {
+          id: 'mem1',
+          fullName: 'Reviewer Name',
+        },
+      };
       const board = createTrelloBoardInfo({
         cards: [card],
         lists: [list],
         checklists: [checklist],
         labels: [label],
+        actions: [action as any],
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
@@ -902,6 +964,8 @@ describe('TrelloImport', () => {
       expect(result.success).toBe(true);
       const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string; // [0] is attachment, [1] is card
       expect(content).toContain('## Checklists');
+      expect(content).toContain('## Comments');
+      expect(content).toContain('Integration comment test');
       expect(content).toContain('## Attachments');
       consoleWarnSpy.mockRestore();
       consoleErrorSpy.mockRestore();
