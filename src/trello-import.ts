@@ -87,12 +87,11 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+/**
+ * Formats a Date or Trello ISO date string as a YYYYMMDDHHmmss filename prefix.
+ * Date objects are converted to UTC; strings retain their supplied date and time.
+ */
 function sortableDate(d: Date | string) : string {
-  // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
-  // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
-
-  // WTF - card.dateLastActivity is a Date without any date methods.
-
   const dateStr = typeof d === "string" ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
@@ -146,6 +145,7 @@ export default class TrelloImport implements BaseImporter {
     return data;
   }
 
+  /** Renders a checklist as Markdown, converting due dates to ISO strings. */
   writeCheckList(cl: TrelloChecklistInfo) {
     return "### " + cl.name + "\n\n" +
       cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + new Date(ci.due).toISOString() : "")).join("\n");
@@ -179,6 +179,10 @@ export default class TrelloImport implements BaseImporter {
     return filenames;
   }
 
+  /**
+   * Writes a card's metadata, description, checklists, and attachments to Markdown.
+   * Returns whether the note file was written successfully.
+   */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
       boardName: string,
@@ -223,6 +227,7 @@ export default class TrelloImport implements BaseImporter {
     return false;
   }
 
+  /** Replaces non-alphanumeric title characters with hyphens and limits length to 50. */
   private sanitiseName(card: TrelloCardInfo) {
     return card.name.replace(/[^A-Za-z0-9]/g, '-').slice(0, min(50, card.name.length));
   }
