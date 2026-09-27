@@ -7,9 +7,9 @@ export interface YamlHeaders {
 
 export abstract class Collector {
   abstract readonly dataName: string;
-  protected yaml: any;
-  protected programArgs: any;
-  public collector(filename: string, content: string, program: any): string[] {
+  protected yaml: unknown;
+  protected programArgs: Record<string, unknown> | undefined;
+  public collector(filename: string, content: string, program: Record<string, unknown>): string[] {
     this.programArgs = program;
     if (this.shouldCollect(filename)) {
       return this.collect(content);

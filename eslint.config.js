@@ -5,12 +5,10 @@ export default tseslint.config(
   {
     ignores: ['node_modules/**', 'lib/**', 'dist/**', 'coverage/**', '**/*.d.ts'],
   },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     files: ['src/**/*.ts'],
-    extends: [
-      js.configs.recommended,
-      ...tseslint.configs.recommended,
-    ],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',

@@ -3,11 +3,11 @@ import { RegexCollector } from "./RegexCollector.js";
 
 export class TaskCollector extends RegexCollector {
   protected shouldCollect(_filename: string) : boolean {
-    return this.programArgs.taskDisplay !== "none";
+    return this.programArgs?.taskDisplay !== "none";
   }
 
   protected format(references: formatData[]): string {
-    switch (this.programArgs.taskDisplay as string) {
+    switch (this.programArgs?.taskDisplay as string) {
       case "by-priority": return this.formatSortByPriority(references);
       case "by-file": return this.formatGroupByFilename(references);
     }
