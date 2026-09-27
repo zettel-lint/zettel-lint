@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
+import { parse } from 'yaml';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -125,7 +126,7 @@ describe('TrelloImport', () => {
       });
       const cardWithDateStr = createTrelloCardInfo({
         name: 'String Test',
-        dateLastActivity: '2024-01-15T10:30:45.000Z' as any,
+        dateLastActivity: '2024-01-15T12:30:45+02:00' as any,
       });
       const lists = { list1: createTrelloListInfo() };
 
@@ -136,6 +137,18 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', cardWithDateStr, {}, lists);
       const filename2 = vi.mocked(fs.writeFile).mock.calls[1][0] as string;
       expect(filename2).toContain('20240115103045-String-Test.md');
+    });
+
+    test.each([
+      ['string', 'not-a-date'],
+      ['Date', new Date(NaN)],
+    ])('rejects an invalid %s before writing a filename', async (_: string, dateLastActivity: string | Date) => {
+      const card = createTrelloCardInfo({ dateLastActivity });
+      const lists = { list1: createTrelloListInfo() };
+
+      await expect(importer.writeCard('/output/', options, 'Board', card, {}, lists))
+        .rejects.toThrow('Invalid Trello card activity date');
+      expect(fs.writeFile).not.toHaveBeenCalled();
     });
   });
 
@@ -375,6 +388,7 @@ describe('TrelloImport', () => {
       expect(content).toContain('title: \'Simple Card\'');
       expect(content).toContain('Simple description');
       expect(content).toContain('board: \'Test Board\'');
+      expect(parse(content.split('---')[1]).tags).toEqual([]);
       expect(content).not.toContain('## Checklists');
       expect(content).not.toContain('## Attachments');
     });
@@ -444,7 +458,8 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags: #Important #Bug_Fix');
+      const frontmatter = parse(content.split('---')[1]);
+      expect(frontmatter.tags).toEqual(['#Important', '#Bug_Fix']);
     });
 
     test('sets published flag based on list name', async () => {
@@ -895,7 +910,8 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags: #Label_With_Spaces_');
+      const frontmatter = parse(content.split('---')[1]);
+      expect(frontmatter.tags).toEqual(['#Label_With_Spaces_']);
     });
 
     test('processes board with all entity types', async () => {

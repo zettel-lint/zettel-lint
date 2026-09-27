@@ -88,12 +88,11 @@ class TrelloBoardInfo {
 }
 
 function sortableDate(d: Date | string) : string {
-  // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
-  // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
-
-  // WTF - card.dateLastActivity is a Date without any date methods.
-
-  const dateStr = typeof d === "string" ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) {
+    throw new RangeError("Invalid Trello card activity date");
+  }
+  const dateStr = date.toISOString();
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
@@ -196,7 +195,7 @@ export default class TrelloImport implements BaseImporter {
       "\nmodified: " + card.dateLastActivity +
       "\ntitle: '" + card.name + "'" +
       "\nsource: Trello" + 
-      "\ntags:" + (card.labels.length > 0 ? " #" + card.labels.map(l => l.name.replace(/[^A-Za-z0-9]/g, "_")).join(" #") : "") +
+      "\ntags: " + JSON.stringify(card.labels.map(l => "#" + l.name.replace(/[^A-Za-z0-9]/g, "_"))) +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
