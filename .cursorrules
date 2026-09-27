@@ -1,0 +1,7 @@
+# Cursor Rules for zettel-lint
+
+- Project stack: TypeScript, Node.js (>= 22.12.0), Commander.js, Vitest.
+- Always run `npm test` and `npm run lint` (`tsc --noEmit`) to verify changes.
+- Prefer stable APIs and standard libraries over experimental or unstable features.
+- Prefer adding output features and formatting logic to templates (Mustache in `Templator.ts` and `.mustache` files) instead of expanding CLI command flags.
+- Focus on small, single-purpose commits and PRs. Do not combine unrelated tasks into a single pull request.

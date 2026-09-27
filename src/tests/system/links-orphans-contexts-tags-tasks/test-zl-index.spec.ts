@@ -8,8 +8,8 @@ describe("zl-index system test", () => {
   const outputFile = join(__dirname, "outputs", "references.md");
 
   beforeAll(() => {
-    // Run zl-index command over all `*.md` files in the root directory
-    const command = `npm run-script zl -- index -v -r ${outputFile} --show-orphans --ignore-dirs \"node_modules/**\" \"src/**\" \"lib/**\"`;
+    // Run zl-index command over markdown files in the root directory, ignoring AGENTS.md
+    const command = `npm run-script zl -- index -v -r ${outputFile} --show-orphans --ignore-dirs \"node_modules/**\" \"src/**\" \"lib/**\" \"AGENTS.md\"`;
     execSync(command, { cwd: join(__dirname, "../../../../") });
   });
 
