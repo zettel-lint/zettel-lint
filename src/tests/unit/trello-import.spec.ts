@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
+import { parse } from 'yaml';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -428,7 +429,21 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags: [Important, Bug_Fix]');
+      expect(content).toContain("tags: ['Important', 'Bug_Fix']");
+    });
+
+    test('keeps YAML scalar label names as strings', async () => {
+      const card = createTrelloCardInfo({
+        labels: ['true', 'null', '123'].map(name => createTrelloLabelInfo({ name })),
+      });
+      const lists = { list1: createTrelloListInfo() };
+
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      const tagsLine = content.split('\n').find(line => line.startsWith('tags: '));
+      expect(tagsLine).toBe("tags: ['true', 'null', '123']");
+      expect(parse(tagsLine!)).toEqual({ tags: ['true', 'null', '123'] });
     });
 
     test('sets published flag based on list name', async () => {
@@ -879,7 +894,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags: [Label_With_Spaces_]');
+      expect(content).toContain("tags: ['Label_With_Spaces_']");
     });
 
     test('processes board with all entity types', async () => {
