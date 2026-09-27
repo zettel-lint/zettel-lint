@@ -6,11 +6,12 @@ This document provides instructions for LLMs and AI coding agents working on the
 
 For project overview, installation, and user documentation, refer to [README.md](README.md).
 For general contribution guidelines, workflow setup, and test execution details, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Refer to [package.json](package.json) for all available npm scripts, project dependencies, and tool configurations.
 
 ## Core Principles for Agents
 
 - **Language & Runtime:** TypeScript targeting Node.js (>= 22.12.0).
-- **Testing & Quality:** Run `npm test` (Vitest) and `npm run lint` (`tsc --noEmit`). Ensure all tests pass.
+- **Build, Testing & Quality:** Run `npm run build` (`tsc -p .`), `npm test` (Vitest), and `npm run lint` (`tsc --noEmit`). Ensure all builds, tests, and type checks pass cleanly. (See `package.json` for all available scripts).
 - **Prefer Stable APIs:** Favor established, stable APIs and standard libraries over experimental or volatile dependencies.
 - **Template-First Architecture:** Prefer adding new output formatting or data options to Mustache templates (`Templator.ts` / `src/*.mustache`) rather than adding new CLI options or flags.
 - **Small, Focused PRs:** Keep PRs small, incremental, and focused on a single feature, bug fix, or task.
