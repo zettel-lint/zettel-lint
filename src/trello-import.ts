@@ -308,7 +308,8 @@ export default class TrelloImport implements BaseImporter {
           if (action.type === "commentCard" && action.data?.card?.id) {
             const cardId = action.data.card.id;
             const text = action.data.text || "";
-            const date = action.date ? new Date(action.date) : new Date();
+            const parsed = action.date ? new Date(action.date) : undefined;
+            const date = parsed && !isNaN(parsed.getTime()) ? parsed : undefined;
             const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
             if (!cardComments[cardId]) {
               cardComments[cardId] = [];
