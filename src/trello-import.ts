@@ -90,6 +90,8 @@ class TrelloBoardInfo {
 /**
  * Formats a Date or Trello ISO date string as a YYYYMMDDHHmmss filename prefix.
  * Date objects are converted to UTC; strings retain their supplied date and time.
+ * Strings are not validated; the result contains at most their first 14 digits.
+ * @throws {RangeError} If a Date object is invalid.
  */
 function sortableDate(d: Date | string) : string {
   const dateStr = typeof d === "string" ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
@@ -145,7 +147,11 @@ export default class TrelloImport implements BaseImporter {
     return data;
   }
 
-  /** Renders a checklist as Markdown, converting due dates to ISO strings. */
+  /**
+   * Renders a checklist as Markdown, converting Date or string due dates to UTC ISO strings.
+   * Falsy due dates are omitted.
+   * @throws {RangeError} If a truthy due date cannot be converted to a valid date.
+   */
   writeCheckList(cl: TrelloChecklistInfo) {
     return "### " + cl.name + "\n\n" +
       cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + new Date(ci.due).toISOString() : "")).join("\n");
@@ -181,7 +187,16 @@ export default class TrelloImport implements BaseImporter {
 
   /**
    * Writes a card's metadata, description, checklists, and attachments to Markdown.
-   * Returns whether the note file was written successfully.
+   * Downloads file attachments into the attachments/ subdirectory before writing the note;
+   * failed downloads or attachment writes are omitted, and saved files remain if the note fails.
+   * Existing files at the generated paths are overwritten; directories are not created.
+   * @param outputFolder - Destination directory with a trailing path separator.
+   * @param checklists - Checklists keyed by ID, referenced by the card's idChecklists.
+   * @param lists - Lists keyed by ID; must contain the card's idList.
+   * @returns Whether the note was written; checklist rendering and note write errors return false.
+   * Errors preparing the filename or metadata reject the promise instead.
+   * @throws {RangeError} If dateLastActivity is an invalid Date object.
+   * @throws {TypeError} If the card's list is missing.
    */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
@@ -227,7 +242,7 @@ export default class TrelloImport implements BaseImporter {
     return false;
   }
 
-  /** Replaces non-alphanumeric title characters with hyphens and limits length to 50. */
+  /** Replaces title characters outside ASCII letters and digits with hyphens and limits length to 50. */
   private sanitiseName(card: TrelloCardInfo) {
     return card.name.replace(/[^A-Za-z0-9]/g, '-').slice(0, min(50, card.name.length));
   }
