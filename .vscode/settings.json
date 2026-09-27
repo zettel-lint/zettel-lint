@@ -5,7 +5,4 @@
     ],
     "files.autoSave": "afterDelay",
     "files.autoSaveDelay": 250,
-    "chat.tools.terminal.autoApprove": {
-        "markdownlint-cli2": true
-    },
 }
