@@ -103,8 +103,9 @@ export class Templator {
                                     };
                                 }
 
-                                return view[tag].sort(
-                                   comparator);
+                                const list = view[tag];
+                                if (!Array.isArray(list)) return [];
+                                return [...list].sort(comparator);
                             }
                         })
                         ntag = sorted;
