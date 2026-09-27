@@ -444,7 +444,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags: Important Bug_Fix');
+      expect(content).toContain('tags: [Important, Bug_Fix]');
     });
 
     test('sets published flag based on list name', async () => {
@@ -895,7 +895,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags: Label_With_Spaces_');
+      expect(content).toContain('tags: [Label_With_Spaces_]');
     });
 
     test('processes board with all entity types', async () => {
