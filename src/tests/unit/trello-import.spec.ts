@@ -198,6 +198,15 @@ describe('TrelloImport', () => {
       expect(result).toContain('* [ ] Item 2');
     });
 
+    test('formats checklist item with string due date', () => {
+      const checkItem = createTrelloCheckItemInfo({ due: '2024-01-15T10:00:00.000Z' as any });
+      const checklist = createTrelloChecklistInfo({ checkItems: [checkItem] });
+
+      const result = importer.writeCheckList(checklist);
+
+      expect(result).toContain('due:2024-01-15T10:00:00.000Z');
+    });
+
     test('formats checklist item without due date', () => {
       const checkItem = createTrelloCheckItemInfo({ due: undefined as any });
       const checklist = createTrelloChecklistInfo({ checkItems: [checkItem] });
@@ -419,7 +428,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags:Important #Bug_Fix');
+      expect(content).toContain('tags: [Important, Bug_Fix]');
     });
 
     test('sets published flag based on list name', async () => {
@@ -870,7 +879,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags:Label_With_Spaces_');
+      expect(content).toContain('tags: [Label_With_Spaces_]');
     });
 
     test('processes board with all entity types', async () => {
