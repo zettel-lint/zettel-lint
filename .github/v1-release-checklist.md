@@ -7,59 +7,59 @@ This checklist covers repository administrative settings, security configuration
 ## 1. GitHub Repository Settings & Branding
 - [ ] **Repository Description & Website**: Ensure the repository description, tags/topics (`zettelkasten`, `markdown`, `linter`, `cli`, `typescript`), and website URL are configured in GitHub **Settings > General**.
 - [ ] **Social Preview Image**: Upload a social preview image under **Settings > General > Social preview**.
-- [ ] **Default Branch Protection Rules**:
+- [x] **Default Branch Protection Rules**:
   - Go to **Settings > Branches** and enable branch protection for `main`.
-  - [ ] Require pull request reviews before merging.
-  - [ ] Require status checks to pass before merging (`Node.js CI`, CodeQL, etc.).
-  - [ ] Require signed commits (optional, recommended).
-  - [ ] Require linear history (optional).
+  - [x] Require pull request reviews before merging.
+  - [x] Require status checks to pass before merging (`Node.js CI`, CodeQL, etc.).
+  - [x] Require signed commits (optional, recommended).
+  - [x] Require linear history (optional).
 
 ---
 
 ## 2. Security & Vulnerability Management
-- [ ] **Dependabot Alerts & Security Updates**:
+- [x] **Dependabot Alerts & Security Updates**:
   - Go to **Settings > Code security and analysis**.
-  - [ ] Enable **Dependabot alerts**.
-  - [ ] Enable **Dependabot security updates**.
-- [ ] **Secret Scanning & Push Protection**:
-  - [ ] Enable **Secret scanning** (if available for public repository/tier).
-  - [ ] Enable **Push protection**.
-- [ ] **Private Vulnerability Reporting**:
-  - [ ] Enable **Private vulnerability reporting** in **Settings > Code security and analysis** so researchers can report security issues directly.
+  - [x] Enable **Dependabot alerts**.
+  - [x] Enable **Dependabot security updates**.
+- [x] **Secret Scanning & Push Protection**:
+  - [x] Enable **Secret scanning** (if available for public repository/tier).
+  - [x] Enable **Push protection**.
+- [x] **Private Vulnerability Reporting**:
+  - [x] Enable **Private vulnerability reporting** in **Settings > Code security and analysis** so researchers can report security issues directly.
 
 ---
 
 ## 3. CI/CD Publishing & Permissions
 
-- [ ] **npm Trusted Publishing**:
-  - [ ] Configure npm trusted publishing for package `zettel-lint`, repository
+- [x] **npm Trusted Publishing**:
+  - [x] Configure npm trusted publishing for package `zettel-lint`, repository
     `zettel-lint/zettel-lint`, and workflow
     `.github/workflows/npm-publish.yml`.
-  - [ ] For eligible public package publishes from a public repository, npm
+  - [x] For eligible public package publishes from a public repository, npm
     generates provenance automatically when trusted publishing is used.
-- [ ] **GitHub Actions Workflow Permissions**:
+- [x] **GitHub Actions Workflow Permissions**:
   - Go to **Settings > Actions > General**.
-  - [ ] Keep default workflow permissions read-only. Grant write permissions
+  - [x] Keep default workflow permissions read-only. Grant write permissions
     only to workflows or jobs that need them for version updates, tags, or
     releases.
 
 ---
 
 ## 4. Issue & Community Features
-- [ ] **GitHub Discussions**:
+- [x] **GitHub Discussions**:
   - Go to **Settings > General** and enable **Discussions** for community Q&A, feature ideas, and announcements.
 - [ ] **Issue Labels**:
   - Review and normalize issue labels in **Issues > Labels** (e.g. `bug`, `enhancement`, `documentation`, `good first issue`, `help wanted`, `1.0.0`).
-- [ ] **Milestone 1.0.0**:
+- [x] **Milestone 1.0.0**:
   - Create a `1.0.0` milestone in **Issues > Milestones** and assign remaining 1.0.0 issues.
 
 ---
 
 ## 5. Package Registry & External Services
-- [ ] **NPM Package Management**:
-  - [ ] Verify package ownership and maintainers on `npmjs.com/package/zettel-lint`.
-- [ ] **Integration Services (if applicable)**:
-  - [ ] Verify Codacy / Codecov / CodeQL integrations have appropriate repository permissions and webhooks active.
+- [x] **NPM Package Management**:
+  - [x] Verify package ownership and maintainers on `npmjs.com/package/zettel-lint`.
+- [x] **Integration Services (if applicable)**:
+  - [x] Verify Codacy / Codecov / CodeQL integrations have appropriate repository permissions and webhooks active.
 
 ---
 
