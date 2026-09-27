@@ -49,20 +49,15 @@ jobs:
         run: |
           git checkout -b bump-version-${{ env.new_version }}
 
-      - name: Update version references
+      - name: Update version in TypeScript file
         run: |
           sed -i 's/version = "${{ env.current_version }}"/version = "${{ env.new_version }}"/' src/zl.ts
-          if ! grep -Fq "| ${current_version} (latest)" .github/SECURITY.md; then
-            echo "::error::Could not find the current package version in .github/SECURITY.md"
-            exit 1
-          fi
-          sed -i "s|${current_version} (latest)|${new_version} (latest)|" .github/SECURITY.md
 
       - name: Commit changes
         run: |
           npm ci
           npm test
-          git add package.json package-lock.json src/zl.ts .github/SECURITY.md
+          git add package.json package-lock.json src/zl.ts
           git commit -m "chore: bump version to ${{ env.new_version }}"
           git push origin bump-version-${{ env.new_version }}
 
@@ -84,7 +79,6 @@ jobs:
             - package.json: Updated version to ${{ env.new_version }}
             - package-lock.json: Updated version to ${{ env.new_version }}
             - src/zl.ts: Updated version string to ${{ env.new_version }}
-            - .github/SECURITY.md: Updated the supported version.
 
             The Bump Patch Version workflow automatically created this PR.
 
