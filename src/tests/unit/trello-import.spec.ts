@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
+import { parse } from 'yaml';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -136,6 +137,140 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', cardWithDateStr, {}, lists);
       const filename2 = vi.mocked(fs.writeFile).mock.calls[1][0] as string;
       expect(filename2).toContain('20240115103045-String-Test.md');
+    });
+  });
+
+  describe('date and frontmatter regressions', () => {
+    beforeEach(() => {
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    });
+
+    test.each([
+      ['leap day Date', new Date('2024-02-29T00:01:02.987Z'), '20240229000102'],
+      ['leap day JSON string', '2024-02-29T00:01:02.987Z', '20240229000102'],
+      ['string without milliseconds', '2025-01-01T00:00:00Z', '20250101000000'],
+      ['year end', new Date('2024-12-31T23:59:59.999Z'), '20241231235959'],
+      ['Date with timezone offset', new Date('2025-01-01T00:30:00+01:00'), '20241231233000'],
+    ])('uses a second-precision filename for %s', async (_name, dateLastActivity, timestamp) => {
+      const card = createTrelloCardInfo({ name: 'Date Test', dateLastActivity });
+
+      expect(await importer.writeCard('/output/', options, 'Board', card, {}, {
+        list1: createTrelloListInfo(),
+      })).toBe(true);
+
+      expect(fs.writeFile).toHaveBeenCalledExactlyOnceWith(
+        `/output/${timestamp}-Date-Test.md`, expect.any(String), {},
+      );
+    });
+
+    test('rejects an invalid activity Date before writing a file', async () => {
+      const card = createTrelloCardInfo({ dateLastActivity: new Date(NaN) });
+
+      await expect(importer.writeCard('/output/', options, 'Board', card, {}, {
+        list1: createTrelloListInfo(),
+      })).rejects.toThrow(RangeError);
+
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      { name: 'no labels', labels: [], tags: [] },
+      { name: 'one label', labels: [{ id: 'one', name: 'First Label' }], tags: ['First_Label'] },
+      { name: 'unnamed labels', labels: [{ id: 'empty', name: '' }, { id: 'null', name: null }, { id: 'missing' }], tags: [] },
+      {
+        name: 'unnamed labels between valid labels',
+        labels: [{ id: 'one', name: 'First' }, { id: 'empty', name: '' }, { id: 'two', name: 'Last' }],
+        tags: ['First', 'Last'],
+      },
+      {
+        name: 'punctuation, Unicode and digits',
+        labels: [{ id: 'one', name: 'AZaz09 /:[]#' }, { id: 'two', name: 'café' }, { id: 'three', name: '123abc' }],
+        tags: ['AZaz09______', 'caf_', '123abc'],
+      },
+    ])('writes a parseable YAML tag array for $name', async ({ labels, tags }) => {
+      const card = createTrelloCardInfo({ labels });
+
+      expect(await importer.writeCard('/output/', options, 'Board', card, {}, {
+        list1: createTrelloListInfo(),
+      })).toBe(true);
+
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain(`\ntags: [${tags.join(', ')}]\n`);
+      expect(parse(content.split('---')[1]).tags).toEqual(tags);
+    });
+
+    test.each([
+      ['empty', '', ''],
+      ['ASCII letters and digits', 'AZaz09', 'AZaz09'],
+      ['path separators and newlines', 'A/B\\C\nD:é', 'A-B-C-D--'],
+      ['49 characters', 'a'.repeat(49), 'a'.repeat(49)],
+      ['50 characters', 'a'.repeat(50), 'a'.repeat(50)],
+      ['51 characters', 'a'.repeat(50) + 'b', 'a'.repeat(50)],
+    ])('sanitizes the filename for a title with %s', async (_name, name, basename) => {
+      expect(await importer.writeCard('/output/', options, 'Board', createTrelloCardInfo({ name }), {}, {
+        list1: createTrelloListInfo(),
+      })).toBe(true);
+
+      expect(fs.writeFile).toHaveBeenCalledExactlyOnceWith(
+        `/output/20240115100000-${basename}.md`, expect.any(String), {},
+      );
+    });
+
+    test('renders checklist JSON dates in UTC while preserving undated items and completion states', () => {
+      const checklist = createTrelloChecklistInfo({
+        name: 'Release',
+        checkItems: [
+          createTrelloCheckItemInfo({ name: 'Offset', due: '2025-01-01T00:30:00.125+02:00', state: 'complete' }),
+          createTrelloCheckItemInfo({ name: 'Leap day', due: '2024-02-29' }),
+          createTrelloCheckItemInfo({ name: 'Null due', due: null }),
+          createTrelloCheckItemInfo({ name: 'Missing due', due: undefined }),
+          createTrelloCheckItemInfo({ name: 'Empty due', due: '', state: 'complete' }),
+        ],
+      });
+
+      expect(importer.writeCheckList(checklist)).toBe(
+        '### Release\n\n' +
+        '* [X] Offset due:2024-12-31T22:30:00.125Z\n' +
+        '* [ ] Leap day due:2024-02-29T00:00:00.000Z\n' +
+        '* [ ] Null due\n* [ ] Missing due\n* [X] Empty due',
+      );
+    });
+
+    test.each(['not-a-date', new Date(NaN)])('rejects invalid checklist due date %s', due => {
+      const checklist = createTrelloChecklistInfo({ checkItems: [createTrelloCheckItemInfo({ due })] });
+      expect(() => importer.writeCheckList(checklist)).toThrow(RangeError);
+    });
+
+    test('imports serialized activity and checklist dates into the same note', async () => {
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({
+          dateLastActivity: new Date('2024-02-29T00:01:02.987Z'),
+          idChecklists: ['checklist1'],
+          labels: [createTrelloLabelInfo({ name: 'First Label' }), createTrelloLabelInfo({ name: 'Second' })],
+        })],
+        lists: [createTrelloListInfo()],
+        checklists: [createTrelloChecklistInfo({
+          checkItems: [createTrelloCheckItemInfo({ due: new Date('2024-03-01T00:00:00Z') })],
+        })],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+      const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      try {
+        expect(await importer.importAsync('board.json', '/output/', options)).toEqual({
+          success: true, message: '1 cards found; 1 notes created.',
+        });
+        expect(fs.writeFile).toHaveBeenCalledExactlyOnceWith(
+          '/output/20240229000102-Test-Card.md', expect.any(String), {},
+        );
+        const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+        expect(parse(content.split('---')[1]).tags).toEqual(['First_Label', 'Second']);
+        expect(content).toContain('* [ ] Test item due:2024-03-01T00:00:00.000Z');
+      } finally {
+        warning.mockRestore();
+      }
     });
   });
 

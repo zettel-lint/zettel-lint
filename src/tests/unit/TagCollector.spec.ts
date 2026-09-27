@@ -66,3 +66,25 @@ test('empty file has no tags', () => {
     expect(sut.collect("Sometimes a #parent[child tag is #nested]."))
       .toEqual(["#parent", "#nested"]);
   });
+
+// Legacy programmatic options no longer suppress numeric tags.
+test.each([
+  ['default options', {}],
+  ['camel-case legacy option', { ignoreNumericTags: true }],
+  ['hyphenated legacy option', { 'ignore-numeric-tags': true }],
+])('retains numeric inline and YAML tags with %s', (_name, options) => {
+  const sut = new TagCollector();
+  const content = '---\ntags: [123, "2026-plan", project]\n---\nBody #456 #7days #project';
+
+  expect(sut.collector('note.md', content, options)).toEqual([
+    '#456', '#7days', '#project', '#123', '#2026-plan', '#project',
+  ]);
+});
+
+test('retains numeric tags from scalar frontmatter without keeping empty tags', () => {
+  const sut = new TagCollector();
+
+  expect(sut.collector('note.md', '---\ntags: "123  4work #"\n---\n', {
+    ignoreNumericTags: true,
+  })).toEqual(['#123', '#4work']);
+});

@@ -28,3 +28,13 @@ describe('indexerCommand', () => {
       expect(opts.opts().verbose).toBe(true);
     });
 });
+
+  test('rejects the removed --ignore-numeric-tags option before indexing', () => {
+    const command = indexerCommand()
+      .exitOverride()
+      .configureOutput({ writeErr: () => {} });
+
+    expect(command.helpInformation()).not.toContain('--ignore-numeric-tags');
+    expect(() => command.parse(['--ignore-numeric-tags'], { from: 'user' }))
+      .toThrow("unknown option '--ignore-numeric-tags'");
+  });

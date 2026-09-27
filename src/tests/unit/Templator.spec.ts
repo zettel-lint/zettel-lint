@@ -1547,3 +1547,37 @@ title: References
       expect(result).not.toContain("#work"); // Filtered out
     });
   });
+
+  describe('single-function query regressions', () => {
+    test.each(['set', 'SET', 'SeT', 'reverse'])('reports unsupported %s without rendering its body', fn => {
+      const sut = new Templator([
+        { id: 'one', title: 'One', filename: 'one.md', wikiname: 'one', fullpath: '/one.md', matchData: { Tags: ['#work', '#work'] } },
+      ], [new TagCollector()]);
+
+      expect(sut.render(`{{?Tags?${fn}()//}}unexpected:{{key}}{{/?Tags}}`))
+        .toBe('{{`unknown function: ' + fn + '`}}');
+    });
+
+    test('sorts by an argument with stable ties and missing or empty values last', () => {
+      const sut = new Templator([
+        { id: 'one', title: 'One', filename: 'one.md', wikiname: 'one', fullpath: '/one.md', matchData: { Tasks: [
+          'No priority', 'Later pri:2', 'First pri:1', 'Tied pri:1', 'Empty pri:',
+        ] } },
+      ], [new TaskCollector()]);
+
+      expect(sut.render('{{?Tasks?sOrT(pri)//}}{{key}};{{/?Tasks}}'))
+        .toBe('First pri:1;Tied pri:1;Later pri:2;No priority;Empty pri:;');
+    });
+
+    test('keeps each sort and filter independent across repeated renders', () => {
+      const sut = new Templator([
+        { id: 'one', title: 'One', filename: 'one.md', wikiname: 'one', fullpath: '/one.md', matchData: { Tasks: ['Alpha pri:2', 'Zulu pri:1', 'Undated'] } },
+      ], [new TaskCollector()]);
+      const template = '{{?Tasks?sort(pri)/pri:/}}{{key}};{{/?Tasks}}|' +
+        '{{?Tasks?sort()//}}{{key}};{{/?Tasks}}';
+      const expected = 'Zulu pri:1;Alpha pri:2;|Alpha pri:2;Undated;Zulu pri:1;';
+
+      expect(sut.render(template)).toBe(expected);
+      expect(sut.render(template)).toBe(expected);
+    });
+  });
