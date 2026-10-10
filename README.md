@@ -117,9 +117,9 @@ Options:
 * `-p, --path <path>` - Root path for search (default: ".")
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
 * `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: ".")
-* `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`)
+* `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`, `id-to-wiki-links`)
 * `-f, --property-filter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
-  * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first. 
+  * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first.
 * `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
 * `-v, --verbose` - Show additional output
 
@@ -129,6 +129,7 @@ Options:
 * `inline-properties-to-frontmatter` - Ensure YAML frontmatter is correctly formatted, with inline properties moved to frontmatter if specified
   * If `--move` is specified, inline properties will be moved to frontmatter instead of copied
   * This is useful for moving Obsidian dataview properties to YAML frontmatter
+* `id-to-wiki-links` - Convert numeric `[id]` links (e.g. `[20230901]`) into `[[wiki-links]]` based on target note filenames. Replaces the legacy `zl notes -w, --wiki-links-from-id` option.
 
 ### notes (alias: update)
 
@@ -140,7 +141,7 @@ Options:
 
 * `-p, --path <path>` - Root path for search (default: ".")
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
-* `-w, --wiki-links-from-id` - Convert [id]-style links into [[wiki-links]]
+* `-w, --wiki-links-from-id` - Convert [id]-style links into [[wiki-links]] *(Deprecated: use `zl fix --rules id-to-wiki-links` instead)*
 * `-o, --show-orphans` - Output list of orphaned links to console
 * `--json-debug-output` - Output JSON intermediate representations
 * `--no-wiki` - Disable wiki-style links

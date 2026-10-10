@@ -1,6 +1,6 @@
 ---
-created: 2025-08-28T23:48:16.471Z
-modified: 2025-08-28T23:48:16.472Z
+created: 2026-10-10T14:33:14.076Z
+modified: 2026-10-10T14:33:14.076Z
 title: References
 ---
 
@@ -21,7 +21,7 @@ title: References
   * [00000001], [00000000], 
   * No backlinks
 * [Readme][README] = `README.md`:
-  * [00000001], [00000000], [[wiki-links]], [[wiki]], [00000000], 
+  * [00000001], [00000000], [20230901], [[wiki-links]], [[wiki-links]], [[wiki]], [00000000],
   * No backlinks
 * [Contributing to the project][CONTRIBUTING] = `CONTRIBUTING.md`:
   * [[WikiLinks]], [[like-this]], 
@@ -44,7 +44,7 @@ title: References
 <summary>Show Orphans</summary>
 
 *  `tasks`: [[xxxxxxxxxxxxx]], 
-*  `README`: [[wiki-links]], [[wiki]], 
+*  `README`: [20230901], [[wiki-links]], [[wiki-links]], [[wiki]],
 *  `CONTRIBUTING`: [[WikiLinks]], [[like-this]], 
 
 </details>

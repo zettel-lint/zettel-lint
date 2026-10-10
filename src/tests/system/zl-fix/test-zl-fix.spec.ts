@@ -11,10 +11,10 @@ describe("zl-fix system test", () => {
     const inputDir = join(testDir, "inputs");
     const outputDir = join(testDir, "outputs");
 
-    const command = `npm run-script zl -- fix -v --move --rules trailing-newline inline-properties-to-frontmatter --property-filter "^inline$"` +
+    const command = `npm run-script zl -- fix -v --move --rules trailing-newline inline-properties-to-frontmatter id-to-wiki-links --property-filter "^inline$"` +
       ` --path "${inputDir}"` +
       ` --output-dir "${outputDir}"`;
-      
+
     execSync(command, { cwd: packageDir });
   });
 
@@ -22,6 +22,7 @@ describe("zl-fix system test", () => {
     ["trailingNewline.md"],
     ["formatFrontmatter.md"],
     ["formatFrontmatterWithRegex.md"],
+    ["idToWikiLinks.md"],
   ])("should generate a %s file matching the expected output, ignoring timestamps", (filename: string) => {
   const expectedOutputFile = join(__dirname, "expected", filename);
   const outputFile = join(__dirname, "outputs", filename);
