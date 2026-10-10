@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve zettel-lint
-title: '[BUG] '
+title: 'BUG: '
 labels: bug
 assignees: ''
 ---
@@ -19,9 +19,9 @@ Steps to reproduce the behavior:
 A clear and concise description of what you expected to happen.
 
 **Environment:**
- - OS: [e.g. Linux, macOS, Windows]
- - Node.js version: [e.g. 20.x]
- - `zettel-lint` version: [e.g. 0.13.14]
+- OS: Linux, macOS, or Windows
+- Node.js version: 20.x
+- zettel-lint version: 0.13.14
 
 **Additional context**
 Add any other context about the problem here.
