@@ -61,6 +61,7 @@ export type SearchPattern = string & { readonly [searchPatternBrand]: true };
 export function toFilePath(value: string): FilePath {
   if (
     value.startsWith("/") ||
+    /^[A-Za-z]:/.test(value) ||
     value.includes("\\") ||
     value.split("/").some(segment => segment === "." || segment === ".." || (segment === "" && value !== ""))
   ) {
@@ -92,7 +93,7 @@ export interface FileAdapter {
 `FilePath` represents either a file or directory path; its use as a file or directory is determined by the adapter method. These branded string types prevent accidental interchange with ordinary strings, and their constructors validate the shared path conventions.
 An omitted or empty `include` array imposes no include restriction; an omitted or empty `exclude` array excludes nothing. A listed file must match at least one include pattern when includes are provided, and must not match any exclude pattern. Exclusions take precedence. Patterns use the same root-relative glob syntax as `SearchPattern`.
 
-In the CLI tool, a `NodeFileAdapter` wrapping `node:fs` and `glob` will be used.
+In the CLI tool, a `NodeFileAdapter` wrapping `node:fs` and `glob` will be used. It must enforce containment within its configured root for all file and directory operations, including glob results and paths resolved through symbolic links; reject any path that resolves outside that root.
 In the Obsidian plugin, an `ObsidianVaultAdapter` wrapping `app.vault` will be passed to `zettel-lint`:
 
 ```typescript
@@ -127,6 +128,13 @@ export class ObsidianVaultAdapter implements FileAdapter {
     if (file instanceof TFile) {
       await this.vault.modify(file, content);
     } else {
+      const segments = path.split("/");
+      for (let i = 1; i < segments.length; i++) {
+        const parentPath = segments.slice(0, i).join("/");
+        if (!this.vault.getAbstractFileByPath(parentPath)) {
+          await this.vault.createFolder(parentPath);
+        }
+      }
       await this.vault.create(path, content);
     }
   }
@@ -224,10 +232,10 @@ We strongly recommend **Option A (Separate Repository)** for the following reaso
    - Initialize `zettel-lint/obsidian-zettel-lint` using the official `obsidianmd/obsidian-sample-plugin` template.
    - Install `zettel-lint` as a dependency (`npm install zettel-lint`).
 2. **Implement `ObsidianVaultAdapter`:**
-   - Create vault adapter translating Obsidian's `Vault` API (`read`, `modify`, `create`, `getMarkdownFiles`) into `zettel-lint`'s `FileAdapter`.
+   - Create vault adapter translating Obsidian's `Vault` API (`read`, `modify`, `createFolder`, `create`, `getMarkdownFiles`) into `zettel-lint`'s `FileAdapter`.
 3. **Implement UI Integration:**
    - Create `ZettelLintSettingTab` for configuration options.
-   - Register commands: `Index Vault`, `Fix Current Note`, `Fix Vault`.
+   - Register commands: `Generate Index / References`, `Fix Current File`, `Fix All Notes in Vault` (see Section 4).
    - Add status notifications using Obsidian `Notice`.
 4. **Build & Package:**
    - Configure `esbuild` to bundle `main.ts` and dependencies into `main.js`.
