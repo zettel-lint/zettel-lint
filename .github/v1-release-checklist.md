@@ -33,15 +33,16 @@ This checklist covers repository administrative settings, security configuration
 
 - [x] **npm Trusted Publishing**:
   - [x] Configure npm trusted publishing for package `zettel-lint`, repository
-    `zettel-lint/zettel-lint`, and workflow
-    `.github/workflows/npm-publish.yml`.
+    `zettel-lint/zettel-lint`, and workflow filename `npm-publish.yml`.
+    `.github/workflows/npm-publish.yml` is the repository location of the
+    workflow file.
   - [x] For eligible public package publishes from a public repository, npm
     generates provenance automatically when trusted publishing is used.
 - [x] **GitHub Actions Workflow Permissions**:
   - Go to **Settings > Actions > General**.
-  - [x] Keep default workflow permissions read-only. Grant write permissions
-    only to workflows or jobs that need them for version updates, tags, or
-    releases.
+  - [x] Use least-privilege permissions. Grant `contents: write` only to
+    workflows or jobs that create tags or releases, and keep broader
+    permissions narrower elsewhere.
 
 ---
 
