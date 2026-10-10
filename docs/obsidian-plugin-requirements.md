@@ -52,43 +52,22 @@ To support Obsidian (and future non-CLI environments like VS Code extensions or 
 
 ```typescript
 export interface FileAdapter {
-  listFiles(
-    include?: string[],
-    exclude?: string[],
-  ): Promise<string[]>;
+  listFiles(pattern?: string): Promise<string[]>;
   readFile(path: string): Promise<string>;
   writeFile(path: string, content: string): Promise<void>;
   mkdir?(path: string): Promise<void>;
 }
 ```
 
-`listFiles` applies filtering inside the adapter: return Markdown paths matching at least one include glob and no exclude glob. An omitted or empty `include` array adds no include restriction; an omitted or empty `exclude` array adds no exclusions. Exclude matches always take precedence. Paths and patterns are relative to the adapter's root (the configured search root for Node, the vault root for Obsidian), using `/` separators.
-
-Glob matching must be independent of Obsidian APIs and Node file I/O. Use a shared, browser-compatible pure matcher with the same glob syntax and matching options as Node discovery, including its default handling of dotfiles. The `matchesGlob` function injected below represents that shared matcher; it must match the complete relative path, so `archive/**` excludes descendants of `archive` without excluding similarly named directories elsewhere.
-
-In the CLI tool, a `NodeFileAdapter` wrapping `node:fs` and `glob` will be used. Existing discovery in `src/zl-index.ts` calls `glob(program.path + "/**/*.md", { ignore: ignoreList })`, where `ignoreList` contains `program.path + "/**/node_modules/**"`, `program.referenceFile`, and every supplied `program.ignoreDirs` pattern. Preserve these exclusions, including individual file patterns and recursive directory globs, when introducing the adapter. Translate the existing CLI paths and patterns into the adapter's root-relative namespace without changing which files they match (resolving working-directory-relative or absolute patterns against the configured root as needed). Keep Node's `glob` ignore behavior, including pruning ignored directory trees, rather than replacing it with directory-name comparisons.
-
-The core builds the include and exclude arrays and calls `adapter.listFiles(include, exclude)` for either adapter. For indexing, pass `['**/*.md']` as the include array and combine `['**/node_modules/**']`, the root-relative reference-file path, and the translated `ignoreDirs` patterns into the exclude array. For example, with the default root and output, ignoring `archive/**` and `AGENTS.md` gives `adapter.listFiles(['**/*.md'], ['**/node_modules/**', 'references.md', 'archive/**', 'AGENTS.md'])`. Plugin settings supply vault-relative patterns directly. Neither adapter may drop the default exclusions when user exclusions are supplied.
-
+In the CLI tool, a `NodeFileAdapter` wrapping `node:fs` and `glob` will be used.
 In the Obsidian plugin, an `ObsidianVaultAdapter` wrapping `app.vault` will be passed to `zettel-lint`:
 
 ```typescript
 export class ObsidianVaultAdapter implements FileAdapter {
-  constructor(
-    private vault: Vault,
-    private matchesGlob: (path: string, pattern: string) => boolean,
-  ) {}
+  constructor(private vault: Vault) {}
 
-  async listFiles(
-    include?: string[],
-    exclude?: string[],
-  ): Promise<string[]> {
-    return this.vault.getMarkdownFiles()
-      .map(f => f.path)
-      .filter(path =>
-        (!include?.length || include.some(pattern => this.matchesGlob(path, pattern))) &&
-        !exclude?.some(pattern => this.matchesGlob(path, pattern))
-      );
+  async listFiles(): Promise<string[]> {
+    return this.vault.getMarkdownFiles().map(f => f.path);
   }
 
   async readFile(path: string): Promise<string> {
@@ -133,9 +112,12 @@ Key requirements for core logic:
 The plugin wrapper will expose `zettel-lint` functionality through standard Obsidian UI components:
 
 1. **Commands (Command Palette):**
-   - `Zettel Lint: Generate Index / References`: Runs `zl index` over the vault using active settings and template.
-   - `Zettel Lint: Fix Current File`: Applies active fix rules to the currently open Markdown note.
-   - `Zettel Lint: Fix All Notes in Vault`: Applies active fix rules vault-wide.
+
+   > **Display prefix:** Obsidian adds `Zettel Lint:` to command names using the plugin name from the `manifest.json` metadata defined in the lifecycle section. Do not include this prefix in the command names registered by the plugin.
+
+   - `Generate Index / References`: Runs `zl index` over the vault using active settings and template.
+   - `Fix Current File`: Applies active fix rules to the currently open Markdown note.
+   - `Fix All Notes in Vault`: Applies active fix rules vault-wide.
 2. **Plugin Settings Tab (`PluginSettingTab`):**
    - **Indexer Settings:** Reference file path (default: `references.md`), Mustache template path/content, ignore directory globs, task display format (`none`, `by-file`, `by-priority`), ignore numeric tags toggle, wiki-link format toggle.
    - **Fixer Settings:** Enabled rules (e.g. `trailing-newline`, `inline-properties-to-frontmatter`), property filter regex patterns, move vs copy inline properties toggle.
