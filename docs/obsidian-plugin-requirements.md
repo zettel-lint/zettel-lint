@@ -51,26 +51,70 @@ Currently, `zettel-lint` uses Node's `fs` (`fs.promises`) and `glob` to scan dir
 To support Obsidian (and future non-CLI environments like VS Code extensions or web tools), `zettel-lint` core must decouple file I/O using an abstract file system interface:
 
 ```typescript
+declare const filePathBrand: unique symbol;
+declare const searchPatternBrand: unique symbol;
+
+export type FilePath = string & { readonly [filePathBrand]: true };
+export type SearchPattern = string & { readonly [searchPatternBrand]: true };
+
+// Paths are normalized, root-relative paths using `/`; the empty path denotes the root.
+export function toFilePath(value: string): FilePath {
+  if (
+    value.startsWith("/") ||
+    value.includes("\\") ||
+    value.split("/").some(segment => segment === "." || segment === ".." || (segment === "" && value !== ""))
+  ) {
+    throw new Error(`Invalid root-relative path: ${value}`);
+  }
+  return value as FilePath;
+}
+
+export function toSearchPattern(value: string): SearchPattern {
+  if (
+    value.length === 0 ||
+    value.startsWith("/") ||
+    value.includes("\\") ||
+    value.split("/").some(segment => segment === "." || segment === ".." || segment === "")
+  ) {
+    throw new Error(`Invalid root-relative glob pattern: ${value}`);
+  }
+  return value as SearchPattern;
+}
+
 export interface FileAdapter {
-  listFiles(pattern?: string): Promise<string[]>;
-  readFile(path: string): Promise<string>;
-  writeFile(path: string, content: string): Promise<void>;
-  mkdir?(path: string): Promise<void>;
+  listFiles(include?: SearchPattern[], exclude?: SearchPattern[]): Promise<FilePath[]>;
+  readFile(path: FilePath): Promise<string>;
+  writeFile(path: FilePath, content: string): Promise<void>;
+  mkdir?(path: FilePath): Promise<void>;
 }
 ```
+
+`FilePath` represents either a file or directory path; its use as a file or directory is determined by the adapter method. These branded string types prevent accidental interchange with ordinary strings, and their constructors validate the shared path conventions.
+An omitted or empty `include` array imposes no include restriction; an omitted or empty `exclude` array excludes nothing. A listed file must match at least one include pattern when includes are provided, and must not match any exclude pattern. Exclusions take precedence. Patterns use the same root-relative glob syntax as `SearchPattern`.
 
 In the CLI tool, a `NodeFileAdapter` wrapping `node:fs` and `glob` will be used.
 In the Obsidian plugin, an `ObsidianVaultAdapter` wrapping `app.vault` will be passed to `zettel-lint`:
 
 ```typescript
 export class ObsidianVaultAdapter implements FileAdapter {
-  constructor(private vault: Vault) {}
+  constructor(
+    private vault: Vault,
+    private matchesGlob: (path: FilePath, pattern: SearchPattern) => boolean,
+  ) {}
 
-  async listFiles(): Promise<string[]> {
-    return this.vault.getMarkdownFiles().map(f => f.path);
+  async listFiles(
+    include?: SearchPattern[],
+    exclude?: SearchPattern[],
+  ): Promise<FilePath[]> {
+    return this.vault.getMarkdownFiles()
+      .map(file => toFilePath(file.path))
+      .filter(path =>
+        (!include?.length || include.some(pattern => this.matchesGlob(path, pattern))) &&
+        !exclude?.some(pattern => this.matchesGlob(path, pattern))
+      );
   }
 
-  async readFile(path: string): Promise<string> {
+  async readFile(path: FilePath): Promise<string> {
     const file = this.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
       return await this.vault.read(file);
@@ -78,7 +122,7 @@ export class ObsidianVaultAdapter implements FileAdapter {
     throw new Error(`File not found: ${path}`);
   }
 
-  async writeFile(path: string, content: string): Promise<void> {
+  async writeFile(path: FilePath, content: string): Promise<void> {
     const file = this.vault.getAbstractFileByPath(path);
     if (file instanceof TFile) {
       await this.vault.modify(file, content);
@@ -101,7 +145,7 @@ export { fixNotesCore, fixContent } from './zl-fix.js';
 export { Templator } from './Templator.js';
 export * from './collectors/index.js';
 export * from './rules/index.js';
-export type { FileAdapter, ZlIndexOptions, ZlFixOptions } from './types.js';
+export type { FileAdapter, FilePath, SearchPattern, ZlIndexOptions, ZlFixOptions } from './types.js';
 ```
 
 Key requirements for core logic:
