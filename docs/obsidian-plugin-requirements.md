@@ -112,12 +112,9 @@ Key requirements for core logic:
 The plugin wrapper will expose `zettel-lint` functionality through standard Obsidian UI components:
 
 1. **Commands (Command Palette):**
-
-   > **Display prefix:** Obsidian adds `Zettel Lint:` to command names using the plugin name from the `manifest.json` metadata defined in the lifecycle section. Do not include this prefix in the command names registered by the plugin.
-
-   - `Generate Index / References`: Runs `zl index` over the vault using active settings and template.
-   - `Fix Current File`: Applies active fix rules to the currently open Markdown note.
-   - `Fix All Notes in Vault`: Applies active fix rules vault-wide.
+   - `Zettel Lint: Generate Index / References`: Runs `zl index` over the vault using active settings and template.
+   - `Zettel Lint: Fix Current File`: Applies active fix rules to the currently open Markdown note.
+   - `Zettel Lint: Fix All Notes in Vault`: Applies active fix rules vault-wide.
 2. **Plugin Settings Tab (`PluginSettingTab`):**
    - **Indexer Settings:** Reference file path (default: `references.md`), Mustache template path/content, ignore directory globs, task display format (`none`, `by-file`, `by-priority`), ignore numeric tags toggle, wiki-link format toggle.
    - **Fixer Settings:** Enabled rules (e.g. `trailing-newline`, `inline-properties-to-frontmatter`), property filter regex patterns, move vs copy inline properties toggle.
