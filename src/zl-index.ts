@@ -3,8 +3,8 @@
 import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
-import { promises as fs } from "fs";
 import { Command } from '@commander-js/extra-typings';
+import { FileAdapter, defaultFileAdapter } from "./file-adapter.js";
 import { TaskCollector } from "./collectors/TaskCollector.js";
 import { ContextCollector } from "./collectors/ContextCollector.js";
 import { TagCollector } from "./collectors/TagCollector.js";
@@ -16,7 +16,6 @@ import { idFromFilename } from "./file-handling.js";
 import { Templator } from "./Templator.js";
 import path from "path";
 import { fileURLToPath } from 'url';
-import { glob } from "glob";
 import { YAMLParseError } from "yaml";
 
 class ConfigurationError extends Error {
@@ -98,10 +97,10 @@ function printHeader(program: ZlIndexOptions): void {
 
 const collectors: Collector[] = [new WikiCollector, new ContextCollector, new TagCollector, new TaskCollector];
 
-export async function collectFromFile(filename: string, program: ZlIndexOptions): Promise<fileWikiLinks> {
+export async function collectFromFile(filename: string, program: ZlIndexOptions, adapter: FileAdapter = defaultFileAdapter): Promise<fileWikiLinks> {
   const titleReg = /^(?:title:|#) (.*)$/gm; // Without the global, the parser stack overflows
 
-  const contents = await fs.readFile(filename, "utf8");
+  const contents = await adapter.readFile(filename);
 
   var matchData: {[collector: string]: string[]} = {}
   collectors.forEach(element => {
@@ -133,8 +132,9 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
  * - Exits the process with code 1 when required output/template inputs are missing, or with code 2 when the overall parsing/rendering fails.
  *
  * @param program - Indexer options controlling paths, ignores, output/template locations, debug/verbose flags, and task/wiki behavior.
+ * @param adapter - Optional FileAdapter abstraction for file operations (defaults to NodeFileAdapter).
  */
-function indexer(program: ZlIndexOptions): Promise<void> {
+export function indexer(program: ZlIndexOptions, adapter: FileAdapter = defaultFileAdapter): Promise<void> {
   printHeader(program);
 
   var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
@@ -147,11 +147,11 @@ function indexer(program: ZlIndexOptions): Promise<void> {
     var references: fileWikiLinks[] = [];
 
     // options is optional
-    const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
+    const files = await adapter.listFiles(program.path + "/**/*.md", ignoreList);
 
     for await (const file of files) {
       try {
-        const wikiLinks = await collectFromFile(file, program);
+        const wikiLinks = await collectFromFile(file, program, adapter);
         if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
           references.push(wikiLinks);
         }
@@ -170,16 +170,16 @@ function indexer(program: ZlIndexOptions): Promise<void> {
     if (program.referenceFile && program.templateFile) {
       // Ensure the directory for the reference file exists
       const refDir = path.dirname(program.referenceFile);
-      await fs.mkdir(refDir, { recursive: true });
+      await adapter.mkdir(refDir);
 
-      const template = await fs.readFile(program.templateFile, "utf8");
+      const template = await adapter.readFile(program.templateFile);
       const templator = new Templator(references, collectors);
       if (program.verbose) {
       console.log(templator.enhance(template));
       }
       const formatted = templator.render(template);
 
-      await fs.writeFile(program.referenceFile, formatted);
+      await adapter.writeFile(program.referenceFile, formatted);
     } else {
       throw new ConfigurationError("No output or template file found");
     }
@@ -187,8 +187,8 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
   return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
-    (reason) => { 
-      console.error("Error: " + reason); 
+    (reason) => {
+      console.error("Error: " + reason);
       process.exitCode = reason instanceof ConfigurationError ? 1 : 2;
     }
   )

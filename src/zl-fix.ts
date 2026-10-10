@@ -1,6 +1,4 @@
 import { Command } from '@commander-js/extra-typings';
-import { glob } from "glob";
-import { promises as fs } from "fs";
 import { clear } from "console";
 import { join, relative, dirname } from "node:path";
 import chalk from "chalk";
@@ -8,8 +6,9 @@ import figlet from "figlet";
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from './rules/InlinePropertiesToFrontmatterRule.js';
 import { YAMLParseError } from 'yaml';
+import { FileAdapter, defaultFileAdapter } from "./file-adapter.js";
 
-interface ZlFixOptions {
+export interface ZlFixOptions {
   path: string; // Root path for search
   ignoreDirs: string[] | undefined; // Path(s) to ignore
   rules: string[]; // Fixing rules to apply
@@ -64,21 +63,12 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
  * applies each active rule in sequence to each file's contents, and writes changed files to the
  * configured output directory while preserving relative paths.
  *
- * program - Configuration for the run (path, rules, ignoreDirs, propertyFilter, outputDir, move, verbose).
- *
- * Side effects:
- * - May write updated files under `program.outputDir`.
- * - May create directories to mirror the input tree.
- * - Logs validation/errors and progress to the console.
- * - Sets `process.exitCode` to a non-zero value for certain failure conditions (invalid property-filter
- *   patterns => 2, runtime errors during processing => 2, no active rules specified => 3).
- *
- * The function resolves when processing completes; non-ENOENT file errors are propagated and will
- * be surfaced as failures (causing the process exit code to be set).
+ * @param program - Configuration for the run (path, rules, ignoreDirs, propertyFilter, outputDir, move, verbose).
+ * @param adapter - Optional FileAdapter abstraction for file operations (defaults to NodeFileAdapter).
  *
  * @returns A promise that resolves once all files have been processed.
  */
-async function fixNotes(program: ZlFixOptions): Promise<void> {
+export async function fixNotes(program: ZlFixOptions, adapter: FileAdapter = defaultFileAdapter): Promise<void> {
   // Convert propertyFilter strings to RegExp objects
   let propertyRegex: RegExp[] = [];
   if (program.propertyFilter && program.propertyFilter.length > 0) {
@@ -132,16 +122,16 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
   async function parseFiles() {
     printHeader(program);
 
-    const files = await glob(join(program.path, "**", "*.md"), { ignore: ignoreList });
+    const files = await adapter.listFiles(join(program.path, "**", "*.md"), ignoreList);
     console.log(files.length + " files found");
 
     if (program.verbose) {
       console.log("Collecting properties from files...");
     }
-    
+
     await Promise.all(files.map(async (filename) => {
       try {
-        const contents = await fs.readFile(filename, "utf8");
+        const contents = await adapter.readFile(filename);
         let newContents = contents; // Start with original contents
         let fileChanged = false;
         activeRules.forEach((rule) => {
@@ -157,9 +147,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
         if (fileChanged) {
           const relativePath = relative(program.path, filename);
           const outputPath = join(outputDir, relativePath);
-          const outputDirPath = dirname(outputPath);
-          await fs.mkdir(outputDirPath, { recursive: true }); // Ensure directory exists
-          await fs.writeFile(outputPath, newContents, "utf8");
+          await adapter.writeFile(outputPath, newContents);
           if (program.verbose) {
             console.log(`Updated file written to ${outputPath}`);
           }
@@ -178,7 +166,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
 
   try {
     await parseFiles(); // Await the async function
-  } catch (err) { 
+  } catch (err) {
     console.error(err);
     process.exitCode = 2;
   }
