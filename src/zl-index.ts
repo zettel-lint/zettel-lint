@@ -187,8 +187,8 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
   return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
-    (reason) => {
-      console.error("Error: " + reason);
+    (reason) => { 
+      console.error("Error: " + reason); 
       process.exitCode = reason instanceof ConfigurationError ? 1 : 2;
     }
   )

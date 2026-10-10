@@ -138,7 +138,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     if (program.verbose) {
       console.log("Collecting properties from files...");
     }
-
+    
     await Promise.all(files.map(async (filename) => {
       try {
         const contents = await fs.readFile(filename, "utf8");
@@ -178,7 +178,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
 
   try {
     await parseFiles(); // Await the async function
-  } catch (err) {
+  } catch (err) { 
     console.error(err);
     process.exitCode = 2;
   }
