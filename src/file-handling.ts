@@ -7,14 +7,16 @@
 export function idFromFilename(filename: string) : string {
   if (!filename) return '';
 
-  // Extract just the filename from the path without backtracking regex
-  const parts = filename.split(/[\/\\]/);
-  const match = parts[parts.length - 1];
+  // Extract just the filename from the path without regex to prevent ReDoS
+  const lastSlash = Math.max(filename.lastIndexOf('/'), filename.lastIndexOf('\\'));
+  const match = lastSlash !== -1 ? filename.slice(lastSlash + 1) : filename;
   if (!match) return '';
 
-  // Split the name before the first dot to handle multiple extensions
-  const withoutExt = match.split('.')[0];
+  // Get string before the first dot
+  const dotIndex = match.indexOf('.');
+  const withoutExt = dotIndex !== -1 ? match.slice(0, dotIndex) : match;
 
-  // Extract the ID before the first hyphen
-  return withoutExt.split('-')[0] ?? '';
+  // Get string before the first hyphen
+  const hyphenIndex = withoutExt.indexOf('-');
+  return hyphenIndex !== -1 ? withoutExt.slice(0, hyphenIndex) : withoutExt;
 }
