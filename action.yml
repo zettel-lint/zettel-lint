@@ -8,16 +8,6 @@ inputs:
     required: false
     default: '.'
 
-  force:
-    description: 'Force validation without confirmation prompts'
-    required: false
-    default: 'false'
-
-  format:
-    description: 'Output format (text, json, html)'
-    required: false
-    default: 'text'
-
   verbose:
     description: 'Enable verbose output'
     required: false
@@ -30,12 +20,9 @@ outputs:
   summary:
     description: 'Summary of lint results'
 
-  file:
-    description: 'Path to generated report file (if format=html or json)'
-
 runs:
   using: 'node20'
-  main: 'action.js'
+  main: 'dist/index.js'
 
 branding:
   icon: 'check-circle'

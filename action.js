@@ -1,37 +1,19 @@
 import { getInput, setFailed, setOutput } from '@actions/core';
 import { exec } from '@actions/exec';
+import { StringDecoder } from 'node:string_decoder';
 
 async function run() {
   try {
     // Get action inputs
     const path = getInput('path') || '.';
-    const force = getInput('force') === 'true';
-    const format = getInput('format') || 'text';
     const verbose = getInput('verbose') === 'true';
 
     // Build zettel-lint command
-    const command = 'npx zettel-lint';
-    const args = ['--path', path];
-
-    if (force) {
-      args.push('--force');
-    }
+    const command = 'npx';
+    const args = ['zettel-lint', 'index', '--path', path];
 
     if (verbose) {
       args.push('--verbose');
-    }
-
-    // Add format-specific arguments
-    switch (format) {
-      case 'json':
-        args.push('--format', 'json', '--output', 'zettel-lint-report.json');
-        break;
-      case 'html':
-        args.push('--format', 'html', '--output', 'zettel-lint-report.html');
-        break;
-      default:
-        // Default text output
-        break;
     }
 
     console.log(`Running: ${command} ${args.join(' ')}`);
@@ -39,34 +21,32 @@ async function run() {
     // Execute zettel-lint
     let output = '';
     let exitCode = 0;
+    const stdoutDecoder = new StringDecoder('utf8');
+    const stderrDecoder = new StringDecoder('utf8');
 
     try {
       exitCode = await exec(command, args, {
         ignoreReturnCode: true,
         listeners: {
           stdout: (data) => {
-            output += data.toString();
+            output += stdoutDecoder.write(data);
           },
           stderr: (data) => {
-            output += data.toString();
+            output += stderrDecoder.write(data);
           }
         }
       });
     } catch {
       exitCode = 2;
+    } finally {
+      output += stdoutDecoder.end();
+      output += stderrDecoder.end();
     }
 
     // Parse output and set results
     const result = exitCode === 0 ? 'success' : exitCode === 1 ? 'warning' : 'error';
     setOutput('result', result);
     setOutput('summary', output.substring(0, 1000)); // Truncate to 1000 chars
-
-    // Set report file path if generated
-    if (format === 'json') {
-      setOutput('file', 'zettel-lint-report.json');
-    } else if (format === 'html') {
-      setOutput('file', 'zettel-lint-report.html');
-    }
 
     // Print full output to action log
     console.log('\n=== Zettel Lint Output ===\n');
@@ -78,7 +58,7 @@ async function run() {
     }
 
   } catch (error) {
-    setFailed(error.message);
+    setFailed(error instanceof Error ? error.message : String(error));
   }
 }
 
