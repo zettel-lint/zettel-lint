@@ -129,7 +129,7 @@ Options:
 * `inline-properties-to-frontmatter` - Ensure YAML frontmatter is correctly formatted, with inline properties moved to frontmatter if specified
   * If `--move` is specified, inline properties will be moved to frontmatter instead of copied
   * This is useful for moving Obsidian dataview properties to YAML frontmatter
-* `id-to-wiki-links` - Convert numeric `[id]` links (e.g. `[20230901]`) into `[[wiki-links]]` based on target note filenames. Replaces the legacy `zl notes -w, --wiki-links-from-id` option.
+* `id-to-wiki-links` - Convert numeric `[id]` links (e.g. `[id]`) into `[[wiki-links]]` based on target note filenames. Replaces the legacy `zl notes -w, --wiki-links-from-id` option.
 
 ### notes (alias: update)
 
