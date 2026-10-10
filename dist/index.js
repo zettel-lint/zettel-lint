@@ -568,8 +568,8 @@ class OidcClient {
             const res = yield httpclient
                 .getJson(id_token_url)
                 .catch(error => {
-                throw new Error(`Failed to get ID Token. \n 
-        Error Code : ${error.statusCode}\n 
+                throw new Error(`Failed to get ID Token. \n
+        Error Code : ${error.statusCode}\n
         Error Message: ${error.message}`);
             });
             const id_token = (_a = res.result) === null || _a === void 0 ? void 0 : _a.value;
@@ -2473,11 +2473,11 @@ class HttpClient {
             this._agent = agent;
         }
         if (usingSsl && this._ignoreSslError) {
-            // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
+            // we don't want to set NODE_TLS_REJECT_UNAUTH=0 since that will affect request for entire process
             // http.RequestOptions doesn't expose a way to modify RequestOptions.agent.options
             // we have to cast it to any and change it directly
             agent.options = Object.assign(agent.options || {}, {
-                rejectUnauthorized: false
+                rejectUnauthorized: false // DevSkim: ignore DS125134
             });
         }
         return agent;
@@ -2497,11 +2497,11 @@ class HttpClient {
         })));
         this._proxyAgentDispatcher = proxyAgent;
         if (usingSsl && this._ignoreSslError) {
-            // we don't want to set NODE_TLS_REJECT_UNAUTHORIZED=0 since that will affect request for entire process
+            // we don't want to set NODE_TLS_REJECT_UNAUTH=0 since that will affect request for entire process
             // http.RequestOptions doesn't expose a way to modify RequestOptions.agent.options
             // we have to cast it to any and change it directly
             proxyAgent.options = Object.assign(proxyAgent.options.requestTls || {}, {
-                rejectUnauthorized: false
+                rejectUnauthorized: false // DevSkim: ignore DS125134
             });
         }
         return proxyAgent;
@@ -27389,7 +27389,7 @@ module.exports = parseParams
 /************************************************************************/
 /******/ // The module cache
 /******/ var __webpack_module_cache__ = {};
-/******/ 
+/******/
 /******/ // The require function
 /******/ function __nccwpck_require__(moduleId) {
 /******/ 	// Check if module is in cache
@@ -27403,7 +27403,7 @@ module.exports = parseParams
 /******/ 		// no module.loaded needed
 /******/ 		exports: {}
 /******/ 	};
-/******/ 
+/******/
 /******/ 	// Execute the module function
 /******/ 	var threw = true;
 /******/ 	try {
@@ -27412,15 +27412,15 @@ module.exports = parseParams
 /******/ 	} finally {
 /******/ 		if(threw) delete __webpack_module_cache__[moduleId];
 /******/ 	}
-/******/ 
+/******/
 /******/ 	// Return the exports of the module
 /******/ 	return module.exports;
 /******/ }
-/******/ 
+/******/
 /************************************************************************/
 /******/ /* webpack/runtime/asset-relocator-loader */
 /******/ if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = decodeURIComponent(new URL('.', import.meta.url).pathname).slice(import.meta.url.match(/^file:\/\/\/\w:/) ? 1 : 0, -1) + "/";
-/******/ 
+/******/
 /************************************************************************/
 var __webpack_exports__ = {};
 
@@ -27497,4 +27497,3 @@ async function run() {
 
 // Execute the action
 run();
-
