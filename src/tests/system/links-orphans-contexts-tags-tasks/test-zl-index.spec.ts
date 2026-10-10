@@ -9,7 +9,7 @@ describe("zl-index system test", () => {
 
   beforeAll(() => {
     // Run zl-index command over markdown files in the root directory, ignoring AGENTS.md
-    const command = `npm run-script zl -- index -v -r ${outputFile} --show-orphans --ignore-dirs \"node_modules/**\" \"src/**\" \"lib/**\" \"AGENTS.md\"`;
+    const command = `npm run-script zl -- index -v -r ${outputFile} --show-orphans --ignore-dirs \"node_modules/**\" \"src/**\" \"lib/**\" \"docs/**\" \"AGENTS.md\"`;
     execSync(command, { cwd: join(__dirname, "../../../../") });
   });
 
