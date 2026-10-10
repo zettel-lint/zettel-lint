@@ -2,7 +2,7 @@
 Provide a brief summary of the changes introduced by this pull request.
 
 ## Related Issue
-Closes #
+Closes issue #<issue-number>
 
 ## Type of Change
 - [ ] Bug fix (non-breaking change which fixes an issue)
