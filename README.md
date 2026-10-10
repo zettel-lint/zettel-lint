@@ -67,9 +67,9 @@ Options:
 
 * `-p, --path <path>` - Root path for search (default: ".")
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
-* `-r, --reference-file <path>` - Path to output (default "reference.md")
-* `-c, --create-file <path>` - Path to output file
-* `-m, --template-file <path>` - Path to input mustache template (default "reference.md.mustache")
+* `-r, --reference-file <path>` - Path to output reference.md (default: "references.md")
+* `-c, --create-file <path>` - Path to output file (default: "references.md")
+* `-m, --template-file <path>` - Path to input mustache template (default: "references.md.mustache")
 * `-o, --show-orphans` - Output list of orphaned links to console
 * `-t, --task-display <format>` - Display tasks format: 'none', 'by-file', or 'by-priority' (default: 'by-file')
 * `--json-debug-output` - Output JSON intermediate representations
@@ -117,8 +117,8 @@ Options:
 * `-p, --path <path>` - Root path for search (default: ".")
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
 * `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: ".")
-* `-r, --rules <rule...>` - Rules to use (default: all known rules)
-* `-f, --propertyFilter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
+* `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`)
+* `-f, --property-filter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
   * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first. 
 * `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
 * `-v, --verbose` - Show additional output
