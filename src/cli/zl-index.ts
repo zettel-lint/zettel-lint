@@ -49,7 +49,7 @@ async function runIndexer(program: ZlIndexCommandOptions): Promise<void> {
     const options: ZlIndexOptions = {
       ...program,
       path: cliPath(program.path, root),
-      ignoreDirs: program.ignoreDirs?.map((pattern) => cliPattern(pattern, root)),
+      ignoreDirs: program.ignoreDirs?.map((pattern) => cliPattern(pattern, root, program.path)),
       referenceFile: cliPath(program.referenceFile, root),
       createFile: cliPath(program.createFile, root),
       templateFile: cliPath(program.templateFile, root),

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { FilePath, SearchPattern, toFilePath, toSearchPattern } from "../file-system.js";
+import { escapeGlobPath, FilePath, joinSearchPattern, SearchPattern, toFilePath, toSearchPattern } from "../file-system.js";
 
 function isWithin(root: string, target: string): boolean {
   const relative = path.relative(root, target);
@@ -30,12 +30,13 @@ export function cliPath(value: string, root: string): FilePath {
   return toFilePath(relativePath.split(path.sep).join("/"));
 }
 
-export function cliPattern(value: string, root: string): SearchPattern {
+export function cliPattern(value: string, root: string, scanDirectory: string): SearchPattern {
   let pattern = value.replaceAll("\\", "/").replace(/^\.\//, "");
   if (path.isAbsolute(value)) {
     pattern = path.relative(root, value).split(path.sep).join("/");
+    return toSearchPattern(pattern);
   }
-  return toSearchPattern(pattern);
+  return joinSearchPattern(escapeGlobPath(cliPath(scanDirectory, root)), pattern);
 }
 
 export function isSkippableFileError(error: unknown): boolean {

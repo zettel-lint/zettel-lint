@@ -21,7 +21,7 @@ export function toSearchPattern(value: string): SearchPattern {
     value.length === 0 ||
     value.startsWith("/") ||
     /^[A-Za-z]:/.test(value) ||
-    value.includes("\\") ||
+    value.replace(/\\[{}]/g, "").includes("\\") ||
     value.split("/").some((segment) => segment === "." || segment === ".." || segment === "")
   ) {
     throw new Error(`Invalid root-relative glob pattern: ${value}`);
@@ -31,6 +31,13 @@ export function toSearchPattern(value: string): SearchPattern {
 
 export function joinFilePath(...segments: string[]): FilePath {
   return toFilePath(segments.filter(Boolean).join("/"));
+}
+
+export function escapeGlobPath(filepath: FilePath): string {
+  // Brace expansion precedes character classes, so braces need backslash escapes.
+  return filepath.replace(/[?*()[\]{}]/g, (character) =>
+    character === "{" || character === "}" ? `\\${character}` : `[${character}]`,
+  );
 }
 
 export function joinSearchPattern(...segments: string[]): SearchPattern {

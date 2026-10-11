@@ -5,7 +5,7 @@ import { TaskCollector } from "./collectors/TaskCollector.js";
 import { WikiCollector } from "./collectors/WikiCollector.js";
 import { collectMatches } from "./collectors/RegexCollector.js";
 import { Templator } from "./Templator.js";
-import { FileAdapter, FilePath, joinSearchPattern, parentFilePath, toSearchPattern } from "./file-system.js";
+import { escapeGlobPath, FileAdapter, FilePath, joinSearchPattern, parentFilePath, toSearchPattern } from "./file-system.js";
 import { idFromFilename } from "./file-handling.js";
 import { ZlIndexOptions } from "./core-options.js";
 import { fileWikiLinks } from "./types.js";
@@ -50,13 +50,14 @@ export async function indexer(
     throw new ConfigurationError("No output or template file found");
   }
 
+  const pathPattern = escapeGlobPath(program.path);
   const exclude = [
-    joinSearchPattern(program.path, "**/node_modules/**"),
-    toSearchPattern(program.referenceFile),
+    joinSearchPattern(pathPattern, "**/node_modules/**"),
+    toSearchPattern(escapeGlobPath(program.referenceFile)),
     ...(program.ignoreDirs ?? []),
   ];
   const files = await adapter.listFiles(
-    [joinSearchPattern(program.path, "**/*.md")],
+    [joinSearchPattern(pathPattern, "**/*.md")],
     exclude,
   );
   const references: fileWikiLinks[] = [];

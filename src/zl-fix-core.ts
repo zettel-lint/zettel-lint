@@ -1,6 +1,6 @@
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from "./rules/InlinePropertiesToFrontmatterRule.js";
-import { FileAdapter, FilePath, joinFilePath, joinSearchPattern, parentFilePath } from "./file-system.js";
+import { escapeGlobPath, FileAdapter, FilePath, joinFilePath, joinSearchPattern, parentFilePath } from "./file-system.js";
 import { ZlFixOptions } from "./core-options.js";
 
 export type FileErrorHandler = (filepath: FilePath, error: unknown) => boolean;
@@ -39,10 +39,11 @@ export async function fixNotes(
     );
   }
 
+  const pathPattern = escapeGlobPath(program.path);
   const files = await adapter.listFiles(
-    [joinSearchPattern(program.path, "**/*.md")],
+    [joinSearchPattern(pathPattern, "**/*.md")],
     [
-      joinSearchPattern(program.path, "**/node_modules/**"),
+      joinSearchPattern(pathPattern, "**/node_modules/**"),
       ...(program.ignoreDirs ?? []),
     ],
   );

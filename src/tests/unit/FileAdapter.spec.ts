@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { FilePath, SearchPattern, toFilePath, toSearchPattern } from "../../file-system.js";
 import type { FileAdapter } from "../../file-system.js";
 import { NodeFileAdapter } from "../../file-adapter.js";
@@ -69,6 +69,7 @@ describe("FileAdapter contract and integration", () => {
   it("validates root-relative paths and search patterns", () => {
     expect(toFilePath("folder/note.md")).toBe("folder/note.md");
     expect(toSearchPattern("**/*.md")).toBe("**/*.md");
+    expect(toSearchPattern("notes\\{one,two\\}/*.md")).toBe("notes\\{one,two\\}/*.md");
     for (const invalid of ["/absolute.md", "../outside.md", "folder\\note.md", "./note.md"]) {
       expect(() => toFilePath(invalid)).toThrow();
     }
@@ -191,6 +192,50 @@ describe("FileAdapter contract and integration", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
       await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ["notes[1]", "notes1"],
+    ["notes{one,two}", "notesone"],
+    ["notes@(one)", "notesone"],
+  ])("treats %s as a literal scan directory in indexing and fixing", async (scanDirectory: string, sibling: string) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "zettel-lint-literal-paths-"));
+    try {
+      const adapter = new NodeFileAdapter(root);
+      const note = toFilePath(`${scanDirectory}/note.md`);
+      const dependency = toFilePath(`${scanDirectory}/node_modules/dependency.md`);
+      const otherNote = toFilePath(`${sibling}/other.md`);
+      const referenceFile = toFilePath(`${scanDirectory}/references[1].md`);
+      const similarReference = toFilePath(`${scanDirectory}/references1.md`);
+      await adapter.writeFile(note, "# Note");
+      await adapter.writeFile(dependency, "# Dependency");
+      await adapter.writeFile(otherNote, "# Other");
+      await adapter.writeFile(referenceFile, "# Old index");
+      await adapter.writeFile(similarReference, "# Similar reference");
+      await adapter.writeFile(toFilePath("template.mustache"), "{{#notes}}{{title}}\n{{/notes}}");
+
+      const readSpy = vi.spyOn(adapter, "readFile");
+      const references = await indexer({
+        ...indexOptions(),
+        path: toFilePath(scanDirectory),
+        referenceFile,
+      }, adapter);
+      expect(references.map((reference) => reference.fullpath).sort()).toEqual([note, similarReference].sort());
+      expect(readSpy).not.toHaveBeenCalledWith(referenceFile);
+
+      await fixNotes({
+        path: toFilePath(scanDirectory),
+        outputDir: toFilePath(scanDirectory),
+        rules: ["trailing-newline"],
+        move: false,
+        verbose: false,
+      }, adapter);
+      expect(await adapter.readFile(note)).toBe("# Note\n");
+      expect(await adapter.readFile(dependency)).toBe("# Dependency");
+      expect(await adapter.readFile(otherNote)).toBe("# Other");
+    } finally {
+      await rm(root, { recursive: true, force: true });
     }
   });
 

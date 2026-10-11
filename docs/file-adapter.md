@@ -4,7 +4,7 @@ The package root (`zettel-lint`) exports host-neutral indexing and fixing functi
 
 ## Paths and file selection
 
-`FilePath` and `SearchPattern` are branded strings validated by `toFilePath` and `toSearchPattern`. Paths are normalized, root-relative and use `/`; an empty `FilePath` denotes the adapter root. Absolute paths, backslashes, `.` and `..` path segments are invalid. Search patterns use root-relative glob syntax and may contain glob metacharacters.
+`FilePath` and `SearchPattern` are branded strings validated by `toFilePath` and `toSearchPattern`. Paths are normalized, root-relative and use `/`; an empty `FilePath` denotes the adapter root. Absolute paths, backslashes, `.` and `..` path segments are invalid. Search patterns use root-relative glob syntax and may contain glob metacharacters; they also permit `\{` and `\}` to match literal braces. Other backslashes remain invalid.
 
 `listFiles(include, exclude)` returns root-relative paths. An omitted or empty include list imposes no include restriction; otherwise a result must match at least one include pattern. Exclusions take precedence and a result matching any exclude pattern is omitted. Patterns use the same glob syntax as `SearchPattern`.
 

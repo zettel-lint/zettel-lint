@@ -19,7 +19,7 @@ export interface ZlFixCommandOptions {
   rules: string[];
   propertyFilter?: string[];
   verbose: boolean;
-  outputDir: string;
+  outputDir?: string;
   move: boolean;
 }
 
@@ -38,11 +38,12 @@ function printHeader(program: ZlFixCommandOptions, knownRules: string[]): void {
 }
 
 async function runFixer(program: ZlFixCommandOptions): Promise<void> {
+  const outputDir = program.outputDir ?? program.path;
   const knownRules = [
     new TrailingNewlineRule().name,
     new InlinePropertiesToFrontmatter(program.move, []).name,
   ];
-  printHeader(program, knownRules);
+  printHeader({ ...program, outputDir }, knownRules);
   for (const rule of new Set(program.rules ?? [])) {
     if (!knownRules.includes(rule)) {
       console.error(`Unknown rule: ${rule}. Ignoring.`);
@@ -50,13 +51,13 @@ async function runFixer(program: ZlFixCommandOptions): Promise<void> {
   }
 
   try {
-    const root = commonPathRoot([program.path, program.outputDir], []);
+    const root = commonPathRoot([program.path, outputDir], []);
     const adapter = new NodeFileAdapter(root);
     const options: ZlFixOptions = {
       ...program,
       path: cliPath(program.path, root),
-      ignoreDirs: program.ignoreDirs?.map((pattern) => cliPattern(pattern, root)),
-      outputDir: cliPath(program.outputDir, root),
+      ignoreDirs: program.ignoreDirs?.map((pattern) => cliPattern(pattern, root, program.path)),
+      outputDir: cliPath(outputDir, root),
     };
     await fixNotes(options, adapter, (filepath, error) => {
       console.error(`Error processing file ${filepath}:`, error);
@@ -75,7 +76,7 @@ export default function fixerCommand(): Command<[], ZlFixCommandOptions> {
     .alias("lint")
     .option("-p, --path <path>", "Root path for search", ".")
     .option("-i, --ignore-dirs <path...>", "Path(s) to ignore")
-    .option("-o, --output-dir <path>", "Directory to output fixed files to. If not specified, files will be updated in place.", ".")
+    .option("-o, --output-dir <path>", "Directory to output fixed files to. If not specified, files will be updated in place.")
     .option("-r, --rules <rule...>", "Rules to use", [])
     .option("-f, --property-filter <regex...>", "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
     .option("-m, --move", "Move inline properties to frontmatter instead of copying", false)
