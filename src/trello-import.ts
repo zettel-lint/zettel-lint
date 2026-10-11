@@ -1,6 +1,7 @@
 import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "fs";
+import path from "node:path";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -155,15 +156,21 @@ export default class TrelloImport implements BaseImporter {
     var filenames: string[] = [];
 
     for await (var attachment of attachments) {
-      const outputFilename = outputFolder + attachment.fileName;  
-      if (options.verbose) {
-       console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
-      }
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
         filenames.push("[" + attachment.name + "](" + attachment.url + ")");
         continue;
-      }      
+      }
+      // Sanitise fileName to prevent path traversal
+      const safeFileName = path.basename(attachment.fileName);
+      if (safeFileName === "." || safeFileName === "..") {
+        filenames.push("[" + attachment.name + "](" + attachment.url + ")");
+        continue;
+      }
+      const outputFilename = path.join(outputFolder, safeFileName);
+      if (options.verbose) {
+       console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
+      }
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
