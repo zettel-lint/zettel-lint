@@ -20,7 +20,7 @@ jq -c '.runs[]' "$INPUT_FILE" |
 nl -v0 | # add line numbers (0-indexed)
 while read -r i run; do
     # Rename tool
-    run=$(echo "$run" | jq --arg suffix "-${i}" '.tool.driver.name += $suffix')
+    run=$(printf '%s\n' "$run" | jq --arg suffix "-${i}" '.tool.driver.name += $suffix')
 
     # Determine which part file it goes to
     part=$((i / 20))
@@ -33,5 +33,5 @@ while read -r i run; do
     fi
 
     # Add run to part file
-    jq --argjson run "$run" '.runs += [$run]' "$PART_FILE" > "$PART_FILE.tmp" && mv "$PART_FILE.tmp" "$PART_FILE"
+    printf '%s\n' "$run" | jq --slurpfile run /dev/stdin '.runs += $run' "$PART_FILE" > "$PART_FILE.tmp" && mv "$PART_FILE.tmp" "$PART_FILE"
 done
