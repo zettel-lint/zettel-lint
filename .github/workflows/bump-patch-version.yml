@@ -51,13 +51,13 @@ jobs:
 
       - name: Update version in TypeScript file
         run: |
-          sed -i 's/version = "${{ env.current_version }}"/version = "${{ env.new_version }}"/' src/zl.ts
+          sed -i 's/version = "${{ env.current_version }}"/version = "${{ env.new_version }}"/' src/cli/zl.ts
 
       - name: Commit changes
         run: |
           npm ci
           npm test
-          git add package.json package-lock.json src/zl.ts
+          git add package.json package-lock.json src/cli/zl.ts
           git commit -m "chore: bump version to ${{ env.new_version }}"
           git push origin bump-version-${{ env.new_version }}
 
@@ -78,7 +78,7 @@ jobs:
             ### Files Changed
             - package.json: Updated version to ${{ env.new_version }}
             - package-lock.json: Updated version to ${{ env.new_version }}
-            - src/zl.ts: Updated version string to ${{ env.new_version }}
+            - src/cli/zl.ts: Updated version string to ${{ env.new_version }}
 
             The Bump Patch Version workflow automatically created this PR.
 

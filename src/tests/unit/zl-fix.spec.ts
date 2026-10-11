@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import fixerCommand from '../../zl-fix'
+import fixerCommand from '../../cli/zl-fix'
 
 // NOTE: Testing library/framework: Vitest
 

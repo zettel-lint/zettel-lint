@@ -2,20 +2,31 @@
   "name": "zettel-lint",
   "version": "0.13.16",
   "description": "Command line zettel linting/indexing",
-  "main": "./lib/zl.js",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./node": {
+      "types": "./lib/node.d.ts",
+      "import": "./lib/node.js"
+    }
+  },
   "bin": {
-    "zettel-lint": "./lib/zl.js"
+    "zettel-lint": "./lib/cli/zl.js"
   },
   "scripts": {
-    "start": "nodemon --watch 'src/**/*.ts' --exec tsx src/zl.ts",
+    "start": "nodemon --watch 'src/**/*.ts' --exec tsx src/cli/zl.ts",
     "create": "npm run build && npm run test",
     "build": "tsc -p .",
     "lint": "tsc --noEmit",
     "test": "vitest --run",
     "help": "npm run-script zl -- --version && npm run-script zl -- --help",
     "refresh": "rm -rf ./node_modules ./package-lock.json && npm install",
-    "zl": "tsx src/zl.ts",
+    "zl": "tsx src/cli/zl.ts",
     "postbuild": "cp src/*.mustache lib && mkdir -p lib/tests/unit/input && cp src/tests/unit/input/*.md lib/tests/unit/input && mkdir -p lib/tests/system && cp -r src/tests/system/** lib/tests/system"
   },
   "repository": {
