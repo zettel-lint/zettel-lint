@@ -163,6 +163,10 @@ export default class TrelloImport implements BaseImporter {
       }
       // Sanitise fileName to prevent path traversal
       const safeFileName = path.basename(attachment.fileName);
+      if (safeFileName === "." || safeFileName === "..") {
+        filenames.push("[" + attachment.name + "](" + attachment.url + ")");
+        continue;
+      }
       const outputFilename = path.join(outputFolder, safeFileName);
       if (options.verbose) {
        console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
