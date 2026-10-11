@@ -247,6 +247,20 @@ describe('TrelloImport', () => {
       expect(result).toEqual(['![Test Image](/output/test.png)']);
     });
 
+    test('sanitizes attachment fileName to prevent path traversal', async () => {
+      const attachment = createAttachmentInfo({
+        fileName: '../../evil.sh',
+        name: 'Evil Attachment',
+        url: 'https://example.com/evil.sh',
+      });
+
+      const result = await importer.saveAttachments('/output/attachments/', options, [attachment]);
+
+      expect(fetch).toHaveBeenCalledWith('https://example.com/evil.sh');
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/evil.sh', expect.any(Buffer));
+      expect(result).toEqual(['![Evil Attachment](/output/attachments/evil.sh)']);
+    });
+
     test('handles URL-only attachments without fileName', async () => {
       const attachment = createAttachmentInfo({
         fileName: '',
