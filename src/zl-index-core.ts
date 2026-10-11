@@ -1,4 +1,3 @@
-import { YAMLParseError } from "yaml";
 import { Collector } from "./collectors/Collector.js";
 import { ContextCollector } from "./collectors/ContextCollector.js";
 import { TagCollector } from "./collectors/TagCollector.js";
