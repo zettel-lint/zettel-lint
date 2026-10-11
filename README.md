@@ -128,6 +128,10 @@ Options:
 * `trailing-newline` - Ensure files end with a single newline
 * `inline-properties-to-frontmatter` - Ensure YAML frontmatter is correctly formatted, with inline properties moved to frontmatter if specified
   * If `--move` is specified, inline properties will be moved to frontmatter instead of copied
+
+## Programmatic API
+
+The package root exports the host-neutral indexing and fixing functions and the asynchronous `FileAdapter` contract. It does not load the Node adapter or CLI dependencies. See [the file adapter guide](docs/file-adapter.md) for path semantics, error behavior, a virtual-adapter example, and the Node-specific `zettel-lint/node` entry point.
   * This is useful for moving Obsidian dataview properties to YAML frontmatter
 
 ### notes (alias: update)

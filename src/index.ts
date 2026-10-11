@@ -1,10 +1,11 @@
-export { NodeFileAdapter, defaultFileAdapter } from "./file-adapter.js";
-export type { FileAdapter } from "./file-adapter.js";
-export { default as indexerCommand, indexer, collectFromFile } from "./zl-index.js";
-export type { ZlIndexOptions } from "./zl-index.js";
-export { default as fixerCommand, fixNotes } from "./zl-fix.js";
-export type { ZlFixOptions } from "./zl-fix.js";
+export { collectFromFile, indexer } from "./zl-index-core.js";
+export type { FileErrorHandler as IndexFileErrorHandler } from "./zl-index-core.js";
+export { fixNotes } from "./zl-fix-core.js";
+export type { FileErrorHandler as FixFileErrorHandler } from "./zl-fix-core.js";
 export { Templator } from "./Templator.js";
+export type { FileAdapter, FilePath, SearchPattern } from "./file-system.js";
+export { joinFilePath, joinSearchPattern, parentFilePath, toFilePath, toSearchPattern } from "./file-system.js";
+export type { ZlIndexOptions, ZlFixOptions } from "./core-options.js";
 export * from "./collectors/Collector.js";
 export * from "./collectors/ContextCollector.js";
 export * from "./collectors/PropertyCollector.js";

@@ -5,6 +5,16 @@
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./lib/index.js"
+    },
+    "./node": {
+      "types": "./lib/node.d.ts",
+      "import": "./lib/node.js"
+    }
+  },
   "bin": {
     "zettel-lint": "./lib/zl.js"
   },
