@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -6,11 +7,15 @@ import { describe, expect, it } from "vitest";
 import { NodeFileAdapter } from "../../../file-adapter.js";
 import { toFilePath } from "../../../file-system.js";
 
-const cli = path.resolve(import.meta.dirname, "../../../cli/zl.ts");
+const sourceCli = path.resolve(import.meta.dirname, "../../../cli/zl.ts");
 const tsx = path.resolve(import.meta.dirname, "../../../../node_modules/tsx/dist/cli.mjs");
+// Postbuild also copies this TypeScript test into lib, where the CLI is JavaScript.
+const cliArgs = existsSync(sourceCli)
+  ? [tsx, sourceCli]
+  : [path.resolve(import.meta.dirname, "../../../cli/zl.js")];
 
 function runCli(root: string, args: string[]): void {
-  execFileSync(process.execPath, [tsx, cli, ...args], { cwd: root, stdio: "pipe" });
+  execFileSync(process.execPath, [...cliArgs, ...args], { cwd: root, stdio: "pipe" });
 }
 
 describe("CLI scan and output paths", () => {
