@@ -261,6 +261,33 @@ describe('TrelloImport', () => {
       expect(result).toEqual(['![Evil Attachment](/output/attachments/evil.sh)']);
     });
 
+    test.each(['.', '..', 'folder/.', 'folder/..'])('handles fileName %s as a URL-only attachment', async (fileName: string) => {
+      const attachment = createAttachmentInfo({ fileName });
+
+      const result = await importer.saveAttachments('/output/attachments/', options, [attachment]);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+      expect(result).toEqual(['[Test Attachment](https://example.com/attachment.png)']);
+    });
+
+    test('continues saving files after a URL-only dot attachment', async () => {
+      const attachments = [
+        createAttachmentInfo({ fileName: '..' }),
+        createAttachmentInfo({ fileName: 'test.png', name: 'Test Image' }),
+      ];
+
+      const result = await importer.saveAttachments('/output/attachments/', options, attachments);
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/test.png', expect.any(Buffer));
+      expect(result).toEqual([
+        '[Test Attachment](https://example.com/attachment.png)',
+        '![Test Image](/output/attachments/test.png)',
+      ]);
+    });
+
     test('handles URL-only attachments without fileName', async () => {
       const attachment = createAttachmentInfo({
         fileName: '',
