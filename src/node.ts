@@ -1,3 +1,3 @@
 export { NodeFileAdapter, defaultFileAdapter } from "./file-adapter.js";
-export { default as indexerCommand } from "./zl-index.js";
-export { default as fixerCommand } from "./zl-fix.js";
+export { default as indexerCommand } from "./cli/zl-index.js";
+export { default as fixerCommand } from "./cli/zl-fix.js";

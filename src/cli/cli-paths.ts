@@ -1,5 +1,5 @@
 import path from "node:path";
-import { FilePath, SearchPattern, toFilePath, toSearchPattern } from "./file-system.js";
+import { FilePath, SearchPattern, toFilePath, toSearchPattern } from "../file-system.js";
 
 function isWithin(root: string, target: string): boolean {
   const relative = path.relative(root, target);

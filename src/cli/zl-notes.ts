@@ -1,11 +1,11 @@
 import { Command } from '@commander-js/extra-typings';
 import { glob } from "glob";
 import { promises as fs } from "fs";
-import { idFromFilename } from "./file-handling.js";
+import { idFromFilename } from "../file-handling.js";
 import { clear } from "console";
 import chalk from "chalk";
 import figlet from "figlet";
-import { collectMatches } from "./collectors/RegexCollector.js";
+import { collectMatches } from "../collectors/RegexCollector.js";
 import { exit } from "process";
 import { YAMLParseError } from 'yaml';
 

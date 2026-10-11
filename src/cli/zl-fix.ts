@@ -2,15 +2,15 @@ import { Command } from "@commander-js/extra-typings";
 import { clear } from "console";
 import chalk from "chalk";
 import figlet from "figlet";
-import { NodeFileAdapter } from "./file-adapter.js";
-import { FixConfigurationError, fixNotes } from "./zl-fix-core.js";
-import { ZlFixOptions } from "./core-options.js";
-import { InlinePropertiesToFrontmatter } from "./rules/InlinePropertiesToFrontmatterRule.js";
-import { TrailingNewlineRule } from "./rules/BaseRule.js";
+import { NodeFileAdapter } from "../file-adapter.js";
+import { FixConfigurationError, fixNotes } from "../zl-fix-core.js";
+import { ZlFixOptions } from "../core-options.js";
+import { InlinePropertiesToFrontmatter } from "../rules/InlinePropertiesToFrontmatterRule.js";
+import { TrailingNewlineRule } from "../rules/BaseRule.js";
 import { cliPath, cliPattern, commonPathRoot, isSkippableFileError } from "./cli-paths.js";
 
-export { fixNotes } from "./zl-fix-core.js";
-export type { ZlFixOptions } from "./core-options.js";
+export { fixNotes } from "../zl-fix-core.js";
+export type { ZlFixOptions } from "../core-options.js";
 
 export interface ZlFixCommandOptions {
   [key: string]: any;

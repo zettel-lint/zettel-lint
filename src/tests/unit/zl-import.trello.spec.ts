@@ -1,5 +1,5 @@
 import { expect, test, describe } from "vitest";
-import importerCommand from "../../zl-import";
+import importerCommand from "../../cli/zl-import";
 
 describe('zl-import Trello options', () => {
   test('parses --trello-api-key', () => {

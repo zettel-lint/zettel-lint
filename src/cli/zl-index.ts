@@ -5,13 +5,13 @@ import chalk from "chalk";
 import figlet from "figlet";
 import { Command } from "@commander-js/extra-typings";
 import path from "node:path";
-import { NodeFileAdapter } from "./file-adapter.js";
-import { ConfigurationError, indexer } from "./zl-index-core.js";
-import { ZlIndexOptions } from "./core-options.js";
+import { NodeFileAdapter } from "../file-adapter.js";
+import { ConfigurationError, indexer } from "../zl-index-core.js";
+import { ZlIndexOptions } from "../core-options.js";
 import { cliPath, cliPattern, commonPathRoot, isSkippableFileError } from "./cli-paths.js";
 
-export { collectFromFile, indexer } from "./zl-index-core.js";
-export type { ZlIndexOptions } from "./core-options.js";
+export { collectFromFile, indexer } from "../zl-index-core.js";
+export type { ZlIndexOptions } from "../core-options.js";
 
 export interface ZlIndexCommandOptions {
   [key: string]: any;
@@ -79,7 +79,7 @@ export default function indexerCommand(): Command<[], ZlIndexCommandOptions> {
     .option("-i, --ignore-dirs <path...>", "Path(s) to ignore")
     .option("-r, --reference-file <path>", "Path to output reference.md", "references.md")
     .option("-c, --create-file <path>", "Path to output file", "references.md")
-    .option("-m, --template-file <path>", "Path to input mustache template", path.resolve(import.meta.dirname, "references.md.mustache"))
+    .option("-m, --template-file <path>", "Path to input mustache template", path.resolve(import.meta.dirname, "../references.md.mustache"))
     .option("-o, --show-orphans", "Output list of orphaned links to console", false)
     .option("-t, --task-display <format>", "Display tasks? 'none' 'by-file' 'by-priority'", (value): "none" | "by-file" | "by-priority" => {
       if (!["none", "by-file", "by-priority"].includes(value)) {
