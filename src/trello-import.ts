@@ -165,7 +165,7 @@ export default class TrelloImport implements BaseImporter {
       const safeFileName = path.basename(attachment.fileName);
       const outputFilename = path.join(outputFolder, safeFileName);
       if (options.verbose) {
-       console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
+       console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
       }
       try {
         const response = await fetch(attachment.url);
