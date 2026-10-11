@@ -1,4 +1,5 @@
 import { mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, vi } from "vitest";
@@ -173,6 +174,45 @@ describe("FileAdapter contract and integration", () => {
       await expect(adapter.readFile("../outside.md" as FilePath)).rejects.toThrow();
       await expect(adapter.listFiles(["../**/*.md" as SearchPattern])).rejects.toThrow();
     } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("skips dangling symlinks when listing but rejects reads and writes through them", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "zettel-lint-dangling-"));
+    try {
+      await writeFile(path.join(root, "one.md"), "one");
+      await symlink("missing.md", path.join(root, "dangling.md"), "file");
+      await symlink("missing-directory", path.join(root, "dangling-directory"), "dir");
+      const adapter = new NodeFileAdapter(root);
+      expect(await adapter.listFiles()).toEqual([toFilePath("one.md")]);
+      await expect(adapter.readFile(toFilePath("dangling.md"))).rejects.toMatchObject({ code: "EUNRESOLVEDSYMLINK" });
+      await expect(adapter.writeFile(toFilePath("dangling.md"), "content")).rejects.toMatchObject({ code: "EUNRESOLVEDSYMLINK" });
+      await expect(adapter.writeFile(toFilePath("dangling-directory/new.md"), "content")).rejects.toMatchObject({ code: "EUNRESOLVEDSYMLINK" });
+      await expect(adapter.mkdir(toFilePath("dangling-directory/new"))).rejects.toMatchObject({ code: "EUNRESOLVEDSYMLINK" });
+      await expect(stat(path.join(root, "missing.md"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(root, "missing-directory"))).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each(["ENOENT", "EACCES"])("propagates %s failures while listing regular files", async (code: string) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "zettel-lint-list-error-"));
+    const realpath = fs.realpath.bind(fs);
+    const failure = Object.assign(new Error("Cannot resolve file"), { code });
+    try {
+      const filename = path.join(root, "one.md");
+      await writeFile(filename, "one");
+      vi.spyOn(fs, "realpath").mockImplementation(async (target: Parameters<typeof fs.realpath>[0]) => {
+        if (target === filename) {
+          throw failure;
+        }
+        return await realpath(target);
+      });
+      await expect(new NodeFileAdapter(root).listFiles()).rejects.toBe(failure);
+    } finally {
+      vi.restoreAllMocks();
       await rm(root, { recursive: true, force: true });
     }
   });

@@ -14,7 +14,10 @@ Indexing and fixing options (`ZlIndexOptions`, `ZlFixOptions`) use `FilePath` fo
 
 ## In-memory adapter example
 
+This example uses `minimatch` for glob matching; install it with `npm install minimatch`.
+
 ```ts
+import { minimatch } from "minimatch";
 import {
   indexer,
   toFilePath,
@@ -26,12 +29,9 @@ class MemoryAdapter implements FileAdapter {
   readonly files = new Map<FilePath, string>();
 
   async listFiles(include: SearchPattern[] = [], exclude: SearchPattern[] = []): Promise<FilePath[]> {
-    if (include.some((pattern) => pattern !== "**/*.md")) {
-      throw new Error("This small example supports only the **/*.md include pattern");
-    }
     return [...this.files.keys()].filter((file) =>
-      (!include.length || file.endsWith(".md")) &&
-      !exclude.some((pattern) => file.startsWith(pattern.replace("/**", "/"))),
+      (!include.length || include.some((pattern) => minimatch(file, pattern))) &&
+      !exclude.some((pattern) => minimatch(file, pattern)),
     );
   }
 
@@ -58,7 +58,7 @@ await indexer(
     referenceFile: toFilePath("references.md"),
     createFile: toFilePath("references.md"),
     templateFile: toFilePath("template.mustache"),
-    ignoreDirs: [toSearchPattern("node_modules/**")],
+    ignoreDirs: [toSearchPattern("**/node_modules/**")],
     showOrphans: false,
     taskDisplay: "none",
     jsonDebugOutput: false,

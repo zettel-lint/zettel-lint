@@ -17,6 +17,10 @@ function isWithinRoot(root: string, target: string): boolean {
   return relative === "" || (!relative.startsWith(`..${path.sep}`) && relative !== ".." && !path.isAbsolute(relative));
 }
 
+class UnresolvedSymlinkError extends Error {
+  readonly code = "EUNRESOLVEDSYMLINK";
+}
+
 export class NodeFileAdapter implements FileAdapter {
   private readonly root: string;
 
@@ -46,7 +50,15 @@ export class NodeFileAdapter implements FileAdapter {
         continue;
       }
       const relativePath = toFilePath(filepath);
-      const absolutePath = await this.resolveContained(relativePath);
+      let absolutePath: string;
+      try {
+        absolutePath = await this.resolveContained(relativePath);
+      } catch (error) {
+        if (error instanceof UnresolvedSymlinkError) {
+          continue;
+        }
+        throw error;
+      }
       if ((await fs.stat(absolutePath)).isFile()) {
         files.push(relativePath);
       }
@@ -102,7 +114,7 @@ export class NodeFileAdapter implements FileAdapter {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
           try {
             if ((await fs.lstat(current)).isSymbolicLink()) {
-              throw new Error(`Cannot resolve symlink within the adapter root: ${current}`);
+              throw new UnresolvedSymlinkError(`Cannot resolve symlink within the adapter root: ${current}`);
             }
           } catch (lstatError) {
             if ((lstatError as NodeJS.ErrnoException).code !== "ENOENT") {
