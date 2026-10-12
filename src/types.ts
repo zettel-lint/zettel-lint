@@ -15,11 +15,12 @@ export class formatData {
   fullpath: string | undefined;
   name: string | undefined;
   data: string[] = [];
+  // biome-ignore lint/suspicious/noExplicitAny: bag contains arbitrary note objects
   bag: any[] = [];
 }
 
 export function formatLink(ref: formatData): string {
-  return "["+ref.title+"][" + ref.id + "]";
+  return `[${ref.title}][${ref.id}]`;
 }
 
 export function min(x: number, y: number): number | undefined {
@@ -61,7 +62,7 @@ export function invertDictionary(references: formatData[]) {
 
   references.forEach(ref => {
     const tags = ref.data;
-    if (tags != undefined) {
+    if (tags !== undefined) {
       tags.forEach(tag => {
         if (tagList[tag] === undefined) {
           tagList[tag] = [];
