@@ -29,20 +29,30 @@ export function min(x: number, y: number): number | undefined {
 }
 
 export function collectBacklinks(references: formatData[]) {
-  var tagList = new Map<string, string[]>();
+  // Performance optimization: use fast string slicing instead of replace()
+  // and reuse Map.get reference to eliminate repeated Map lookups.
+  const tagList = new Map<string, string[]>();
 
-  references.forEach(ref => {
+  if (!references) return tagList;
+
+  for (let i = 0; i < references.length; i++) {
+    const ref = references[i];
     const tags = ref.data;
-    if (tags != undefined) {
-      tags.forEach(tag => {
-        tag = tag.replace("[", "").replace("]", "")
-        if (tagList.get(tag) === undefined) {
-          tagList.set(tag, []);
+    if (tags) {
+      for (let j = 0; j < tags.length; j++) {
+        let tag = tags[j];
+        if (tag.startsWith("[")) tag = tag.slice(1);
+        if (tag.endsWith("]")) tag = tag.slice(0, -1);
+
+        let list = tagList.get(tag);
+        if (!list) {
+          list = [];
+          tagList.set(tag, list);
         }
-        tagList.get(tag)?.push(ref.id ?? ref.filename ?? "");
-      });
+        list.push(ref.id ?? ref.filename ?? "");
+      }
     }
-  });
+  }
   return tagList;
 }
 
@@ -64,20 +74,25 @@ export function invertDictionary(references: formatData[]) {
 }
 
 export function invertData(references: formatData[]) {
-  var tagList = new Map<string, formatData[]>();
+  // Performance optimization: eliminate redundant Map.set calls for existing entries
+  const tagList = new Map<string, formatData[]>();
 
-  if (references == undefined) { return tagList; }
+  if (!references) { return tagList; }
 
-  references.forEach(ref => {
+  for (let i = 0; i < references.length; i++) {
+    const ref = references[i];
     const tags = ref.data;
-    if (tags != undefined) {
-      tags.forEach(tag => {
-        var current = tagList.get(tag) ?? [];
+    if (tags) {
+      for (let j = 0; j < tags.length; j++) {
+        const tag = tags[j];
+        let current = tagList.get(tag);
+        if (!current) {
+          current = [];
+          tagList.set(tag, current);
+        }
         current.push({...ref, name: tag, data: [formatLink(ref)]});
-
-        tagList.set(tag, current);
-      });
+      }
     }
-  });
+  }
   return tagList;
 }

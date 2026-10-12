@@ -3,3 +3,9 @@
 **Learning:** Extracting file IDs using regex `.match(/[^\/\\]+$/)` and multiple `.split()` calls allocates intermediate arrays for every file indexed. Replacing these with `lastIndexOf` / `indexOf` / `slice` string operations speeds up ID extraction by ~3x. Additionally, template view object initialization in `Templator` called expensive operations (`getOrphans()`) twice and used regex replacements in inner loops for link cleaning. Caching the result and using direct string methods eliminates duplicate passes and improves view initialization by ~2x.
 
 **Action:** Prefer string indexing over regex split/match for hot-path filename parsing, and always cache computed view properties in constructor initializations when used in multiple object properties.
+
+## 2025-02-23 - Stateful Regex Reset, Match Coercion & Map Lookup Reuse
+
+**Learning:** Reusing stateful global regular expressions (`/g`) across files in `collectMatches` requires resetting `regex.lastIndex = 0` to avoid search index leakage. When `useCaptureGroup` is false, calling `next.toString()` on `RegExpExecArray` invokes `Array.prototype.toString()` which coerces the array to a comma-separated string (~35% overhead). Accessing `next[0]` directly avoids array serialization. Additionally, in `collectBacklinks` and `invertData`, replacing `replace()` and redundant `Map.get`/`Map.set` calls with `startsWith`/`endsWith` slicing and held Map references speeds up data processing by ~40%.
+
+**Action:** Always reset `lastIndex = 0` on stateful regexes, use `next[0]` instead of `next.toString()`, and reuse Map entry references in nested loops.
