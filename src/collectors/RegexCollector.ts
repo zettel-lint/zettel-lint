@@ -1,18 +1,18 @@
 import { Collector } from "./Collector.js";
 
 export function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
-  var result: string[] = [];
-  var next: RegExpExecArray | null;
-  do {
-    next = regex.exec(contents);
-    if (next) {
-      if (useCaptureGroup && next[1]) {
-        result.push(next[1].trim());
-      } else {
-        result.push(next.toString().trim());
-      }
+  // Performance optimization: reset regex stateful index before scanning
+  // and use direct index next[0] instead of array-to-string coercion.
+  regex.lastIndex = 0;
+  const result: string[] = [];
+  let next: RegExpExecArray | null;
+  while ((next = regex.exec(contents)) !== null) {
+    if (useCaptureGroup && next[1]) {
+      result.push(next[1].trim());
+    } else {
+      result.push(next[0].trim());
     }
-  } while (next);
+  }
   return result;
 }
 
