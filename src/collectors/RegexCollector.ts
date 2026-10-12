@@ -5,13 +5,14 @@ export function collectMatches(contents: string, regex: RegExp, useCaptureGroup:
   // and use direct index next[0] instead of array-to-string coercion.
   regex.lastIndex = 0;
   const result: string[] = [];
-  let next: RegExpExecArray | null;
-  while ((next = regex.exec(contents)) !== null) {
+  let next = regex.exec(contents);
+  while (next !== null) {
     if (useCaptureGroup && next[1]) {
       result.push(next[1].trim());
     } else {
       result.push(next[0].trim());
     }
+    next = regex.exec(contents);
   }
   return result;
 }
