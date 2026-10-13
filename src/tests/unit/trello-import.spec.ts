@@ -405,6 +405,25 @@ describe('TrelloImport', () => {
       expect(content).not.toContain('## Attachments');
     });
 
+    test('constructs card and attachments output path safely without trailing slash issues', async () => {
+      const card = createTrelloCardInfo({
+        name: 'Safe Path Card',
+        attachments: [createAttachmentInfo({ fileName: 'photo.jpg', name: 'Photo' })],
+      });
+      const lists = { list1: createTrelloListInfo() };
+
+      // Pass output folder without trailing slash
+      await importer.writeCard('/output/folder', options, 'Board', card, {}, lists);
+
+      // Attachment write call should be at /output/folder/attachments/photo.jpg
+      const attachmentWriteCall = vi.mocked(fs.writeFile).mock.calls[0];
+      expect(attachmentWriteCall[0]).toBe('/output/folder/attachments/photo.jpg');
+
+      // Card write call should be at /output/folder/20240115100000-Safe-Path-Card.md
+      const cardWriteCall = vi.mocked(fs.writeFile).mock.calls[1];
+      expect(cardWriteCall[0]).toMatch(/\/output\/folder\/20240115100000-Safe-Path-Card\.md$/);
+    });
+
     test('writes card with checklists', async () => {
       const checklist = createTrelloChecklistInfo({
         id: 'cl1',
@@ -897,6 +916,45 @@ describe('TrelloImport', () => {
           apiKey: 'test-key',
         })
       ).rejects.toThrow('API Error');
+    });
+
+    test('safely encodes special characters in boardIdOrName, apiKey, and token', async () => {
+      const mockBoard = createTrelloBoardInfo();
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
+
+      await TrelloImport.downloadBoardJson({
+        boardIdOrName: '507f1f77bcf86cd799439011',
+        apiKey: 'key&injected=1',
+        token: 'token#hash',
+      });
+
+      const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+      expect(calledUrl).toContain('507f1f77bcf86cd799439011');
+      expect(calledUrl).toContain('key%26injected%3D1');
+      expect(calledUrl).toContain('token%23hash');
+    });
+
+    test('safely encodes non-hex board name during lookup and download', async () => {
+      const mockBoards = [{ id: '507f1f77bcf86cd799439011', name: 'My Board & Special' }];
+      const mockBoard = createTrelloBoardInfo({ id: '507f1f77bcf86cd799439011' });
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoards) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
+
+      await TrelloImport.downloadBoardJson({
+        boardIdOrName: 'My Board & Special',
+        apiKey: 'key&1',
+        token: 'token#2',
+      });
+
+      const lookupUrl = vi.mocked(fetch).mock.calls[0][0] as string;
+      expect(lookupUrl).toContain('key%261');
+      expect(lookupUrl).toContain('token%232');
+
+      const downloadUrl = vi.mocked(fetch).mock.calls[1][0] as string;
+      expect(downloadUrl).toContain('507f1f77bcf86cd799439011');
+      expect(downloadUrl).toContain('key%261');
+      expect(downloadUrl).toContain('token%232');
     });
   });
 

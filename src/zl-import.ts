@@ -4,6 +4,7 @@ import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
 import { Command } from '@commander-js/extra-typings';
+import path from "node:path";
 import TrelloImport, { TrelloOptions } from "./trello-import.js";
 import { ErrorResponse } from "./base-importer.js";
 
@@ -84,8 +85,8 @@ async function importer(program: ZlImportOptions): Promise<void> {
         } else {
           console.log("Downloaded Trello board with " + boardJson.cards.length + " cards and " + boardJson.lists.length + " lists.");
         }
-        // Save to a temp file
-        const tempFile = program.outputFolder + "/trello-board.json";
+        // Save to a temp file securely using path.join
+        const tempFile = path.join(program.outputFolder, "trello-board.json");
         const fsPromises = await import("fs/promises");
         await fsPromises.mkdir(program.outputFolder, { recursive: true });
         await fsPromises.writeFile(tempFile, JSON.stringify(boardJson, null, 2));
