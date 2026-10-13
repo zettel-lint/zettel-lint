@@ -405,6 +405,25 @@ describe('TrelloImport', () => {
       expect(content).not.toContain('## Attachments');
     });
 
+    test('constructs card and attachments output path safely without trailing slash issues', async () => {
+      const card = createTrelloCardInfo({
+        name: 'Safe Path Card',
+        attachments: [createAttachmentInfo({ fileName: 'photo.jpg', name: 'Photo' })],
+      });
+      const lists = { list1: createTrelloListInfo() };
+
+      // Pass output folder without trailing slash
+      await importer.writeCard('/output/folder', options, 'Board', card, {}, lists);
+
+      // Attachment write call should be at /output/folder/attachments/photo.jpg
+      const attachmentWriteCall = vi.mocked(fs.writeFile).mock.calls[0];
+      expect(attachmentWriteCall[0]).toBe('/output/folder/attachments/photo.jpg');
+
+      // Card write call should be at /output/folder/20240115100000-Safe-Path-Card.md
+      const cardWriteCall = vi.mocked(fs.writeFile).mock.calls[1];
+      expect(cardWriteCall[0]).toMatch(/\/output\/folder\/20240115100000-Safe-Path-Card\.md$/);
+    });
+
     test('writes card with checklists', async () => {
       const checklist = createTrelloChecklistInfo({
         id: 'cl1',
