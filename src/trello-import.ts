@@ -90,7 +90,7 @@ class TrelloBoardInfo {
 
 function escapeYamlSingleQuote(val: string | undefined | null): string {
   if (!val) return "";
-  return String(val).replace(/\r\n|\r|\n/g, " ").replace(/'/g, "''");
+  return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
 }
 
 function sortableDate(d: Date | string) : string {
