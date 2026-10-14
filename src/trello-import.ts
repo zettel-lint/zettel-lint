@@ -113,6 +113,16 @@ export default class TrelloImport implements BaseImporter {
     return response.json();
   }
 
+  /**
+   * Downloads board JSON, requesting all cards, lists, checklists, labels, members,
+   * and board fields.
+   *
+   * @param options - An API key and an 8- or 24-character hexadecimal board ID,
+   *   or an exact, case-sensitive board name. Name lookup requires a token.
+   * @returns The parsed board response, without schema validation.
+   * @throws If name lookup lacks a token, the name is not found, or either HTTP
+   *   response is unsuccessful. Network and JSON parsing errors also propagate.
+   */
   static async downloadBoardJson(options: TrelloOptions): Promise<any> {
     let { boardIdOrName, apiKey, token, verbose } = options;
     // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
@@ -195,6 +205,19 @@ export default class TrelloImport implements BaseImporter {
     return filenames;
   }
 
+  /**
+   * Writes or overwrites a Markdown note with frontmatter, description, checklists,
+   * and attachment links. File attachments are downloaded under outputFolder/attachments.
+   * Failed attachment downloads or writes are omitted without failing the note.
+   *
+   * @param outputFolder - Destination directory, with or without a trailing separator.
+   *   This method does not create it or its attachments subdirectory.
+   * @param checklists - Checklists keyed by ID for the card's idChecklists.
+   * @param lists - Lists keyed by ID; the card's idList must be present.
+   * @returns True when the note is written; false if checklist rendering or note writing fails.
+   * @throws Errors preparing the filename, attachments, or frontmatter propagate,
+   *   including an invalid activity Date or a missing list entry.
+   */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
       boardName: string,

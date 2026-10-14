@@ -19,6 +19,10 @@ export class formatData {
   bag: any[] = [];
 }
 
+/**
+ * Formats a Markdown reference link as `[title][id]` without escaping either value.
+ * Undefined titles or IDs appear as the literal text `undefined`.
+ */
 export function formatLink(ref: formatData): string {
   return `[${ref.title}][${ref.id}]`;
 }
@@ -29,6 +33,13 @@ export function min(x: number, y: number): number | undefined {
   return y;
 }
 
+/**
+ * Groups source references by the links in their data, removing at most one leading
+ * `[` and one trailing `]` from each key and preserving interior brackets.
+ * Source IDs fall back to filenames, then an empty string, for null or undefined values.
+ * Order and duplicates are preserved within each group. Null or undefined references
+ * produce an empty map; references with null or undefined data are skipped.
+ */
 export function collectBacklinks(references: formatData[]) {
   // Performance optimization: use fast string slicing instead of replace()
   // and reuse Map.get reference to eliminate repeated Map lookups.
@@ -57,6 +68,12 @@ export function collectBacklinks(references: formatData[]) {
   return tagList;
 }
 
+/**
+ * Groups references by their exact data values, with `[title][id]` links as values.
+ * Preserves order and duplicates within each group and skips undefined data.
+ *
+ * @throws TypeError if data is null or a tag collides with an inherited object property.
+ */
 export function invertDictionary(references: formatData[]) {
   var tagList: { [tag: string]: string[]; } = {};
 
@@ -74,6 +91,12 @@ export function invertDictionary(references: formatData[]) {
   return tagList;
 }
 
+/**
+ * Groups references by their exact data values, preserving order and duplicates.
+ * Each entry is a shallow copy with name set to the grouping value and data replaced
+ * by a single `[title][id]` link; nested values such as bag remain shared.
+ * Null or undefined references produce an empty map; null or undefined data is skipped.
+ */
 export function invertData(references: formatData[]) {
   // Performance optimization: eliminate redundant Map.set calls for existing entries
   const tagList = new Map<string, formatData[]>();
