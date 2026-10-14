@@ -88,6 +88,11 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+function escapeYamlSingleQuote(val: string | undefined | null): string {
+  if (!val) return "";
+  return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
+}
+
 function sortableDate(d: Date | string) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
@@ -210,19 +215,20 @@ export default class TrelloImport implements BaseImporter {
     const attachmentsFolder = path.join(outputFolder, "attachments");
     const filenames = await this.saveAttachments(attachmentsFolder, options, card.attachments || []);
 
+    const listName = lists[card.idList]?.name || "";
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
-      "\ntitle: '" + card.name + "'" +
+      "\ntitle: '" + escapeYamlSingleQuote(card.name) + "'" +
       "\nsource: Trello" + 
-      "\ntags: [" + (card.labels || []).map(l => "'" + (l?.name || "").replace(/[^A-Za-z0-9]/g, "_") + "'").join(", ") + "]" +
+      "\ntags: [" + (card.labels || []).map(l => "'" + escapeYamlSingleQuote((l?.name || "").replace(/[^A-Za-z0-9]/g, "_")) + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: '" + boardName + "'" + 
-      "\nlist: '" + lists[card.idList].name + "'" +
-      "\npublished: " + lists[card.idList].name.includes("Published") +
-      "\ntrello-url: '" + card.shortUrl + "'" +
+      "\nboard: '" + escapeYamlSingleQuote(boardName) + "'" +
+      "\nlist: '" + escapeYamlSingleQuote(listName) + "'" +
+      "\npublished: " + listName.includes("Published") +
+      "\ntrello-url: '" + escapeYamlSingleQuote(card.shortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
