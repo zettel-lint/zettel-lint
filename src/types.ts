@@ -1,4 +1,3 @@
-
 export class fileWikiLinks {
   id: string | undefined;
   title: string | undefined;
@@ -29,55 +28,75 @@ export function min(x: number, y: number): number | undefined {
 }
 
 export function collectBacklinks(references: formatData[]) {
-  var tagList = new Map<string, string[]>();
+  const tagList = new Map<string, string[]>();
 
-  references.forEach(ref => {
+  for (let i = 0; i < references.length; i++) {
+    const ref = references[i];
     const tags = ref.data;
-    if (tags != undefined) {
-      tags.forEach(tag => {
-        tag = tag.replace("[", "").replace("]", "")
-        if (tagList.get(tag) === undefined) {
-          tagList.set(tag, []);
+    if (tags) {
+      const targetId = ref.id ?? ref.filename ?? "";
+      for (let j = 0; j < tags.length; j++) {
+        let tag = tags[j];
+        // Performance optimization: Fast string slicing over multiple replace calls
+        if (tag.startsWith("[") && tag.endsWith("]")) {
+          tag = tag.slice(1, -1);
+        } else {
+          tag = tag.replace("[", "").replace("]", "");
         }
-        tagList.get(tag)?.push(ref.id ?? ref.filename ?? "");
-      });
+        let list = tagList.get(tag);
+        if (!list) {
+          list = [];
+          tagList.set(tag, list);
+        }
+        list.push(targetId);
+      }
     }
-  });
+  }
   return tagList;
 }
 
 export function invertDictionary(references: formatData[]) {
-  var tagList: { [tag: string]: string[]; } = {};
+  const tagList: { [tag: string]: string[]; } = {};
 
-  references.forEach(ref => {
+  for (let i = 0; i < references.length; i++) {
+    const ref = references[i];
     const tags = ref.data;
-    if (tags != undefined) {
-      tags.forEach(tag => {
-        if (tagList[tag] === undefined) {
+    if (tags) {
+      // Performance optimization: Compute formatted link once per ref instead of per tag
+      const link = formatLink(ref);
+      for (let j = 0; j < tags.length; j++) {
+        const tag = tags[j];
+        if (!tagList[tag]) {
           tagList[tag] = [];
         }
-        tagList[tag].push(formatLink(ref));
-      });
+        tagList[tag].push(link);
+      }
     }
-  });
+  }
   return tagList;
 }
 
 export function invertData(references: formatData[]) {
-  var tagList = new Map<string, formatData[]>();
+  const tagList = new Map<string, formatData[]>();
 
-  if (references == undefined) { return tagList; }
+  if (!references) { return tagList; }
 
-  references.forEach(ref => {
+  for (let i = 0; i < references.length; i++) {
+    const ref = references[i];
     const tags = ref.data;
-    if (tags != undefined) {
-      tags.forEach(tag => {
-        var current = tagList.get(tag) ?? [];
-        current.push({...ref, name: tag, data: [formatLink(ref)]});
-
-        tagList.set(tag, current);
-      });
+    if (tags) {
+      // Performance optimization: Cache formatLink and eliminate redundant Map set calls
+      const link = formatLink(ref);
+      for (let j = 0; j < tags.length; j++) {
+        const tag = tags[j];
+        let current = tagList.get(tag);
+        if (!current) {
+          current = [];
+          tagList.set(tag, current);
+        }
+        current.push({ ...ref, name: tag, data: [link] });
+      }
     }
-  });
+  }
   return tagList;
 }
