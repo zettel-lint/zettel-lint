@@ -123,8 +123,10 @@ export default class TrelloImport implements BaseImporter {
       if (!token) {
         throw new Error("A Trello token (--trello-token) is required to look up boards by name.");
       }
-      const boardsUrl = `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${token}`;
-      const boards = await TrelloImport.fetchJsonOrThrow(boardsUrl, "Trello board lookup");
+      const boardsUrl = new URL("https://api.trello.com/1/members/me/boards");
+      boardsUrl.searchParams.set("key", apiKey);
+      boardsUrl.searchParams.set("token", token);
+      const boards = await TrelloImport.fetchJsonOrThrow(boardsUrl.toString(), "Trello board lookup");
       const found = boards.find((b: any) => b.name === boardIdOrName);
       if (!found) {
         throw new Error(`Could not find Trello board with name: ${boardIdOrName}`);
@@ -134,11 +136,18 @@ export default class TrelloImport implements BaseImporter {
         console.log(`Resolved board name '${options.boardIdOrName}' to id: ${boardIdOrName}`);
       }
     }
-    const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all` + (token ? `&token=${token}` : '');
+    const url = new URL(`https://api.trello.com/1/boards/${boardIdOrName}`);
+    url.searchParams.set("key", apiKey);
+    for (const field of ["cards", "lists", "checklists", "labels", "members", "fields"]) {
+      url.searchParams.set(field, "all");
+    }
+    if (token) {
+      url.searchParams.set("token", token);
+    }
     if (verbose) {
       console.log(`Downloading Trello board ${boardIdOrName}`);
     }
-    return TrelloImport.fetchJsonOrThrow(url, "Trello board download");
+    return TrelloImport.fetchJsonOrThrow(url.toString(), "Trello board download");
   }
   async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
@@ -192,11 +201,11 @@ export default class TrelloImport implements BaseImporter {
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
-    const outputFilename :string = outputFolder +
+    const outputFilename :string = path.join(outputFolder,
       sortableDate(card.dateLastActivity) +
-      "-" + this.sanitiseName(card) + ".md";
+      "-" + this.sanitiseName(card) + ".md");
 
-    const filenames = await this.saveAttachments(outputFolder + "attachments/", options, card.attachments || []);
+    const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +

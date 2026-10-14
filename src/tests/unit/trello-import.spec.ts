@@ -388,6 +388,21 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
+    test.each(['/output', '/output/'])('writes card and attachments inside %s', async (outputFolder: string) => {
+      const card = createTrelloCardInfo({ attachments: [createAttachmentInfo()] });
+      const lists = { list1: createTrelloListInfo() };
+
+      const result = await importer.writeCard(outputFolder, options, 'Board', card, {}, lists);
+
+      expect(result).toBe(true);
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '/output/20240115100000-Test-Card.md',
+        expect.stringContaining('![Test Attachment](/output/attachments/attachment.png)'),
+        {},
+      );
+    });
+
     test('writes card without checklists or attachments', async () => {
       const card = createTrelloCardInfo({ name: 'Simple Card', desc: 'Simple description' });
       const lists = { list1: createTrelloListInfo() };
@@ -719,6 +734,32 @@ describe('TrelloImport', () => {
   });
 
   describe('downloadBoardJson', () => {
+    test.each(['My Board', 'abc12345'])('encodes credentials as query values for %s', async (boardIdOrName: string) => {
+      const mockBoard = createTrelloBoardInfo({ id: 'abc12345', name: 'My Board' });
+      const apiKey = 'key&cards=none+ #?=%';
+      const token = 'token&injected=value+ #?=%';
+      if (boardIdOrName === 'My Board') {
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockBoard]) });
+      }
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
+
+      const result = await TrelloImport.downloadBoardJson({ boardIdOrName, apiKey, token });
+
+      expect(result).toEqual(mockBoard);
+      expect(fetch).toHaveBeenCalledTimes(boardIdOrName === 'My Board' ? 2 : 1);
+      for (const [request] of vi.mocked(fetch).mock.calls) {
+        const url = new URL(String(request));
+        expect(url.hash).toBe('');
+        expect(Object.fromEntries(url.searchParams)).toEqual({
+          key: apiKey,
+          token,
+          ...(url.pathname === '/1/boards/abc12345' ? {
+            cards: 'all', lists: 'all', checklists: 'all', labels: 'all', members: 'all', fields: 'all',
+          } : {}),
+        });
+      }
+    });
+
     test('downloads board by valid ID', async () => {
       const mockBoard = createTrelloBoardInfo();
       vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
