@@ -10,7 +10,6 @@ import { ContextCollector } from "./collectors/ContextCollector.js";
 import { TagCollector } from "./collectors/TagCollector.js";
 import { WikiCollector } from "./collectors/WikiCollector.js";
 import { Collector } from "./collectors/Collector.js";
-import { collectMatches } from "./collectors/RegexCollector.js";
 import { fileWikiLinks } from "./types.js";
 import { idFromFilename } from "./file-handling.js";
 import { Templator } from "./Templator.js";
@@ -97,10 +96,10 @@ function printHeader(program: ZlIndexOptions): void {
 
 
 const collectors: Collector[] = [new WikiCollector, new ContextCollector, new TagCollector, new TaskCollector];
+// Module-level regex for single-match title extraction
+const titleReg = /^(?:title:|#) (.*)$/m;
 
 export async function collectFromFile(filename: string, program: ZlIndexOptions): Promise<fileWikiLinks> {
-  const titleReg = /^(?:title:|#) (.*)$/gm; // Without the global, the parser stack overflows
-
   const contents = await fs.readFile(filename, "utf8");
 
   var matchData: {[collector: string]: string[]} = {}
@@ -108,15 +107,19 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
     matchData[element.dataName] = element.collector(filename, contents, program);
   });
 
-  const name = filename.split("/").pop();
-  const capturedTitle = collectMatches(contents, titleReg)?.[0];
+  // Performance optimization: fast string indexing for filename extraction (handles / and \)
+  const lastSep = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+  const name = lastSep >= 0 ? filename.slice(lastSep + 1) : filename;
+
+  // Single regex match stops at first title without full-document scanning or array allocations
+  const capturedTitle = titleReg.exec(contents)?.[1]?.trim();
 
   return {
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
     wikiname: name?.slice(0,-3), // .md
-    title: capturedTitle?.length > 0 ? capturedTitle : name?.split(".")[0],
+    title: capturedTitle && capturedTitle.length > 0 ? capturedTitle : name?.split(".")[0],
     matchData
   };
 }

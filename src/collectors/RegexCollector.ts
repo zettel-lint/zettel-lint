@@ -1,18 +1,18 @@
 import { Collector } from "./Collector.js";
 
 export function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
+  // Reset regex state so reused global RegExp instances start searching at index 0
+  regex.lastIndex = 0;
   var result: string[] = [];
   var next: RegExpExecArray | null;
-  do {
-    next = regex.exec(contents);
-    if (next) {
-      if (useCaptureGroup && next[1]) {
-        result.push(next[1].trim());
-      } else {
-        result.push(next.toString().trim());
-      }
+  while ((next = regex.exec(contents)) !== null) {
+    if (useCaptureGroup && next[1]) {
+      result.push(next[1].trim());
+    } else {
+      // Use full match string directly instead of next.toString() array conversion
+      result.push(next[0].trim());
     }
-  } while (next);
+  }
   return result;
 }
 
