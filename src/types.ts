@@ -28,7 +28,7 @@ export function formatLink(ref: formatData): string {
 }
 
 export function min(x: number, y: number): number | undefined {
-  if (x == null || y == null) return undefined; // null == undefined
+  if (x === null || x === undefined || y === null || y === undefined) return undefined;
   if (x < y) return x;
   return y;
 }
