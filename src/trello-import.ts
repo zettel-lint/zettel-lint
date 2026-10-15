@@ -113,6 +113,16 @@ export default class TrelloImport implements BaseImporter {
     return response.json();
   }
 
+  /**
+   * Downloads board JSON, requesting all cards, lists, checklists, labels, members,
+   * and board fields.
+   *
+   * @param options - An API key and an 8- or 24-character hexadecimal board ID,
+   *   or an exact, case-sensitive board name. Name lookup requires a token.
+   * @returns The parsed board response, without schema validation.
+   * @throws If name lookup lacks a token, the name is not found, or either HTTP
+   *   response is unsuccessful. Network and JSON parsing errors also propagate.
+   */
   static async downloadBoardJson(options: TrelloOptions): Promise<any> {
     let { boardIdOrName, apiKey, token, verbose } = options;
     // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
@@ -136,14 +146,11 @@ export default class TrelloImport implements BaseImporter {
         console.log(`Resolved board name '${options.boardIdOrName}' to id: ${boardIdOrName}`);
       }
     }
-    const url = new URL(`https://api.trello.com/1/boards/${encodeURIComponent(boardIdOrName)}`);
+    const url = new URL(`https://api.trello.com/1/boards/${boardIdOrName}`);
     url.searchParams.set("key", apiKey);
-    url.searchParams.set("cards", "all");
-    url.searchParams.set("lists", "all");
-    url.searchParams.set("checklists", "all");
-    url.searchParams.set("labels", "all");
-    url.searchParams.set("members", "all");
-    url.searchParams.set("fields", "all");
+    for (const field of ["cards", "lists", "checklists", "labels", "members", "fields"]) {
+      url.searchParams.set(field, "all");
+    }
     if (token) {
       url.searchParams.set("token", token);
     }
@@ -190,7 +197,7 @@ export default class TrelloImport implements BaseImporter {
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push("![" + attachment.name + "](" + outputFilename + ")");
+        filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }
@@ -198,17 +205,30 @@ export default class TrelloImport implements BaseImporter {
     return filenames;
   }
 
+  /**
+   * Writes or overwrites a Markdown note with frontmatter, description, checklists,
+   * and attachment links. File attachments are downloaded under outputFolder/attachments.
+   * Failed attachment downloads or writes are omitted without failing the note.
+   *
+   * @param outputFolder - Destination directory, with or without a trailing separator.
+   *   This method does not create it or its attachments subdirectory.
+   * @param checklists - Checklists keyed by ID for the card's idChecklists.
+   * @param lists - Lists keyed by ID; the card's idList must be present.
+   * @returns True when the note is written; false if checklist rendering or note writing fails.
+   * @throws Errors preparing the filename, attachments, or frontmatter propagate,
+   *   including an invalid activity Date or a missing list entry.
+   */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
       boardName: string,
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
-    const outputFilename :string = outputFolder + 
-      sortableDate(card.dateLastActivity) + 
-      "-" + this.sanitiseName(card) + ".md";
+    const outputFilename :string = path.join(outputFolder,
+      sortableDate(card.dateLastActivity) +
+      "-" + this.sanitiseName(card) + ".md");
 
-    const filenames = await this.saveAttachments(outputFolder + "attachments/", options, card.attachments || []);
+    const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
