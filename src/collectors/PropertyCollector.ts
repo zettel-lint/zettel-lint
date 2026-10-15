@@ -1,6 +1,6 @@
 import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
-import { YamlHeaders } from "./Collector.js";
+import type { YamlHeaders } from "./Collector.js";
 
 export class PropertyCollector extends RegexCollector {
   readonly dataName = "Properties";
@@ -53,20 +53,21 @@ export class PropertyCollector extends RegexCollector {
     this.regex.lastIndex = 0; // Reset regex state
     const result: YamlHeaders = Object.create(null);
     result.tags = [];
-    let match: RegExpExecArray | null;
+    let match = this.regex.exec(content);
 
-    while ((match = this.regex.exec(content)) !== null) {
+    while (match !== null) {
       const [, key, value] = match;
-      if (!key || !value) continue;
-
-      const trimmedKey = key.trim();
-      if (trimmedKey === '__proto__' || trimmedKey === 'constructor' || trimmedKey === 'prototype') continue;
-
-      const values = trimmedKey === 'tags' ? value.split(", ") : [value.trim()];
-      const existing = result[trimmedKey];
-      result[trimmedKey] = existing
-        ? [...new Set([...existing, ...values])]
-        : values;
+      if (key && value) {
+        const trimmedKey = key.trim();
+        if (trimmedKey !== '__proto__' && trimmedKey !== 'constructor' && trimmedKey !== 'prototype') {
+          const values = trimmedKey === 'tags' ? value.split(", ") : [value.trim()];
+          const existing = result[trimmedKey];
+          result[trimmedKey] = existing
+            ? [...new Set([...existing, ...values])]
+            : values;
+        }
+      }
+      match = this.regex.exec(content);
     }
 
     return result;
