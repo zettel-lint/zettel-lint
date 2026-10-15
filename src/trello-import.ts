@@ -197,7 +197,7 @@ export default class TrelloImport implements BaseImporter {
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push("![" + attachment.name + "](" + outputFilename + ")");
+        filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }
