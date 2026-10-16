@@ -1,18 +1,29 @@
 import { Collector } from "./Collector.js";
 
+/**
+ * Collects trimmed matches in encounter order, preserving duplicates.
+ *
+ * @param regex - Must be global or sticky and must not produce empty matches,
+ *   otherwise scanning may not terminate. Its lastIndex is reset before scanning
+ *   and updated during scanning.
+ * @param useCaptureGroup - When true (the default), uses a nonempty first capture
+ *   group; otherwise, or when that group is absent or empty, uses the full match.
+ * @returns The trimmed values, or an empty array when nothing matches.
+ */
 export function collectMatches(contents: string, regex: RegExp, useCaptureGroup: boolean = true): string[] {
-  var result: string[] = [];
-  var next: RegExpExecArray | null;
-  do {
-    next = regex.exec(contents);
-    if (next) {
-      if (useCaptureGroup && next[1]) {
-        result.push(next[1].trim());
-      } else {
-        result.push(next.toString().trim());
-      }
+  // Performance optimization: reset regex stateful index before scanning
+  // and use direct index next[0] instead of array-to-string coercion.
+  regex.lastIndex = 0;
+  const result: string[] = [];
+  let next = regex.exec(contents);
+  while (next !== null) {
+    if (useCaptureGroup && next[1]) {
+      result.push(next[1].trim());
+    } else {
+      result.push(next[0].trim());
     }
-  } while (next);
+    next = regex.exec(contents);
+  }
   return result;
 }
 
