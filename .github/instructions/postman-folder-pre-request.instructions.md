@@ -35,7 +35,6 @@ Ensure the scripts are robust, readable, and follow Postman scripting standards.
 **Example Output:**
 
 ```javascript
-// @ts-check
 // Types from @postman/test-script-types-plugin are available
 // Set a dynamic timestamp variable
 pm.environment.set('currentTimestamp', Date.now());
