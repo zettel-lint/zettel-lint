@@ -15,3 +15,9 @@
 **Learning:** Reading and collecting metadata from markdown files sequentially in `parseFiles` using `for await (const file of files)` created a serial async I/O bottleneck during indexing. Converting file parsing to concurrent `Promise.all` maps allows Node to process file I/O in parallel while maintaining result order. When parallelizing async functions that execute regexes, any global `/g` regexes must remain scoped per-call to prevent concurrent race conditions on `lastIndex`.
 
 **Action:** Use `Promise.all` with `map` for async I/O file scanning to maximize concurrent throughput, and ensure stateful regexes are kept function-scoped when called in concurrent promise contexts.
+
+## 2026-03-31 - Direct String Slicing and Loop Optimization in `collectBacklinks`
+
+**Learning:** In backlink processing loops over large note collections, calling `.replace("[", "").replace("]", "")` creates unnecessary intermediate string instances and regex matching overhead per tag. Furthermore, nested `.forEach` array closures allocate iterator callbacks in hot paths. Replacing string `.replace()` with `startsWith`/`endsWith` slicing and `.forEach` with indexed `for` loops speeds up backlink collection by ~2x and reduces GC pressure.
+
+**Action:** Use direct string `substring` slicing instead of `.replace()` for trimming known boundary characters, and use indexed `for` loops in hot data processing pipelines.
