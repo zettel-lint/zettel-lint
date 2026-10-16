@@ -14,11 +14,16 @@ export class formatData {
   fullpath: string | undefined;
   name: string | undefined;
   data: string[] = [];
+  // biome-ignore lint/suspicious/noExplicitAny: bag contains arbitrary note objects
   bag: any[] = [];
 }
 
+/**
+ * Formats a Markdown reference link as `[title][id]` without escaping either value.
+ * Undefined titles or IDs appear as the literal text `undefined`.
+ */
 export function formatLink(ref: formatData): string {
-  return "["+ref.title+"][" + ref.id + "]";
+  return `[${ref.title}][${ref.id}]`;
 }
 
 export function min(x: number, y: number): number | undefined {
@@ -27,8 +32,18 @@ export function min(x: number, y: number): number | undefined {
   return y;
 }
 
+/**
+ * Groups source references by the links in their data, removing at most one leading
+ * `[` and one trailing `]` from each key and preserving interior brackets.
+ * Source IDs fall back to filenames, then an empty string, for null or undefined values.
+ * Order and duplicates are preserved within each group. Null or undefined references
+ * produce an empty map; references with null or undefined data are skipped.
+ */
 export function collectBacklinks(references: formatData[]) {
+  // Keep boundary slicing and reference ID resolution out of the inner loop.
   const tagList = new Map<string, string[]>();
+
+  if (!references) return tagList;
 
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
