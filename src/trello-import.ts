@@ -98,6 +98,11 @@ function sortableDate(d: Date | string) : string {
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
+function escapeYamlString(value: string | undefined | null): string {
+  if (!value) return '';
+  return String(value).replace(/'/g, "''").replace(/[\r\n]+/g, ' ');
+}
+
 export type TrelloOptions = ImportOptions & {
   boardIdOrName: string;
   apiKey: string;
@@ -233,16 +238,16 @@ export default class TrelloImport implements BaseImporter {
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
-      "\ntitle: '" + card.name + "'" +
+      "\ntitle: '" + escapeYamlString(card.name) + "'" +
       "\nsource: Trello" + 
       "\ntags: [" + (card.labels || []).map(l => "'" + (l?.name || "").replace(/[^A-Za-z0-9]/g, "_") + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: '" + boardName + "'" + 
-      "\nlist: '" + lists[card.idList].name + "'" +
+      "\nboard: '" + escapeYamlString(boardName) + "'" +
+      "\nlist: '" + escapeYamlString(lists[card.idList].name) + "'" +
       "\npublished: " + lists[card.idList].name.includes("Published") +
-      "\ntrello-url: '" + card.shortUrl + "'" +
+      "\ntrello-url: '" + escapeYamlString(card.shortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";

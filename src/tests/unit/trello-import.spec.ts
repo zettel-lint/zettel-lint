@@ -546,6 +546,24 @@ describe('TrelloImport', () => {
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
     });
+
+    test('escapes single quotes and newlines in frontmatter fields to prevent YAML injection', async () => {
+      const card = createTrelloCardInfo({ name: "Don't Panic\nInjected Key: value" });
+      const lists = { list1: createTrelloListInfo({ name: "List's Name\nEvil: true" }) };
+
+      await importer.writeCard('/output/', options, "User's Board\nInjected: true", card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      const frontmatter = content.split('---')[1];
+      const parsed = parse(frontmatter);
+
+      expect(parsed.title).toBe("Don't Panic Injected Key: value");
+      expect(parsed.board).toBe("User's Board Injected: true");
+      expect(parsed.list).toBe("List's Name Evil: true");
+      expect(parsed['Injected Key']).toBeUndefined();
+      expect(parsed['Injected']).toBeUndefined();
+      expect(parsed['Evil']).toBeUndefined();
+    });
   });
 
   describe('importAsync', () => {
