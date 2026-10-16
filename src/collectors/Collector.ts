@@ -30,18 +30,20 @@ export abstract class Collector {
   }
   private readonly yamlSep = "---\n";
   protected collectYaml(content: string) : YamlHeaders {
+    const result: YamlHeaders = Object.create(null);
+    result.tags = undefined;
     if (!content.startsWith(this.yamlSep)){
-      return {tags: undefined};
+      return result;
     }
     const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
     const yamlData = parse(header);
-    const result: YamlHeaders = { };
-    
+
     if (!yamlData || typeof yamlData !== 'object') {
       return result;
     }
-    
+
     Object.entries(yamlData).forEach(([key, value]) => {
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return;
       if (key === 'tags') {
         result[key] = Array.isArray(value)
           ? value.map(v => String(v))
@@ -51,7 +53,7 @@ export abstract class Collector {
         result[key] = arr.map(v => String(v));
       }
     });
-    
+
     return result;
   }
   public extractData(ref: fileWikiLinks): formatData {
