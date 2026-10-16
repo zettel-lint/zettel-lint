@@ -147,27 +147,32 @@ function indexer(program: ZlIndexOptions): Promise<void> {
     // options is optional
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
 
-    // Performance optimization: Process files concurrently using Promise.all to avoid serial async I/O bottlenecks
-    const fileResults = await Promise.all(
-      files.map(async (file) => {
-        try {
-          const wikiLinks = await collectFromFile(file, program);
-          if (program.jsonDebugOutput) {
-            console.log(wikiLinks);
+    // Bound concurrent reads while keeping results in discovery order.
+    const fileConcurrency = 16;
+    const fileResults: (fileWikiLinks | null)[] = [];
+    for (let offset = 0; offset < files.length; offset += fileConcurrency) {
+      const batchResults = await Promise.all(
+        files.slice(offset, offset + fileConcurrency).map(async (file) => {
+          try {
+            const wikiLinks = await collectFromFile(file, program);
+            if (program.jsonDebugOutput) {
+              console.log(wikiLinks);
+            }
+            if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
+              return wikiLinks;
+            }
+          } catch (error: any) {
+            // Only rethrow if not ENOENT or YAMLParseError
+            console.error(`Error processing file ${file}:`, error);
+            if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
+              throw error;
+            }
           }
-          if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
-            return wikiLinks;
-          }
-        } catch (error: any) {
-          // Only rethrow if not ENOENT or YAMLParseError
-          console.error(`Error processing file ${file}:`, error);
-          if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
-            throw error;
-          }
-        }
-        return null;
-      })
-    );
+          return null;
+        })
+      );
+      fileResults.push(...batchResults);
+    }
 
     const references: fileWikiLinks[] = fileResults.filter((r): r is fileWikiLinks => r !== null);
 
