@@ -24,13 +24,15 @@ describe("zl-fix system test", () => {
     ["formatFrontmatterWithRegex.md"],
     ["idToWikiLinks.md"],
   ])("should generate a %s file matching the expected output, ignoring timestamps", (filename: string) => {
-  const expectedOutputFile = join(__dirname, "expected", filename);
-  const outputFile = join(__dirname, "outputs", filename);
+    const expectedOutputFile = join(__dirname, "expected", filename);
+    const outputFile = join(__dirname, "outputs", filename);
 
     const expectedContent = readFileSync(expectedOutputFile, "utf8")
+      .replace(/\r\n/g, "\n")
       .replace(/created: .*/g, "created: <ignored>")
       .replace(/modified: .*/g, "modified: <ignored>");
     const actualContent = readFileSync(outputFile, "utf8")
+      .replace(/\r\n/g, "\n")
       .replace(/created: .*/g, "created: <ignored>")
       .replace(/modified: .*/g, "modified: <ignored>");
 
