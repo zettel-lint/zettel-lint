@@ -46,6 +46,58 @@ describe("IdToWikiLinksRule", () => {
     expect(rule.fix(input, "test.md")).toBe(input);
   });
 
+  test.each(["\n", "\r\n"])("preserves YAML front matter with %j line endings", (newline: string) => {
+    const rule = new IdToWikiLinksRule();
+    rule.prepare(["20230901-note.md"], ".");
+    const frontMatter = ["---", "references: [20230901]", 'title: "[20230901]"', "---", ""].join(newline);
+
+    expect(rule.fix(frontMatter + "Prose [20230901].", "test.md"))
+      .toBe(frontMatter + "Prose [[20230901-note]].");
+  });
+
+  test.each([
+    "`[20230901]`",
+    "``[20230901] with ` inside``",
+    "`[20230901]\non another line`",
+    "``[20230901] with ``` inside``",
+  ])("preserves inline code %j and converts surrounding prose", (code: string) => {
+    const rule = new IdToWikiLinksRule();
+    rule.prepare(["20230901-note.md"], ".");
+
+    expect(rule.fix(`[20230901] ${code} [20230901]`, "test.md"))
+      .toBe(`[[20230901-note]] ${code} [[20230901-note]]`);
+  });
+
+  test.each([
+    ["```ts", "~~~", "```", "\n"],
+    ["~~~", "```", "~~~", "\n"],
+    ["````", "```", "`````", "\n"],
+    ["  ~~~~lang", "~~~", "   ~~~~~", "\r\n"],
+  ])("preserves fenced code opened with %j", (opening: string, inner: string, closing: string, newline: string) => {
+    const rule = new IdToWikiLinksRule();
+    rule.prepare(["20230901-note.md"], ".");
+    const code = [opening, "[20230901]", inner, "[20230901]", closing, ""].join(newline);
+
+    expect(rule.fix(`[20230901]${newline}${code}[20230901]`, "test.md"))
+      .toBe(`[[20230901-note]]${newline}${code}[[20230901-note]]`);
+  });
+
+  test("preserves an unclosed fenced code block through the end of the file", () => {
+    const rule = new IdToWikiLinksRule();
+    rule.prepare(["20230901-note.md"], ".");
+
+    expect(rule.fix("[20230901]\n~~~\n[20230901]", "test.md"))
+      .toBe("[[20230901-note]]\n~~~\n[20230901]");
+  });
+
+  test("converts prose after an unmatched backtick and between thematic breaks", () => {
+    const rule = new IdToWikiLinksRule();
+    rule.prepare(["20230901-note.md"], ".");
+
+    expect(rule.fix("Prose ` [20230901]\n---\n[20230901]\n---", "test.md"))
+      .toBe("Prose ` [[20230901-note]]\n---\n[[20230901-note]]\n---");
+  });
+
   test("is idempotent: a second fix pass makes no further changes", () => {
     const rule = new IdToWikiLinksRule();
     rule.prepare(["00000000-dummy-file.md"], ".");
