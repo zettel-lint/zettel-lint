@@ -108,7 +108,7 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
     matchData[element.dataName] = element.collector(filename, contents, program);
   });
 
-  const name = filename.split("/").pop();
+  const name = path.basename(filename);
   const capturedTitle = collectMatches(contents, titleReg)?.[0];
 
   return {
@@ -144,28 +144,32 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
 
   async function parseFiles() {
-    var references: fileWikiLinks[] = [];
-
     // options is optional
     const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
 
-    for await (const file of files) {
-      try {
-        const wikiLinks = await collectFromFile(file, program);
-        if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
-          references.push(wikiLinks);
+    // Performance optimization: Process files concurrently using Promise.all to avoid serial async I/O bottlenecks
+    const fileResults = await Promise.all(
+      files.map(async (file) => {
+        try {
+          const wikiLinks = await collectFromFile(file, program);
+          if (program.jsonDebugOutput) {
+            console.log(wikiLinks);
+          }
+          if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
+            return wikiLinks;
+          }
+        } catch (error: any) {
+          // Only rethrow if not ENOENT or YAMLParseError
+          console.error(`Error processing file ${file}:`, error);
+          if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
+            throw error;
+          }
         }
-        if (program.jsonDebugOutput) {
-          console.log(wikiLinks);
-        }
-      } catch (error: any) {
-        // Only rethrow if not ENOENT or YAMLParseError
-        console.error(`Error processing file ${file}:`, error);
-        if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
-          throw error;
-        }
-      }
-    }
+        return null;
+      })
+    );
+
+    const references: fileWikiLinks[] = fileResults.filter((r): r is fileWikiLinks => r !== null);
 
     if (program.referenceFile && program.templateFile) {
       // Ensure the directory for the reference file exists
@@ -187,8 +191,8 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
   return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
-    (reason) => { 
-      console.error("Error: " + reason); 
+    (reason) => {
+      console.error("Error: " + reason);
       process.exitCode = reason instanceof ConfigurationError ? 1 : 2;
     }
   )

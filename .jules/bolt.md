@@ -9,3 +9,9 @@
 **Learning:** Reusing stateful global regular expressions (`/g`) across files in `collectMatches` requires resetting `regex.lastIndex = 0` to avoid search index leakage. When `useCaptureGroup` is false, calling `next.toString()` on `RegExpExecArray` invokes `Array.prototype.toString()` which coerces the array to a comma-separated string (~35% overhead). Accessing `next[0]` directly avoids array serialization. Additionally, in `collectBacklinks` and `invertData`, replacing `replace()` and redundant `Map.get`/`Map.set` calls with `startsWith`/`endsWith` slicing and held Map references speeds up data processing by ~40%.
 
 **Action:** Always reset `lastIndex = 0` on stateful regexes, use `next[0]` instead of `next.toString()`, and reuse Map entry references in nested loops.
+
+## 2025-02-28 - Concurrent File Collection & Stateful Regex Safety
+
+**Learning:** Reading and collecting metadata from markdown files sequentially in `parseFiles` using `for await (const file of files)` created a serial async I/O bottleneck during indexing. Converting file parsing to concurrent `Promise.all` maps allows Node to process file I/O in parallel while maintaining result order. When parallelizing async functions that execute regexes, any global `/g` regexes must remain scoped per-call to prevent concurrent race conditions on `lastIndex`.
+
+**Action:** Use `Promise.all` with `map` for async I/O file scanning to maximize concurrent throughput, and ensure stateful regexes are kept function-scoped when called in concurrent promise contexts.
