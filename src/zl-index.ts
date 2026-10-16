@@ -3,18 +3,19 @@
 import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
 import { Command } from '@commander-js/extra-typings';
 import { TaskCollector } from "./collectors/TaskCollector.js";
 import { ContextCollector } from "./collectors/ContextCollector.js";
 import { TagCollector } from "./collectors/TagCollector.js";
 import { WikiCollector } from "./collectors/WikiCollector.js";
-import { Collector } from "./collectors/Collector.js";
-import { fileWikiLinks } from "./types.js";
+import type { Collector } from "./collectors/Collector.js";
+import { collectMatches } from "./collectors/RegexCollector.js";
+import type { fileWikiLinks } from "./types.js";
 import { idFromFilename } from "./file-handling.js";
 import { Templator } from "./Templator.js";
-import path from "path";
-import { fileURLToPath } from 'url';
+import path from "node:path";
+import { fileURLToPath } from 'node:url';
 import { glob } from "glob";
 import { YAMLParseError } from "yaml";
 
@@ -85,21 +86,21 @@ function printHeader(program: ZlIndexOptions): void {
         figlet.textSync('zettel-lint-index', { horizontalLayout: 'full' })
       )
     );
-    console.log("Looking for notes in " + program.path);
-    console.log("Ignoring dirs: " + program.ignoreDirs);
-    console.log("Outputting references to " + program.referenceFile);
-    console.log("Using template file: " + program.templateFile)
-    console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
-    console.log("Displaying Tasks " + program.taskDisplay);
+    console.log(`Looking for notes in ${program.path}`);
+    console.log(`Ignoring dirs: ${program.ignoreDirs}`);
+    console.log(`Outputting references to ${program.referenceFile}`);
+    console.log(`Using template file: ${program.templateFile}`)
+    console.log(`${program.wiki ? "" : "NOT "}using [[Wiki-Links]]`);
+    console.log(`Displaying Tasks ${program.taskDisplay}`);
   }
 }
 
 
 const collectors: Collector[] = [new WikiCollector, new ContextCollector, new TagCollector, new TaskCollector];
-// Module-level regex for single-match title extraction
-const titleReg = /^(?:title:|#) (.*)$/m;
 
 export async function collectFromFile(filename: string, program: ZlIndexOptions): Promise<fileWikiLinks> {
+  const titleReg = /^(?:title:|#) (.*)$/gm; // Without the global, the parser stack overflows
+
   const contents = await fs.readFile(filename, "utf8");
 
   var matchData: {[collector: string]: string[]} = {}
@@ -107,19 +108,15 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
     matchData[element.dataName] = element.collector(filename, contents, program);
   });
 
-  // Performance optimization: fast string indexing for filename extraction (handles / and \)
-  const lastSep = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
-  const name = lastSep >= 0 ? filename.slice(lastSep + 1) : filename;
-
-  // Single regex match stops at first title without full-document scanning or array allocations
-  const capturedTitle = titleReg.exec(contents)?.[1]?.trim();
+  const name = path.basename(filename);
+  const capturedTitle = collectMatches(contents, titleReg)?.[0];
 
   return {
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
     wikiname: name?.slice(0,-3), // .md
-    title: capturedTitle && capturedTitle.length > 0 ? capturedTitle : name?.split(".")[0],
+    title: capturedTitle?.length > 0 ? capturedTitle : name?.split(".")[0],
     matchData
   };
 }
@@ -140,35 +137,45 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
 function indexer(program: ZlIndexOptions): Promise<void> {
   printHeader(program);
 
-  var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
+  var ignoreList = [`${program.path}/**/node_modules/**`, program.referenceFile]
   if (program.ignoreDirs) {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
 
   async function parseFiles() {
-    var references: fileWikiLinks[] = [];
-
     // options is optional
-    const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
+    const files = await glob(`${program.path}/**/*.md`, { ignore: ignoreList });
 
-    for await (const file of files) {
-      try {
-        const wikiLinks = await collectFromFile(file, program);
-        if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
-          references.push(wikiLinks);
-        }
-        if (program.jsonDebugOutput) {
-          console.log(wikiLinks);
-        }
-      } catch (error: any) {
-        // Only rethrow if not ENOENT or YAMLParseError
-        console.error(`Error processing file ${file}:`, error);
-        if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
-          throw error;
-        }
-      }
+    // Bound concurrent reads while keeping results in discovery order.
+    const fileConcurrency = 16;
+    const fileResults: (fileWikiLinks | null)[] = [];
+    for (let offset = 0; offset < files.length; offset += fileConcurrency) {
+      const batchResults = await Promise.all(
+        files.slice(offset, offset + fileConcurrency).map(async (file) => {
+          try {
+            const wikiLinks = await collectFromFile(file, program);
+            if (program.jsonDebugOutput) {
+              console.log(wikiLinks);
+            }
+            if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
+              return wikiLinks;
+            }
+          } catch (error: unknown) {
+            // Only rethrow if not ENOENT or YAMLParseError
+            console.error(`Error processing file ${file}:`, error);
+            const errorCode = error !== null && typeof error === "object" && "code" in error ? error.code : undefined;
+            if (errorCode !== 'ENOENT' && !(error instanceof YAMLParseError)) {
+              throw error;
+            }
+          }
+          return null;
+        })
+      );
+      fileResults.push(...batchResults);
     }
+
+    const references: fileWikiLinks[] = fileResults.filter((r): r is fileWikiLinks => r !== null);
 
     if (program.referenceFile && program.templateFile) {
       // Ensure the directory for the reference file exists
@@ -190,8 +197,8 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
   return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
-    (reason) => { 
-      console.error("Error: " + reason); 
+    (reason) => {
+      console.error(`Error: ${reason}`);
       process.exitCode = reason instanceof ConfigurationError ? 1 : 2;
     }
   )
