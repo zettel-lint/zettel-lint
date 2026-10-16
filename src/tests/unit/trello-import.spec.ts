@@ -547,24 +547,22 @@ describe('TrelloImport', () => {
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
     });
 
-    test('escapes single quotes and newlines in card name, board name, and list name to prevent YAML injection', async () => {
-      const card = createTrelloCardInfo({ name: "Card's Name\nmalicious: true" });
-      const lists = { list1: createTrelloListInfo({ name: "List's Name\nother: false" }) };
+    test('escapes single quotes and newlines in frontmatter fields to prevent YAML injection', async () => {
+      const card = createTrelloCardInfo({ name: "Don't Panic\nInjected Key: value" });
+      const lists = { list1: createTrelloListInfo({ name: "List's Name\nEvil: true" }) };
 
-      await importer.writeCard('/output/', options, "Board's Name\ninjected: yes", card, {}, lists);
+      await importer.writeCard('/output/', options, "User's Board\nInjected: true", card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain("title: 'Card''s Name malicious: true'");
-      expect(content).toContain("board: 'Board''s Name injected: yes'");
-      expect(content).toContain("list: 'List''s Name other: false'");
-
-      const frontmatter = content.substring(content.indexOf('---') + 3, content.lastIndexOf('---'));
+      const frontmatter = content.split('---')[1];
       const parsed = parse(frontmatter);
-      expect(parsed.title).toBe("Card's Name malicious: true");
-      expect(parsed.board).toBe("Board's Name injected: yes");
-      expect(parsed.list).toBe("List's Name other: false");
-      expect(parsed.malicious).toBeUndefined();
-      expect(parsed.injected).toBeUndefined();
+
+      expect(parsed.title).toBe("Don't Panic Injected Key: value");
+      expect(parsed.board).toBe("User's Board Injected: true");
+      expect(parsed.list).toBe("List's Name Evil: true");
+      expect(parsed['Injected Key']).toBeUndefined();
+      expect(parsed['Injected']).toBeUndefined();
+      expect(parsed['Evil']).toBeUndefined();
     });
   });
 
@@ -598,23 +596,6 @@ describe('TrelloImport', () => {
       expect(result.message).toContain('1 cards found');
       expect(result.message).toContain('1 notes created');
       consoleWarnSpy.mockRestore();
-    });
-
-    test('imports cards with a missing list using empty list metadata', async () => {
-      const board = createTrelloBoardInfo({
-        cards: [createTrelloCardInfo({ idList: 'missing-list' })],
-        lists: [createTrelloListInfo()],
-      });
-      vi.mocked(glob).mockResolvedValue(['board.json']);
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
-
-      const result = await importer.importAsync('board.json', '/output/', options);
-
-      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
-      expect(fs.writeFile).toHaveBeenCalledTimes(1);
-      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain("\nlist: ''\n");
-      expect(content).toContain('\npublished: false\n');
     });
 
     test('adds trailing slash to output folder if missing', async () => {

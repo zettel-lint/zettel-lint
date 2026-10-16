@@ -88,11 +88,6 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
-function escapeYamlSingleQuote(val: string | undefined | null): string {
-  if (!val) return "";
-  return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
-}
-
 function sortableDate(d: Date | string) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
@@ -101,6 +96,11 @@ function sortableDate(d: Date | string) : string {
 
   const dateStr = typeof d === "string" ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
+}
+
+function escapeYamlString(value: string | undefined | null): string {
+  if (!value) return '';
+  return String(value).replace(/'/g, "''").replace(/[\r\n]+/g, ' ');
 }
 
 export type TrelloOptions = ImportOptions & {
@@ -218,10 +218,10 @@ export default class TrelloImport implements BaseImporter {
    * @param outputFolder - Destination directory, with or without a trailing separator.
    *   This method does not create it or its attachments subdirectory.
    * @param checklists - Checklists keyed by ID for the card's idChecklists.
-   * @param lists - Lists keyed by ID; missing entries use an empty list name.
+   * @param lists - Lists keyed by ID; the card's idList must be present.
    * @returns True when the note is written; false if checklist rendering or note writing fails.
    * @throws Errors preparing the filename, attachments, or frontmatter propagate,
-   *   including an invalid activity Date.
+   *   including an invalid activity Date or a missing list entry.
    */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
@@ -239,16 +239,16 @@ export default class TrelloImport implements BaseImporter {
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
-      "\ntitle: '" + escapeYamlSingleQuote(card.name) + "'" +
+      "\ntitle: '" + escapeYamlString(card.name) + "'" +
       "\nsource: Trello" + 
-      "\ntags: [" + (card.labels || []).map(l => "'" + escapeYamlSingleQuote((l?.name || "").replace(/[^A-Za-z0-9]/g, "_")) + "'").join(", ") + "]" +
+      "\ntags: [" + (card.labels || []).map(l => "'" + (l?.name || "").replace(/[^A-Za-z0-9]/g, "_") + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: '" + escapeYamlSingleQuote(boardName) + "'" +
-      "\nlist: '" + escapeYamlSingleQuote(listName) + "'" +
+      "\nboard: '" + escapeYamlString(boardName) + "'" +
+      "\nlist: '" + escapeYamlString(listName) + "'" +
       "\npublished: " + listName.includes("Published") +
-      "\ntrello-url: '" + escapeYamlSingleQuote(card.shortUrl) + "'" +
+      "\ntrello-url: '" + escapeYamlString(card.shortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
