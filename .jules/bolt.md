@@ -4,6 +4,11 @@
 
 **Action:** Prefer string indexing over regex split/match for hot-path filename parsing, and always cache computed view properties in constructor initializations when used in multiple object properties.
 
+## 2025-05-20 - Single-Match Regex Execution & Global Regex Reuse in File Indexing
+
+**Learning:** `collectFromFile` in `zl-index` created a new RegExp `/^(?:title:|#) (.*)$/gm` per file and called `collectMatches`, which scanned the entire document and allocated an array of all title matches even though only the first title (`[0]`) was used. Calling `exec` with a module-scoped non-global regex `/^(?:title:|#) (.*)$/m` stops scanning at the first match and eliminates array allocations and per-file regex instantiations. In addition, resetting `regex.lastIndex = 0` in `collectMatches` prevents state leakage when reusing global RegExp instances across files.
+
+**Action:** For first-match extractions in hot file-processing paths, use module-scoped non-global regex `exec()` instead of global match loops, and always reset `lastIndex = 0` at entry when executing reused global regexes.
 ## 2025-02-23 - Stateful Regex Reset, Match Coercion & Map Lookup Reuse
 
 **Learning:** Reusing stateful global regular expressions (`/g`) across files in `collectMatches` requires resetting `regex.lastIndex = 0` to avoid search index leakage. When `useCaptureGroup` is false, calling `next.toString()` on `RegExpExecArray` invokes `Array.prototype.toString()` which coerces the array to a comma-separated string (~35% overhead). Accessing `next[0]` directly avoids array serialization. Additionally, in `collectBacklinks` and `invertData`, replacing `replace()` and redundant `Map.get`/`Map.set` calls with `startsWith`/`endsWith` slicing and held Map references speeds up data processing by ~40%.
