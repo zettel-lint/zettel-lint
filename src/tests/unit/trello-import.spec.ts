@@ -597,6 +597,26 @@ describe('TrelloImport', () => {
       expect(parsed['Injected']).toBeUndefined();
       expect(parsed['Evil']).toBeUndefined();
     });
+    
+    test('escapes single quotes and newlines in card name, board name, and list name to prevent YAML injection', async () => {
+      const card = createTrelloCardInfo({ name: "Card's Name\nmalicious: true" });
+      const lists = { list1: createTrelloListInfo({ name: "List's Name\nother: false" }) };
+
+      await importer.writeCard('/output/', options, "Board's Name\ninjected: yes", card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("title: 'Card''s Name malicious: true'");
+      expect(content).toContain("board: 'Board''s Name injected: yes'");
+      expect(content).toContain("list: 'List''s Name other: false'");
+
+      const frontmatter = content.substring(content.indexOf('---') + 3, content.lastIndexOf('---'));
+      const parsed = parse(frontmatter);
+      expect(parsed.title).toBe("Card's Name malicious: true");
+      expect(parsed.board).toBe("Board's Name injected: yes");
+      expect(parsed.list).toBe("List's Name other: false");
+      expect(parsed.malicious).toBeUndefined();
+      expect(parsed.injected).toBeUndefined();
+    });
   });
 
   describe('importAsync', () => {
@@ -629,6 +649,23 @@ describe('TrelloImport', () => {
       expect(result.message).toContain('1 cards found');
       expect(result.message).toContain('1 notes created');
       consoleWarnSpy.mockRestore();
+    });
+
+    test('imports cards with a missing list using empty list metadata', async () => {
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ idList: 'missing-list' })],
+        lists: [createTrelloListInfo()],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("\nlist: ''\n");
+      expect(content).toContain('\npublished: false\n');
     });
 
     test('adds trailing slash to output folder if missing', async () => {
