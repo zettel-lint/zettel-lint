@@ -229,15 +229,16 @@ export default class TrelloImport implements BaseImporter {
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
+    const activityDate = new Date(card.dateLastActivity).toISOString();
     const outputFilename :string = path.join(outputFolder,
-      sortableDate(card.dateLastActivity) +
+      sortableDate(activityDate) +
       "-" + this.sanitiseName(card) + ".md");
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
     const header = "---" +
-      "\ncreated: " + card.dateLastActivity +
-      "\nmodified: " + card.dateLastActivity +
+      "\ncreated: " + activityDate +
+      "\nmodified: " + activityDate +
       "\ntitle: '" + escapeYamlString(card.name) + "'" +
       "\nsource: Trello" + 
       "\ntags: [" + (card.labels || []).map(l => "'" + (l?.name || "").replace(/[^A-Za-z0-9]/g, "_") + "'").join(", ") + "]" +

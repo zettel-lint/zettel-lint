@@ -388,6 +388,39 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
+    test.each([
+      new Date('2024-01-15T10:00:00Z'),
+      '2024-01-15T10:00:00Z',
+      '2024-01-15T12:00:00+02:00',
+    ])('writes canonical activity dates for %s', async (dateLastActivity: Date | string) => {
+      const card = createTrelloCardInfo({ dateLastActivity });
+      const lists = { list1: createTrelloListInfo() };
+
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
+
+      const [filename, content] = vi.mocked(fs.writeFile).mock.calls[0];
+      const frontmatter = parse((content as string).split('---')[1]);
+      expect(frontmatter.created).toBe('2024-01-15T10:00:00.000Z');
+      expect(frontmatter.modified).toBe('2024-01-15T10:00:00.000Z');
+      expect(filename).toBe('/output/20240115100000-Test-Card.md');
+    });
+
+    test.each([
+      new Date('invalid'),
+      'invalid',
+      '',
+      '2024-01-15T10:00:00Z\ninjected: true',
+      '2024-01-15T10:00:00Z\r\ninjected: true',
+    ])('rejects invalid activity date %s before writing files', async (dateLastActivity: Date | string) => {
+      const card = createTrelloCardInfo({ dateLastActivity, attachments: [createAttachmentInfo()] });
+      const lists = { list1: createTrelloListInfo() };
+
+      await expect(importer.writeCard('/output/', options, 'Board', card, {}, lists)).rejects.toThrow(RangeError);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
     test.each(['/output', '/output/'])('writes card and attachments inside %s', async (outputFolder: string) => {
       const card = createTrelloCardInfo({ attachments: [createAttachmentInfo()] });
       const lists = { list1: createTrelloListInfo() };
