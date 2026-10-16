@@ -388,6 +388,21 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
+    test.each(['/output', '/output/'])('writes card and attachments inside %s', async (outputFolder: string) => {
+      const card = createTrelloCardInfo({ attachments: [createAttachmentInfo()] });
+      const lists = { list1: createTrelloListInfo() };
+
+      const result = await importer.writeCard(outputFolder, options, 'Board', card, {}, lists);
+
+      expect(result).toBe(true);
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '/output/20240115100000-Test-Card.md',
+        expect.stringContaining('![Test Attachment](/output/attachments/attachment.png)'),
+        {},
+      );
+    });
+
     test('writes card without checklists or attachments', async () => {
       const card = createTrelloCardInfo({ name: 'Simple Card', desc: 'Simple description' });
       const lists = { list1: createTrelloListInfo() };
@@ -403,25 +418,6 @@ describe('TrelloImport', () => {
       expect(content).toContain('board: \'Test Board\'');
       expect(content).not.toContain('## Checklists');
       expect(content).not.toContain('## Attachments');
-    });
-
-    test('constructs card and attachments output path safely without trailing slash issues', async () => {
-      const card = createTrelloCardInfo({
-        name: 'Safe Path Card',
-        attachments: [createAttachmentInfo({ fileName: 'photo.jpg', name: 'Photo' })],
-      });
-      const lists = { list1: createTrelloListInfo() };
-
-      // Pass output folder without trailing slash
-      await importer.writeCard('/output/folder', options, 'Board', card, {}, lists);
-
-      // Attachment write call should be at /output/folder/attachments/photo.jpg
-      const attachmentWriteCall = vi.mocked(fs.writeFile).mock.calls[0];
-      expect(attachmentWriteCall[0]).toBe('/output/folder/attachments/photo.jpg');
-
-      // Card write call should be at /output/folder/20240115100000-Safe-Path-Card.md
-      const cardWriteCall = vi.mocked(fs.writeFile).mock.calls[1];
-      expect(cardWriteCall[0]).toMatch(/\/output\/folder\/20240115100000-Safe-Path-Card\.md$/);
     });
 
     test('writes card with checklists', async () => {
@@ -550,6 +546,26 @@ describe('TrelloImport', () => {
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
     });
+
+    test('escapes single quotes and newlines in card name, board name, and list name to prevent YAML injection', async () => {
+      const card = createTrelloCardInfo({ name: "Card's Name\nmalicious: true" });
+      const lists = { list1: createTrelloListInfo({ name: "List's Name\nother: false" }) };
+
+      await importer.writeCard('/output/', options, "Board's Name\ninjected: yes", card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("title: 'Card''s Name malicious: true'");
+      expect(content).toContain("board: 'Board''s Name injected: yes'");
+      expect(content).toContain("list: 'List''s Name other: false'");
+
+      const frontmatter = content.substring(content.indexOf('---') + 3, content.lastIndexOf('---'));
+      const parsed = parse(frontmatter);
+      expect(parsed.title).toBe("Card's Name malicious: true");
+      expect(parsed.board).toBe("Board's Name injected: yes");
+      expect(parsed.list).toBe("List's Name other: false");
+      expect(parsed.malicious).toBeUndefined();
+      expect(parsed.injected).toBeUndefined();
+    });
   });
 
   describe('importAsync', () => {
@@ -582,6 +598,23 @@ describe('TrelloImport', () => {
       expect(result.message).toContain('1 cards found');
       expect(result.message).toContain('1 notes created');
       consoleWarnSpy.mockRestore();
+    });
+
+    test('imports cards with a missing list using empty list metadata', async () => {
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ idList: 'missing-list' })],
+        lists: [createTrelloListInfo()],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("\nlist: ''\n");
+      expect(content).toContain('\npublished: false\n');
     });
 
     test('adds trailing slash to output folder if missing', async () => {
@@ -738,6 +771,32 @@ describe('TrelloImport', () => {
   });
 
   describe('downloadBoardJson', () => {
+    test.each(['My Board', 'abc12345'])('encodes credentials as query values for %s', async (boardIdOrName: string) => {
+      const mockBoard = createTrelloBoardInfo({ id: 'abc12345', name: 'My Board' });
+      const apiKey = 'key&cards=none+ #?=%';
+      const token = 'token&injected=value+ #?=%';
+      if (boardIdOrName === 'My Board') {
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockBoard]) });
+      }
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
+
+      const result = await TrelloImport.downloadBoardJson({ boardIdOrName, apiKey, token });
+
+      expect(result).toEqual(mockBoard);
+      expect(fetch).toHaveBeenCalledTimes(boardIdOrName === 'My Board' ? 2 : 1);
+      for (const [request] of vi.mocked(fetch).mock.calls) {
+        const url = new URL(String(request));
+        expect(url.hash).toBe('');
+        expect(Object.fromEntries(url.searchParams)).toEqual({
+          key: apiKey,
+          token,
+          ...(url.pathname === '/1/boards/abc12345' ? {
+            cards: 'all', lists: 'all', checklists: 'all', labels: 'all', members: 'all', fields: 'all',
+          } : {}),
+        });
+      }
+    });
+
     test('downloads board by valid ID', async () => {
       const mockBoard = createTrelloBoardInfo();
       vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
@@ -916,45 +975,6 @@ describe('TrelloImport', () => {
           apiKey: 'test-key',
         })
       ).rejects.toThrow('API Error');
-    });
-
-    test('safely encodes special characters in boardIdOrName, apiKey, and token', async () => {
-      const mockBoard = createTrelloBoardInfo();
-      vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
-
-      await TrelloImport.downloadBoardJson({
-        boardIdOrName: '507f1f77bcf86cd799439011',
-        apiKey: 'key&injected=1',
-        token: 'token#hash',
-      });
-
-      const calledUrl = vi.mocked(fetch).mock.calls[0][0] as string;
-      expect(calledUrl).toContain('507f1f77bcf86cd799439011');
-      expect(calledUrl).toContain('key%26injected%3D1');
-      expect(calledUrl).toContain('token%23hash');
-    });
-
-    test('safely encodes non-hex board name during lookup and download', async () => {
-      const mockBoards = [{ id: '507f1f77bcf86cd799439011', name: 'My Board & Special' }];
-      const mockBoard = createTrelloBoardInfo({ id: '507f1f77bcf86cd799439011' });
-      vi.mocked(fetch)
-        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoards) })
-        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
-
-      await TrelloImport.downloadBoardJson({
-        boardIdOrName: 'My Board & Special',
-        apiKey: 'key&1',
-        token: 'token#2',
-      });
-
-      const lookupUrl = vi.mocked(fetch).mock.calls[0][0] as string;
-      expect(lookupUrl).toContain('key%261');
-      expect(lookupUrl).toContain('token%232');
-
-      const downloadUrl = vi.mocked(fetch).mock.calls[1][0] as string;
-      expect(downloadUrl).toContain('507f1f77bcf86cd799439011');
-      expect(downloadUrl).toContain('key%261');
-      expect(downloadUrl).toContain('token%232');
     });
   });
 
