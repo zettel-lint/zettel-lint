@@ -600,6 +600,23 @@ describe('TrelloImport', () => {
       consoleWarnSpy.mockRestore();
     });
 
+    test('imports cards with a missing list using empty list metadata', async () => {
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ idList: 'missing-list' })],
+        lists: [createTrelloListInfo()],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("\nlist: ''\n");
+      expect(content).toContain('\npublished: false\n');
+    });
+
     test('adds trailing slash to output folder if missing', async () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const board = createTrelloBoardInfo({

@@ -218,10 +218,10 @@ export default class TrelloImport implements BaseImporter {
    * @param outputFolder - Destination directory, with or without a trailing separator.
    *   This method does not create it or its attachments subdirectory.
    * @param checklists - Checklists keyed by ID for the card's idChecklists.
-   * @param lists - Lists keyed by ID; the card's idList must be present.
+   * @param lists - Lists keyed by ID; missing entries use an empty list name.
    * @returns True when the note is written; false if checklist rendering or note writing fails.
    * @throws Errors preparing the filename, attachments, or frontmatter propagate,
-   *   including an invalid activity Date or a missing list entry.
+   *   including an invalid activity Date.
    */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
@@ -301,7 +301,7 @@ export default class TrelloImport implements BaseImporter {
         labels[label.id] = label;
       })
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
           totalNotes++;
         }
       }
