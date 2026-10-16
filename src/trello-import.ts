@@ -88,6 +88,11 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+function escapeYamlSingleQuote(val: string | undefined | null): string {
+  if (!val) return "";
+  return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
+}
+
 function sortableDate(d: Date | string) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
@@ -213,10 +218,10 @@ export default class TrelloImport implements BaseImporter {
    * @param outputFolder - Destination directory, with or without a trailing separator.
    *   This method does not create it or its attachments subdirectory.
    * @param checklists - Checklists keyed by ID for the card's idChecklists.
-   * @param lists - Lists keyed by ID; the card's idList must be present.
+   * @param lists - Lists keyed by ID; missing entries use an empty list name.
    * @returns True when the note is written; false if checklist rendering or note writing fails.
    * @throws Errors preparing the filename, attachments, or frontmatter propagate,
-   *   including an invalid activity Date or a missing list entry.
+   *   including an invalid activity Date.
    */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
@@ -230,19 +235,20 @@ export default class TrelloImport implements BaseImporter {
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
+    const listName = lists[card.idList]?.name || "";
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
-      "\ntitle: '" + card.name + "'" +
+      "\ntitle: '" + escapeYamlSingleQuote(card.name) + "'" +
       "\nsource: Trello" + 
-      "\ntags: [" + (card.labels || []).map(l => "'" + (l?.name || "").replace(/[^A-Za-z0-9]/g, "_") + "'").join(", ") + "]" +
+      "\ntags: [" + (card.labels || []).map(l => "'" + escapeYamlSingleQuote((l?.name || "").replace(/[^A-Za-z0-9]/g, "_")) + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: '" + boardName + "'" + 
-      "\nlist: '" + lists[card.idList].name + "'" +
-      "\npublished: " + lists[card.idList].name.includes("Published") +
-      "\ntrello-url: '" + card.shortUrl + "'" +
+      "\nboard: '" + escapeYamlSingleQuote(boardName) + "'" +
+      "\nlist: '" + escapeYamlSingleQuote(listName) + "'" +
+      "\npublished: " + listName.includes("Published") +
+      "\ntrello-url: '" + escapeYamlSingleQuote(card.shortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
@@ -295,7 +301,7 @@ export default class TrelloImport implements BaseImporter {
         labels[label.id] = label;
       })
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
           totalNotes++;
         }
       }
