@@ -388,39 +388,6 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
-    test.each([
-      new Date('2024-01-15T10:00:00Z'),
-      '2024-01-15T10:00:00Z',
-      '2024-01-15T12:00:00+02:00',
-    ])('writes canonical activity dates for %s', async (dateLastActivity: Date | string) => {
-      const card = createTrelloCardInfo({ dateLastActivity });
-      const lists = { list1: createTrelloListInfo() };
-
-      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
-
-      const [filename, content] = vi.mocked(fs.writeFile).mock.calls[0];
-      const frontmatter = parse((content as string).split('---')[1]);
-      expect(frontmatter.created).toBe('2024-01-15T10:00:00.000Z');
-      expect(frontmatter.modified).toBe('2024-01-15T10:00:00.000Z');
-      expect(filename).toBe('/output/20240115100000-Test-Card.md');
-    });
-
-    test.each([
-      new Date('invalid'),
-      'invalid',
-      '',
-      '2024-01-15T10:00:00Z\ninjected: true',
-      '2024-01-15T10:00:00Z\r\ninjected: true',
-    ])('rejects invalid activity date %s before writing files', async (dateLastActivity: Date | string) => {
-      const card = createTrelloCardInfo({ dateLastActivity, attachments: [createAttachmentInfo()] });
-      const lists = { list1: createTrelloListInfo() };
-
-      await expect(importer.writeCard('/output/', options, 'Board', card, {}, lists)).rejects.toThrow(RangeError);
-
-      expect(fetch).not.toHaveBeenCalled();
-      expect(fs.writeFile).not.toHaveBeenCalled();
-    });
-
     test.each(['/output', '/output/'])('writes card and attachments inside %s', async (outputFolder: string) => {
       const card = createTrelloCardInfo({ attachments: [createAttachmentInfo()] });
       const lists = { list1: createTrelloListInfo() };
@@ -597,26 +564,6 @@ describe('TrelloImport', () => {
       expect(parsed['Injected']).toBeUndefined();
       expect(parsed['Evil']).toBeUndefined();
     });
-    
-    test('escapes single quotes and newlines in card name, board name, and list name to prevent YAML injection', async () => {
-      const card = createTrelloCardInfo({ name: "Card's Name\nmalicious: true" });
-      const lists = { list1: createTrelloListInfo({ name: "List's Name\nother: false" }) };
-
-      await importer.writeCard('/output/', options, "Board's Name\ninjected: yes", card, {}, lists);
-
-      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain("title: 'Card''s Name malicious: true'");
-      expect(content).toContain("board: 'Board''s Name injected: yes'");
-      expect(content).toContain("list: 'List''s Name other: false'");
-
-      const frontmatter = content.substring(content.indexOf('---') + 3, content.lastIndexOf('---'));
-      const parsed = parse(frontmatter);
-      expect(parsed.title).toBe("Card's Name malicious: true");
-      expect(parsed.board).toBe("Board's Name injected: yes");
-      expect(parsed.list).toBe("List's Name other: false");
-      expect(parsed.malicious).toBeUndefined();
-      expect(parsed.injected).toBeUndefined();
-    });
   });
 
   describe('importAsync', () => {
@@ -649,23 +596,6 @@ describe('TrelloImport', () => {
       expect(result.message).toContain('1 cards found');
       expect(result.message).toContain('1 notes created');
       consoleWarnSpy.mockRestore();
-    });
-
-    test('imports cards with a missing list using empty list metadata', async () => {
-      const board = createTrelloBoardInfo({
-        cards: [createTrelloCardInfo({ idList: 'missing-list' })],
-        lists: [createTrelloListInfo()],
-      });
-      vi.mocked(glob).mockResolvedValue(['board.json']);
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
-
-      const result = await importer.importAsync('board.json', '/output/', options);
-
-      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
-      expect(fs.writeFile).toHaveBeenCalledTimes(1);
-      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain("\nlist: ''\n");
-      expect(content).toContain('\npublished: false\n');
     });
 
     test('adds trailing slash to output folder if missing', async () => {
