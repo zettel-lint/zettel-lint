@@ -63,10 +63,8 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 * x 2021-07-01 (I) Option to generate separate index, tag, orphan, etc. files - each type has a file arg, but all can use references.md for current behaviour
 * (L) Add anchored links from pages with tags to a collection page, and generate tag meta pages alongside references.md `tag-blog.md` for example (can then use these instead of a separate tag section in references?)
 
-## `zl fix` Tasks (formerly `zl notes`)
+## `zl notes` Tasks
 
-* (A) Implement `id-to-wiki-links` rule in `zl fix` to convert numeric `[id]` links to wiki-links (migrating `-w, --wiki-links-from-id` from `zl notes`)
-* (A) Formally deprecate/remove `zl notes` subcommand and update documentation and CLI tests
 * (C) *-Daily files should have a title like YYYY-MM-DD
 * (C) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous
 * (C) Allow timestamp ids, with or without dashes, and match file that starts with that id, with whatever following content is meaningful

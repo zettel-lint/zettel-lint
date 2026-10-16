@@ -118,7 +118,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
   if (program.rules) {
     // remove duplicates
     (new Set(program.rules)).forEach((r) => {
-      if (!knownRules.hasOwnProperty(r)) {
+      if (!Object.prototype.hasOwnProperty.call(knownRules, r)) {
         console.error(`Unknown rule: ${r}. Ignoring.`);
       }
       else {

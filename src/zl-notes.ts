@@ -1,12 +1,12 @@
 import { Command } from '@commander-js/extra-typings';
 import { glob } from "glob";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
 import { idFromFilename } from "./file-handling.js";
-import { clear } from "console";
+import { clear } from "node:console";
 import chalk from "chalk";
 import figlet from "figlet";
 import { collectMatches } from "./collectors/RegexCollector.js";
-import { exit } from "process";
+import { exit } from "node:process";
 import { YAMLParseError } from 'yaml';
 
 export default function notesCommand() {
@@ -88,7 +88,7 @@ function lintNotes(program: any): void {
       if (matches.length > 0) {
         if(program.verbose) {
           console.log("Found links:", matches);
-          matches.forEach(match => console.log("Mapping " + match + " to " + links[match]));
+          matches.forEach((match) => { console.log(`Mapping ${match} to ${links[match]}`); });
         }
 
         matches.forEach(match => {
