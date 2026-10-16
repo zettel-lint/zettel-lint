@@ -41,8 +41,7 @@ export function min(x: number, y: number): number | undefined {
  * produce an empty map; references with null or undefined data are skipped.
  */
 export function collectBacklinks(references: formatData[]) {
-  // Performance optimization: use fast string slicing instead of replace()
-  // and reuse Map.get reference to eliminate repeated Map lookups.
+  // Keep boundary slicing and reference ID resolution out of the inner loop.
   const tagList = new Map<string, string[]>();
 
   if (!references) return tagList;
@@ -51,17 +50,21 @@ export function collectBacklinks(references: formatData[]) {
     const ref = references[i];
     const tags = ref.data;
     if (tags) {
+      const refIdentifier = ref.id ?? ref.filename ?? "";
       for (let j = 0; j < tags.length; j++) {
         let tag = tags[j];
-        if (tag.startsWith("[")) tag = tag.slice(1);
-        if (tag.endsWith("]")) tag = tag.slice(0, -1);
+        const start = tag.startsWith("[") ? 1 : 0;
+        const end = tag.endsWith("]") ? tag.length - 1 : tag.length;
+        if (start > 0 || end < tag.length) {
+          tag = tag.substring(start, end);
+        }
 
         let list = tagList.get(tag);
         if (!list) {
           list = [];
           tagList.set(tag, list);
         }
-        list.push(ref.id ?? ref.filename ?? "");
+        list.push(refIdentifier);
       }
     }
   }
