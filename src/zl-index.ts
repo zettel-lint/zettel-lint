@@ -3,19 +3,19 @@
 import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
 import { Command } from '@commander-js/extra-typings';
 import { TaskCollector } from "./collectors/TaskCollector.js";
 import { ContextCollector } from "./collectors/ContextCollector.js";
 import { TagCollector } from "./collectors/TagCollector.js";
 import { WikiCollector } from "./collectors/WikiCollector.js";
-import { Collector } from "./collectors/Collector.js";
+import type { Collector } from "./collectors/Collector.js";
 import { collectMatches } from "./collectors/RegexCollector.js";
-import { fileWikiLinks } from "./types.js";
+import type { fileWikiLinks } from "./types.js";
 import { idFromFilename } from "./file-handling.js";
 import { Templator } from "./Templator.js";
-import path from "path";
-import { fileURLToPath } from 'url';
+import path from "node:path";
+import { fileURLToPath } from 'node:url';
 import { glob } from "glob";
 import { YAMLParseError } from "yaml";
 
@@ -86,12 +86,12 @@ function printHeader(program: ZlIndexOptions): void {
         figlet.textSync('zettel-lint-index', { horizontalLayout: 'full' })
       )
     );
-    console.log("Looking for notes in " + program.path);
-    console.log("Ignoring dirs: " + program.ignoreDirs);
-    console.log("Outputting references to " + program.referenceFile);
-    console.log("Using template file: " + program.templateFile)
-    console.log((program.wiki ? "" : "NOT ") + "using [[Wiki-Links]]");
-    console.log("Displaying Tasks " + program.taskDisplay);
+    console.log(`Looking for notes in ${program.path}`);
+    console.log(`Ignoring dirs: ${program.ignoreDirs}`);
+    console.log(`Outputting references to ${program.referenceFile}`);
+    console.log(`Using template file: ${program.templateFile}`)
+    console.log(`${program.wiki ? "" : "NOT "}using [[Wiki-Links]]`);
+    console.log(`Displaying Tasks ${program.taskDisplay}`);
   }
 }
 
@@ -137,7 +137,7 @@ export async function collectFromFile(filename: string, program: ZlIndexOptions)
 function indexer(program: ZlIndexOptions): Promise<void> {
   printHeader(program);
 
-  var ignoreList = [program.path + "/**/node_modules/**", program.referenceFile]
+  var ignoreList = [`${program.path}/**/node_modules/**`, program.referenceFile]
   if (program.ignoreDirs) {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
@@ -145,7 +145,7 @@ function indexer(program: ZlIndexOptions): Promise<void> {
 
   async function parseFiles() {
     // options is optional
-    const files = await glob(program.path + "/**/*.md", { ignore: ignoreList });
+    const files = await glob(`${program.path}/**/*.md`, { ignore: ignoreList });
 
     // Bound concurrent reads while keeping results in discovery order.
     const fileConcurrency = 16;
@@ -161,10 +161,11 @@ function indexer(program: ZlIndexOptions): Promise<void> {
             if (program.referenceFile && wikiLinks.filename && !program.referenceFile.endsWith(wikiLinks.filename)) {
               return wikiLinks;
             }
-          } catch (error: any) {
+          } catch (error: unknown) {
             // Only rethrow if not ENOENT or YAMLParseError
             console.error(`Error processing file ${file}:`, error);
-            if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
+            const errorCode = error !== null && typeof error === "object" && "code" in error ? error.code : undefined;
+            if (errorCode !== 'ENOENT' && !(error instanceof YAMLParseError)) {
               throw error;
             }
           }
@@ -197,7 +198,7 @@ function indexer(program: ZlIndexOptions): Promise<void> {
   return parseFiles().then(
     () => { if (program.verbose) { console.log("Updated") } },
     (reason) => {
-      console.error("Error: " + reason);
+      console.error(`Error: ${reason}`);
       process.exitCode = reason instanceof ConfigurationError ? 1 : 2;
     }
   )
