@@ -92,7 +92,7 @@ describe('bump-patch-version workflow', () => {
       const updateReferencesStep = steps.find(s => s.name === 'Update version references');
       expect(updateReferencesStep).toBeDefined();
       expect(updateReferencesStep.run).toContain('sed -i');
-      expect(updateReferencesStep.run).toContain('src/zl.ts');
+      expect(updateReferencesStep.run).toContain('src/cli/zl.ts');
       expect(updateReferencesStep.run).toContain('.github/SECURITY.md');
     });
 
@@ -101,7 +101,7 @@ describe('bump-patch-version workflow', () => {
       expect(commitStep).toBeDefined();
       expect(commitStep.run).toContain('npm ci');
       expect(commitStep.run).toContain('npm test');
-      expect(commitStep.run).toContain('git add package.json package-lock.json src/zl.ts .github/SECURITY.md');
+      expect(commitStep.run).toContain('git add package.json package-lock.json src/cli/zl.ts .github/SECURITY.md');
       expect(commitStep.run).toContain('git commit -m "chore: bump version to ${{ env.new_version }}"');
       expect(commitStep.run).toContain('git push origin bump-version-${{ env.new_version }}');
     });
@@ -146,7 +146,7 @@ describe('bump-patch-version workflow', () => {
       const sedCommand = updateReferencesStep.run;
 
       // Verify sed command targets the correct file
-      expect(sedCommand).toContain('src/zl.ts');
+      expect(sedCommand).toContain('src/cli/zl.ts');
 
       // Verify it uses environment variables for version replacement
       expect(sedCommand).toContain('${{ env.current_version }}');
@@ -202,7 +202,7 @@ describe('bump-patch-version workflow', () => {
     test('PR body lists changed files', () => {
       expect(prStep.env.PR_BODY).toContain('Files Changed');
       expect(prStep.env.PR_BODY).toContain('package.json');
-      expect(prStep.env.PR_BODY).toContain('src/zl.ts');
+      expect(prStep.env.PR_BODY).toContain('src/cli/zl.ts');
       expect(prStep.env.PR_BODY).toContain('.github/SECURITY.md');
     });
 
@@ -369,11 +369,11 @@ describe('bump-patch-version workflow', () => {
       );
       expect(commitStep.run).toContain('git add package.json');
       expect(commitStep.run).toContain('package-lock.json');
-      expect(commitStep.run).toContain('src/zl.ts');
+      expect(commitStep.run).toContain('src/cli/zl.ts');
       expect(commitStep.run).toContain('.github/SECURITY.md');
     });
 
-    test('updates version in package.json, src/zl.ts and the security policy', () => {
+    test('updates version in package.json, src/cli/zl.ts and the security policy', () => {
       const steps = workflow.jobs['bump-version'].steps;
       const npmVersionStep = steps.find((s: any) => s.name === 'Bump patch version');
       const updateReferencesStep = steps.find((s: any) => s.name === 'Update version references');
@@ -381,7 +381,7 @@ describe('bump-patch-version workflow', () => {
       expect(npmVersionStep).toBeDefined();
       expect(updateReferencesStep).toBeDefined();
       expect(npmVersionStep.run).toContain('npm version patch');
-      expect(updateReferencesStep.run).toContain('src/zl.ts');
+      expect(updateReferencesStep.run).toContain('src/cli/zl.ts');
       expect(updateReferencesStep.run).toContain('.github/SECURITY.md');
     });
   });
