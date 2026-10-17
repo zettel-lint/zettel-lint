@@ -121,10 +121,13 @@ export class Templator {
                     }
 
                     const fnMatches = fns ? [...fns.matchAll(/\?([a-zA-Z0-9_]+)(?:\(([\w\s,]*)\))?/g)] : [];
-                    const fnCalls: { fn: string; args: string }[] = fnMatches.map(m => ({
-                        fn: m[1].toUpperCase(),
-                        args: m[2] ? m[2].trim() : ""
-                    }));
+                    const fnCalls: { fn: string; args: string }[] = fnMatches.map(m => {
+                        const fn = m[1].toUpperCase();
+                        return {
+                            fn: fn === "DISTINCT" ? "SET" : fn,
+                            args: m[2] ? m[2].trim() : ""
+                        };
+                    });
 
                     const validFunctions = new Set(["SORT", "SET"]);
                     for (const call of fnCalls) {
