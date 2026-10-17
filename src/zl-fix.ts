@@ -7,6 +7,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from './rules/InlinePropertiesToFrontmatterRule.js';
+import { IdToWikiLinksRule } from './rules/IdToWikiLinksRule.js';
 import { YAMLParseError } from 'yaml';
 
 interface ZlFixOptions {
@@ -94,7 +95,8 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     }
   }
 
-  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex)];
+  const idToWikiLinksRule = new IdToWikiLinksRule();
+  const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex), idToWikiLinksRule];
   const knownRules: { [key: string]: BaseRule } = {};
   var ruleNames: string[] = [];
   importedRules.forEach((r) => { knownRules[r.name] = r; ruleNames.push(r.name); });
@@ -135,10 +137,13 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     const files = await glob(join(program.path, "**", "*.md"), { ignore: ignoreList });
     console.log(files.length + " files found");
 
+    const linkMap = IdToWikiLinksRule.buildLinkMap(files, program.path);
+    idToWikiLinksRule.setLinkMap(linkMap);
+
     if (program.verbose) {
       console.log("Collecting properties from files...");
     }
-    
+
     await Promise.all(files.map(async (filename) => {
       try {
         const contents = await fs.readFile(filename, "utf8");
@@ -178,7 +183,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
 
   try {
     await parseFiles(); // Await the async function
-  } catch (err) { 
+  } catch (err) {
     console.error(err);
     process.exitCode = 2;
   }

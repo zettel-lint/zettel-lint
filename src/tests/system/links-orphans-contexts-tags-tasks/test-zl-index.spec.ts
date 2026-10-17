@@ -15,9 +15,11 @@ describe("zl-index system test", () => {
 
   it("should generate a references.md file matching the expected output, ignoring timestamps", () => {
     const expectedContent = readFileSync(expectedOutputFile, "utf8")
+      .replace(/\r\n/g, "\n")
       .replace(/created: .*/g, "created: <ignored>")
       .replace(/modified: .*/g, "modified: <ignored>");
     const actualContent = readFileSync(outputFile, "utf8")
+      .replace(/\r\n/g, "\n")
       .replace(/created: .*/g, "created: <ignored>")
       .replace(/modified: .*/g, "modified: <ignored>");
 
