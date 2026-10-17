@@ -116,18 +116,11 @@ export class Templator {
                     }
                     const { tag, fns, filter } = match.groups;
 
-                    if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype') {
-                        return `{{\`invalid tag: ${tag}\`}}`;
-                    }
-
                     const fnMatches = fns ? [...fns.matchAll(/\?([a-zA-Z0-9_]+)(?:\(([\w\s,]*)\))?/g)] : [];
-                    const fnCalls: { fn: string; args: string }[] = fnMatches.map(m => {
-                        const fn = m[1].toUpperCase();
-                        return {
-                            fn: fn === "DISTINCT" ? "SET" : fn,
-                            args: m[2] ? m[2].trim() : ""
-                        };
-                    });
+                    const fnCalls: { fn: string; args: string }[] = fnMatches.map(m => ({
+                        fn: m[1].toUpperCase(),
+                        args: m[2] ? m[2].trim() : ""
+                    }));
 
                     const validFunctions = new Set(["SORT", "SET"]);
                     for (const call of fnCalls) {
@@ -158,7 +151,7 @@ export class Templator {
                                             const bKey = b && typeof b === 'object' && 'key' in b ? b.key : (b?.id ?? String(b));
                                             return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
                                         };
-                                        if (args && args.length > 0 && args !== '__proto__' && args !== 'constructor' && args !== 'prototype') {
+                                        if (args && args.length > 0) {
                                             const ccarg = args + ":";
                                             const cc = function(c: any) : string {
                                                 if (c && typeof c === 'object') {
@@ -182,7 +175,7 @@ export class Templator {
 
                                         for (const item of list) {
                                             let itemKey: string;
-                                            if (args && args.length > 0 && args !== '__proto__' && args !== 'constructor' && args !== 'prototype' && item && typeof item === 'object') {
+                                            if (args && args.length > 0 && item && typeof item === 'object') {
                                                 if (Object.prototype.hasOwnProperty.call(item, args)) {
                                                     itemKey = String(item[args]);
                                                 } else if ('key' in item && typeof item.key === 'string' && item.key.includes(args + ":")) {

@@ -1,6 +1,6 @@
 import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
-import type { YamlHeaders } from "./Collector.js";
+import { YamlHeaders } from "./Collector.js";
 
 export class PropertyCollector extends RegexCollector {
   readonly dataName = "Properties";
@@ -26,7 +26,7 @@ export class PropertyCollector extends RegexCollector {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
     const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
-    const result: YamlHeaders = Object.create(null);
+    const result: YamlHeaders = { };
     // Only grab pairs that match a regex, if any are provided
     // Normalise supplied regexes to avoid stateful /g behaviour.
     const safeRegexes = regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r));
@@ -51,23 +51,18 @@ export class PropertyCollector extends RegexCollector {
 
   private collectPairs(content: string): YamlHeaders {
     this.regex.lastIndex = 0; // Reset regex state
-    const result: YamlHeaders = Object.create(null);
-    result.tags = [];
-    let match = this.regex.exec(content);
+    const result: YamlHeaders = { tags: [] };
+    let match: RegExpExecArray | null;
 
-    while (match !== null) {
+    while ((match = this.regex.exec(content)) !== null) {
       const [, key, value] = match;
-      if (key && value) {
-        const trimmedKey = key.trim();
-        if (trimmedKey !== '__proto__' && trimmedKey !== 'constructor' && trimmedKey !== 'prototype') {
-          const values = trimmedKey === 'tags' ? value.split(", ") : [value.trim()];
-          const existing = result[trimmedKey];
-          result[trimmedKey] = existing
-            ? [...new Set([...existing, ...values])]
-            : values;
-        }
-      }
-      match = this.regex.exec(content);
+      if (!key || !value) continue;
+
+      const trimmedKey = key.trim();
+      const values = trimmedKey === 'tags' ? value.split(", ") : [value.trim()];
+      result[trimmedKey] = result[trimmedKey]
+        ? [...new Set([...result[trimmedKey]!, ...values])]
+        : values;
     }
 
     return result;
