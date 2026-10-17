@@ -6,7 +6,7 @@ labels: enhancement
 assignees: ''
 ---
 
-**Is your feature request related to a problem? Please describe?**
+**Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. For example: "I'm always frustrated when I have to manually update notes for each new note."
 
 **Describe the solution you'd like**
