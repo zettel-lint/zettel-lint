@@ -1,4 +1,4 @@
-import { Collector } from "./collectors/Collector.js";
+import type { Collector } from "./collectors/Collector.js";
 import { ContextCollector } from "./collectors/ContextCollector.js";
 import { TagCollector } from "./collectors/TagCollector.js";
 import { TaskCollector } from "./collectors/TaskCollector.js";
@@ -8,7 +8,7 @@ import { Templator } from "./Templator.js";
 import { escapeGlobPath, FileAdapter, FilePath, joinSearchPattern, parentFilePath, toSearchPattern } from "./file-system.js";
 import { idFromFilename } from "./file-handling.js";
 import { ZlIndexOptions } from "./core-options.js";
-import { fileWikiLinks } from "./types.js";
+import type { fileWikiLinks } from "./types.js";
 
 const collectors: Collector[] = [new WikiCollector(), new ContextCollector(), new TagCollector(), new TaskCollector()];
 
@@ -60,20 +60,28 @@ export async function indexer(
     [joinSearchPattern(pathPattern, "**/*.md")],
     exclude,
   );
-  const references: fileWikiLinks[] = [];
-
-  for (const filepath of files) {
-    try {
-      const result = await collectFromFile(filepath, program, adapter);
-      if (filepath !== program.referenceFile) {
-        references.push(result);
-      }
-    } catch (error) {
-      if (!onFileError?.(filepath, error)) {
-        throw error;
-      }
-    }
+  // Bound concurrent reads while keeping results in discovery order.
+  const fileConcurrency = 16;
+  const fileResults: (fileWikiLinks | null)[] = [];
+  for (let offset = 0; offset < files.length; offset += fileConcurrency) {
+    const batchResults = await Promise.all(
+      files.slice(offset, offset + fileConcurrency).map(async (filepath) => {
+        try {
+          const result = await collectFromFile(filepath, program, adapter);
+          if (filepath !== program.referenceFile) {
+            return result;
+          }
+        } catch (error) {
+          if (!onFileError?.(filepath, error)) {
+            throw error;
+          }
+        }
+        return null;
+      }),
+    );
+    fileResults.push(...batchResults);
   }
+  const references = fileResults.filter((result): result is fileWikiLinks => result !== null);
 
   const template = await adapter.readFile(program.templateFile);
   const templator = new Templator(references, collectors);

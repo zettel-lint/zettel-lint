@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
-import TrelloImport from '../../trello-import.js';
+import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
 import { parse } from 'yaml';
@@ -227,6 +227,22 @@ describe('TrelloImport', () => {
     });
   });
 
+  describe('writeComments', () => {
+    test('formats comments with author and ISO date', () => {
+      const comment = new TrelloCommentInfo('Great card!', new Date('2024-01-15T12:00:00Z'), 'Alice');
+
+      expect(importer.writeComments([comment])).toBe(
+        '### Alice (2024-01-15T12:00:00.000Z)\n\nGreat card!',
+      );
+    });
+
+    test('uses Unknown when a comment has no author', () => {
+      const comment = new TrelloCommentInfo('Anonymous comment', new Date('2024-01-15T12:00:00Z'));
+
+      expect(importer.writeComments([comment])).toContain('### Unknown (2024-01-15T12:00:00.000Z)');
+    });
+  });
+
   describe('saveAttachments', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
@@ -388,6 +404,21 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
+    test.each(['/output', '/output/'])('writes card and attachments inside %s', async (outputFolder: string) => {
+      const card = createTrelloCardInfo({ attachments: [createAttachmentInfo()] });
+      const lists = { list1: createTrelloListInfo() };
+
+      const result = await importer.writeCard(outputFolder, options, 'Board', card, {}, lists);
+
+      expect(result).toBe(true);
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '/output/20240115100000-Test-Card.md',
+        expect.stringContaining('![Test Attachment](/output/attachments/attachment.png)'),
+        {},
+      );
+    });
+
     test('writes card without checklists or attachments', async () => {
       const card = createTrelloCardInfo({ name: 'Simple Card', desc: 'Simple description' });
       const lists = { list1: createTrelloListInfo() };
@@ -422,6 +453,22 @@ describe('TrelloImport', () => {
       expect(content).toContain('## Checklists');
       expect(content).toContain('### My Tasks');
       expect(content).toContain('Task 1');
+    });
+
+    test('writes card with comments', async () => {
+      const card = createTrelloCardInfo();
+      const lists = { list1: createTrelloListInfo() };
+      const comments = [
+        new TrelloCommentInfo('Looks good!', new Date('2024-01-15T12:00:00Z'), 'Jane Doe'),
+      ];
+
+      const result = await importer.writeCard('/output/', options, 'Board', card, {}, lists, comments);
+
+      expect(result).toBe(true);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain('## Comments');
+      expect(content).toContain('### Jane Doe (2024-01-15T12:00:00.000Z)');
+      expect(content).toContain('Looks good!');
     });
 
     test('writes card with attachments', async () => {
@@ -531,6 +578,26 @@ describe('TrelloImport', () => {
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
     });
+
+    test('escapes single quotes and newlines in card name, board name, and list name to prevent YAML injection', async () => {
+      const card = createTrelloCardInfo({ name: "Card's Name\nmalicious: true" });
+      const lists = { list1: createTrelloListInfo({ name: "List's Name\nother: false" }) };
+
+      await importer.writeCard('/output/', options, "Board's Name\ninjected: yes", card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("title: 'Card''s Name malicious: true'");
+      expect(content).toContain("board: 'Board''s Name injected: yes'");
+      expect(content).toContain("list: 'List''s Name other: false'");
+
+      const frontmatter = content.substring(content.indexOf('---') + 3, content.lastIndexOf('---'));
+      const parsed = parse(frontmatter);
+      expect(parsed.title).toBe("Card's Name malicious: true");
+      expect(parsed.board).toBe("Board's Name injected: yes");
+      expect(parsed.list).toBe("List's Name other: false");
+      expect(parsed.malicious).toBeUndefined();
+      expect(parsed.injected).toBeUndefined();
+    });
   });
 
   describe('importAsync', () => {
@@ -563,6 +630,64 @@ describe('TrelloImport', () => {
       expect(result.message).toContain('1 cards found');
       expect(result.message).toContain('1 notes created');
       consoleWarnSpy.mockRestore();
+    });
+
+    test('imports comments for their cards in chronological order', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ id: 'card1' })],
+        lists: [createTrelloListInfo()],
+        actions: [
+          {
+            id: 'action2',
+            type: 'commentCard',
+            date: '2024-01-15T13:00:00Z',
+            data: { text: 'Second comment', card: { id: 'card1' } },
+            memberCreator: { id: 'member2', fullName: 'Bob' },
+          },
+          {
+            id: 'action1',
+            type: 'commentCard',
+            date: '2024-01-15T12:00:00Z',
+            data: { text: 'First comment', card: { id: 'card1' } },
+            memberCreator: { id: 'member1', username: 'alice' },
+          },
+          {
+            id: 'action3',
+            type: 'commentCard',
+            date: '2024-01-15T14:00:00Z',
+            data: { text: 'Other card comment', card: { id: 'card2' } },
+            memberCreator: { id: 'member3', fullName: 'Charlie' },
+          },
+        ],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      await importer.importAsync('board.json', '/output/', options);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content.indexOf('First comment')).toBeLessThan(content.indexOf('Second comment'));
+      expect(content).toContain('### alice (2024-01-15T12:00:00.000Z)');
+      expect(content).not.toContain('Other card comment');
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('imports cards with a missing list using empty list metadata', async () => {
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ idList: 'missing-list' })],
+        lists: [createTrelloListInfo()],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("\nlist: ''\n");
+      expect(content).toContain('\npublished: false\n');
     });
 
     test('adds trailing slash to output folder if missing', async () => {
@@ -719,6 +844,32 @@ describe('TrelloImport', () => {
   });
 
   describe('downloadBoardJson', () => {
+    test.each(['My Board', 'abc12345'])('encodes credentials as query values for %s', async (boardIdOrName: string) => {
+      const mockBoard = createTrelloBoardInfo({ id: 'abc12345', name: 'My Board' });
+      const apiKey = 'key&cards=none+ #?=%';
+      const token = 'token&injected=value+ #?=%';
+      if (boardIdOrName === 'My Board') {
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockBoard]) });
+      }
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
+
+      const result = await TrelloImport.downloadBoardJson({ boardIdOrName, apiKey, token });
+
+      expect(result).toEqual(mockBoard);
+      expect(fetch).toHaveBeenCalledTimes(boardIdOrName === 'My Board' ? 2 : 1);
+      for (const [request] of vi.mocked(fetch).mock.calls) {
+        const url = new URL(String(request));
+        expect(url.hash).toBe('');
+        expect(Object.fromEntries(url.searchParams)).toEqual({
+          key: apiKey,
+          token,
+          ...(url.pathname === '/1/boards/abc12345' ? {
+            cards: 'all', lists: 'all', checklists: 'all', labels: 'all', members: 'all', fields: 'all',
+          } : {}),
+        });
+      }
+    });
+
     test('downloads board by valid ID', async () => {
       const mockBoard = createTrelloBoardInfo();
       vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });
