@@ -11,18 +11,25 @@ export class TaskCollector extends RegexCollector {
       case "by-priority": return this.formatSortByPriority(references);
       case "by-file": return this.formatGroupByFilename(references);
     }
-    return ""; 
+    return "";
   }
 
   protected getTasks(references: formatData[]): string[] {
-    var tasks: string[] = [];
+    const tasks: string[] = [];
+    if (!references) return tasks;
 
-    references.forEach(ref => {
+    // Performance optimization: Hoist projectFromFilename and formatLink string formatting
+    // out of inner loop over tags and use indexed for loops to eliminate iterator allocations.
+    for (let i = 0; i < references.length; i++) {
+      const ref = references[i];
       const tags = ref.data;
-      tags.forEach(tag => {
-        tasks.push(tag + this.projectFromFilename(ref.filename) + " => " + formatLink(ref));
-      });
-    });
+      if (tags && tags.length > 0) {
+        const suffix = this.projectFromFilename(ref.filename) + " => " + formatLink(ref);
+        for (let j = 0; j < tags.length; j++) {
+          tasks.push(tags[j] + suffix);
+        }
+      }
+    }
     return tasks;
   }
 
@@ -44,7 +51,7 @@ export class TaskCollector extends RegexCollector {
     return "" +
       references
         .filter(r => r.data.length > 0)
-        .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + ")\n\n" + 
+        .map(r => "\n\n### " + r.title + " [" + r.filename + "](./" + r.filename + ")\n\n" +
           "<details>\n\n* " + r.data.join("\n* ") + "\n\n</details>").join("\n");
   }
   readonly dataName = "Tasks";
