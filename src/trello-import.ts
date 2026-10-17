@@ -212,7 +212,7 @@ export default class TrelloImport implements BaseImporter {
     return comments.map(c => {
       const author = c.authorName || "Unknown";
       let dateStr = "";
-      if (c.date instanceof Date && !isNaN(c.date.getTime())) {
+      if (c.date instanceof Date && !Number.isNaN(c.date.getTime())) {
         dateStr = c.date.toISOString();
       } else if (c.date) {
         dateStr = String(c.date);
@@ -304,13 +304,13 @@ export default class TrelloImport implements BaseImporter {
       await fs.writeFile(outputFilename,
         header + 
         card.desc + 
-        (card.idChecklists.length > 0 ? "\n\n---\n\n## Checklists\n\n" + card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") : "") +
-        (comments && comments.length > 0 ? "\n\n---\n\n## Comments\n\n" + this.writeComments(comments) : "") +
-        (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
+        (card.idChecklists.length > 0 ? `\n\n---\n\n## Checklists\n\n${card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n")}` : "") +
+        (comments && comments.length > 0 ? `\n\n---\n\n## Comments\n\n${this.writeComments(comments)}` : "") +
+        (filenames.length > 0 ? `\n\n---\n\n## Attachments\n\n* ${filenames.join("\n* ")}` : "")
         , { });
         return true;     
     } catch (error) {
-      console.error("Could not write file " + outputFilename + " because " + error);
+      console.error(`Could not write file ${outputFilename} because ${error}`);
     }
     return false;
   }
