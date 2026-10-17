@@ -18,11 +18,11 @@ New features should all have associated tests, and should not break existing tes
 
 ## Code structure
 
-The [zl.ts](src/zl.ts) file is the entry point for the command line tool. It uses the `commander.js` package to parse the command line arguments, and then calls the appropriate function from the zl-* files. The `zl-*` files are named after the command line arguments, and are responsible for the actual work of the command.
+The [CLI entry point](src/cli/zl.ts) is the entry point for the command line tool. It uses the `commander.js` package to parse the command line arguments, and then calls the appropriate function from the command modules in `src/cli`. Those modules adapt command-line input to the reusable library functionality.
 
 ### `zl-index`
 
-The [zl-index.ts](src/zl-index.ts) file is responsible for the `index` command (alias `create`), which is used to create new files that reference other files in the repository. Each markdown file in the repository is processed by a series of collectors, which look for specific features in the file. The collectors are:
+The [index command](src/cli/zl-index.ts) is responsible for the `index` command (alias `create`), which is used to create new files that reference other files in the repository. Each markdown file in the repository is processed by a series of collectors, which look for specific features in the file. The collectors are:
 
 - [Collector](src/collectors/Collector.ts) - the base class for all collectors
   - [RegexCollector](src/collectors/RegexCollector.ts) - a collector that uses a regular expression to find matches

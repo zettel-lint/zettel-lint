@@ -1582,4 +1582,127 @@ describe('query parsing and default sorting regressions', () => {
 
     expect(sut.render('{{?items?sort()//}}{{id}},{{/?items}}')).toBe('y,a,z,0,');
   });
-});
+
+  describe('Templator set operator and deduplication query functions', () => {
+    test('should support % set operator syntax on collector lists', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#work', '#urgent'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#work'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{%Tags}}* {{key}}\n{{/%Tags}}");
+      expect(result).toContain("* #work");
+      expect(result).toContain("* #urgent");
+      const countWork = (result.match(/\* #work/g) || []).length;
+      expect(countWork).toBe(1);
+    });
+
+    test('should support % set operator syntax with regex filter', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#work', '#personal'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#work'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{%Tags/work/}}* {{key}}\n{{/%Tags}}");
+      expect(result).toContain("* #work");
+      expect(result).not.toContain("#personal");
+    });
+
+    test('should support ?set() query function', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#tag1', '#tag1'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#tag1', '#tag2'] } }
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{?Tags?set()//}}* {{key}}\n{{/?Tags}}");
+      expect(result).toContain("* #tag1");
+      expect(result).toContain("* #tag2");
+      const countTag1 = (result.match(/\* #tag1/g) || []).length;
+      expect(countTag1).toBe(1);
+    });
+
+    test('should support ?distinct() as a set alias', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#work', '#work', '#urgent'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#work'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{?Tags?distinct()//}}{{key}}:{{#value}}{{id}},{{/value}};{{/?Tags}}");
+      expect(result).toBe('#work:a,b,;#urgent:a,;');
+    });
+
+
+    test('should deduplicate nested value arrays inside collector objects', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'Note A', fullpath: '', matchData: { Links: ['[target]'] } },
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'Note A', fullpath: '', matchData: { Links: ['[target]'] } }
+      ];
+      const sut = new Templator(notes, [new WikiCollector()]);
+      const result = sut.render("{{?Links?set()//}}{{#value}}{{id}},{{/value}}{{/?Links}}");
+      expect(result).toBe("a,");
+    });
+
+    test('should support chaining ?sort() and ?set()', () => {
+      const notes = [
+        { id: 'z', wikiname: 'z', filename: './z.md', title: 'Z', fullpath: '', matchData: { Tags: ['#zebra'] } },
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#apple'] } },
+        { id: 'a2', wikiname: 'a2', filename: './a2.md', title: 'A2', fullpath: '', matchData: { Tags: ['#apple'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{?Tags?sort()?set()//}}{{key}},{{/?Tags}}");
+      expect(result).toBe("#apple,#zebra,");
+    });
+
+    test('should support deduplication on objects with id/filename (notes list)', () => {
+      const notes = [
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'Note 1', fullpath: '', matchData: {} },
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'Note 1 Duplicate', fullpath: '', matchData: {} },
+        { id: 'n2', wikiname: 'n2', filename: './n2.md', title: 'Note 2', fullpath: '', matchData: {} },
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{?notes?set()//}}[{{id}}]{{/?notes}}");
+      expect(result).toBe("[n1][n2]");
+    });
+
+    test('should support argument-based deduplication with ?set(args)', () => {
+      const notes = [
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'SameTitle', fullpath: '', matchData: {} },
+        { id: 'n2', wikiname: 'n2', filename: './n2.md', title: 'SameTitle', fullpath: '', matchData: {} },
+        { id: 'n3', wikiname: 'n3', filename: './n3.md', title: 'OtherTitle', fullpath: '', matchData: {} },
+      ];
+      const sut = new Templator(notes);
+      const result = sut.render("{{?notes?set(title)//}}[{{title}}]{{/?notes}}");
+      expect(result).toBe("[SameTitle][OtherTitle]");
+    });
+  });
+
+  describe('Templator security checks on prototype property access', () => {
+    test('should block accessing sensitive prototype tags in query_filter', () => {
+      const sut = new Templator();
+      expect(sut.render("{{?__proto__//}}content{{/?__proto__}}")).toBe("{{`invalid tag: __proto__`}}");
+      expect(sut.render("{{?constructor//}}content{{/?constructor}}")).toBe("{{`invalid tag: constructor`}}");
+      expect(sut.render("{{?prototype//}}content{{/?prototype}}")).toBe("{{`invalid tag: prototype`}}");
+    });
+
+    test('should ignore sensitive prototype keys in sort args', () => {
+      const notes = [
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#b'] } },
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#a'] } }
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      // Sorting by __proto__ should be safely ignored and default comparison applied
+      const result = sut.render("{{?Tags?sort(__proto__)//}}{{key}},{{/?Tags}}");
+      expect(result).toBe("#a,#b,");
+    });
+
+    test('should ignore sensitive prototype keys in set args', () => {
+      const notes = [
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'Title1', fullpath: '', matchData: {} },
+        { id: 'n2', wikiname: 'n2', filename: './n2.md', title: 'Title2', fullpath: '', matchData: {} }
+      ];
+      const sut = new Templator(notes);
+      // set(__proto__) should safely fall back to default item key without throwing or prototype pollution
+      const result = sut.render("{{?notes?set(__proto__)//}}[{{id}}]{{/?notes}}");
+      expect(result).toBe("[n1][n2]");
+    });
+  });

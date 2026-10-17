@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
+import { parse } from 'yaml';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -198,6 +199,15 @@ describe('TrelloImport', () => {
       expect(result).toContain('* [ ] Item 2');
     });
 
+    test('formats checklist item with string due date', () => {
+      const checkItem = createTrelloCheckItemInfo({ due: '2024-01-15T10:00:00.000Z' as any });
+      const checklist = createTrelloChecklistInfo({ checkItems: [checkItem] });
+
+      const result = importer.writeCheckList(checklist);
+
+      expect(result).toContain('due:2024-01-15T10:00:00.000Z');
+    });
+
     test('formats checklist item without due date', () => {
       const checkItem = createTrelloCheckItemInfo({ due: undefined as any });
       const checklist = createTrelloChecklistInfo({ checkItems: [checkItem] });
@@ -266,6 +276,47 @@ describe('TrelloImport', () => {
       expect(fetch).toHaveBeenCalledWith('https://example.com/test.png');
       expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer));
       expect(result).toEqual(['![Test Image](/output/test.png)']);
+    });
+
+    test('sanitizes attachment fileName to prevent path traversal', async () => {
+      const attachment = createAttachmentInfo({
+        fileName: '../../evil.sh',
+        name: 'Evil Attachment',
+        url: 'https://example.com/evil.sh',
+      });
+
+      const result = await importer.saveAttachments('/output/attachments/', options, [attachment]);
+
+      expect(fetch).toHaveBeenCalledWith('https://example.com/evil.sh');
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/evil.sh', expect.any(Buffer));
+      expect(result).toEqual(['![Evil Attachment](/output/attachments/evil.sh)']);
+    });
+
+    test.each(['.', '..', 'folder/.', 'folder/..'])('handles fileName %s as a URL-only attachment', async (fileName: string) => {
+      const attachment = createAttachmentInfo({ fileName });
+
+      const result = await importer.saveAttachments('/output/attachments/', options, [attachment]);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+      expect(result).toEqual(['[Test Attachment](https://example.com/attachment.png)']);
+    });
+
+    test('continues saving files after a URL-only dot attachment', async () => {
+      const attachments = [
+        createAttachmentInfo({ fileName: '..' }),
+        createAttachmentInfo({ fileName: 'test.png', name: 'Test Image' }),
+      ];
+
+      const result = await importer.saveAttachments('/output/attachments/', options, attachments);
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/test.png', expect.any(Buffer));
+      expect(result).toEqual([
+        '[Test Attachment](https://example.com/attachment.png)',
+        '![Test Image](/output/attachments/test.png)',
+      ]);
     });
 
     test('handles URL-only attachments without fileName', async () => {
@@ -368,6 +419,21 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
+    test.each(['/output', '/output/'])('writes card and attachments inside %s', async (outputFolder: string) => {
+      const card = createTrelloCardInfo({ attachments: [createAttachmentInfo()] });
+      const lists = { list1: createTrelloListInfo() };
+
+      const result = await importer.writeCard(outputFolder, options, 'Board', card, {}, lists);
+
+      expect(result).toBe(true);
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        '/output/20240115100000-Test-Card.md',
+        expect.stringContaining('![Test Attachment](/output/attachments/attachment.png)'),
+        {},
+      );
+    });
+
     test('writes card without checklists or attachments', async () => {
       const card = createTrelloCardInfo({ name: 'Simple Card', desc: 'Simple description' });
       const lists = { list1: createTrelloListInfo() };
@@ -466,7 +532,21 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags:Important #Bug_Fix');
+      expect(content).toContain("tags: ['Important', 'Bug_Fix']");
+    });
+
+    test('keeps YAML scalar label names as strings', async () => {
+      const card = createTrelloCardInfo({
+        labels: ['true', 'null', '123'].map(name => createTrelloLabelInfo({ name })),
+      });
+      const lists = { list1: createTrelloListInfo() };
+
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      const tagsLine = content.split('\n').find(line => line.startsWith('tags: '));
+      expect(tagsLine).toBe("tags: ['true', 'null', '123']");
+      expect(parse(tagsLine!)).toEqual({ tags: ['true', 'null', '123'] });
     });
 
     test('sets published flag based on list name', async () => {
@@ -513,6 +593,26 @@ describe('TrelloImport', () => {
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
     });
+
+    test('escapes single quotes and newlines in card name, board name, and list name to prevent YAML injection', async () => {
+      const card = createTrelloCardInfo({ name: "Card's Name\nmalicious: true" });
+      const lists = { list1: createTrelloListInfo({ name: "List's Name\nother: false" }) };
+
+      await importer.writeCard('/output/', options, "Board's Name\ninjected: yes", card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("title: 'Card''s Name malicious: true'");
+      expect(content).toContain("board: 'Board''s Name injected: yes'");
+      expect(content).toContain("list: 'List''s Name other: false'");
+
+      const frontmatter = content.substring(content.indexOf('---') + 3, content.lastIndexOf('---'));
+      const parsed = parse(frontmatter);
+      expect(parsed.title).toBe("Card's Name malicious: true");
+      expect(parsed.board).toBe("Board's Name injected: yes");
+      expect(parsed.list).toBe("List's Name other: false");
+      expect(parsed.malicious).toBeUndefined();
+      expect(parsed.injected).toBeUndefined();
+    });
   });
 
   describe('importAsync', () => {
@@ -545,6 +645,64 @@ describe('TrelloImport', () => {
       expect(result.message).toContain('1 cards found');
       expect(result.message).toContain('1 notes created');
       consoleWarnSpy.mockRestore();
+    });
+
+    test('imports comments for their cards in chronological order', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ id: 'card1' })],
+        lists: [createTrelloListInfo()],
+        actions: [
+          {
+            id: 'action2',
+            type: 'commentCard',
+            date: '2024-01-15T13:00:00Z',
+            data: { text: 'Second comment', card: { id: 'card1' } },
+            memberCreator: { id: 'member2', fullName: 'Bob' },
+          },
+          {
+            id: 'action1',
+            type: 'commentCard',
+            date: '2024-01-15T12:00:00Z',
+            data: { text: 'First comment', card: { id: 'card1' } },
+            memberCreator: { id: 'member1', username: 'alice' },
+          },
+          {
+            id: 'action3',
+            type: 'commentCard',
+            date: '2024-01-15T14:00:00Z',
+            data: { text: 'Other card comment', card: { id: 'card2' } },
+            memberCreator: { id: 'member3', fullName: 'Charlie' },
+          },
+        ],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      await importer.importAsync('board.json', '/output/', options);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content.indexOf('First comment')).toBeLessThan(content.indexOf('Second comment'));
+      expect(content).toContain('### alice (2024-01-15T12:00:00.000Z)');
+      expect(content).not.toContain('Other card comment');
+      consoleWarnSpy.mockRestore();
+    });
+
+    test('imports cards with a missing list using empty list metadata', async () => {
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ idList: 'missing-list' })],
+        lists: [createTrelloListInfo()],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("\nlist: ''\n");
+      expect(content).toContain('\npublished: false\n');
     });
 
     test('adds trailing slash to output folder if missing', async () => {
@@ -769,6 +927,30 @@ describe('TrelloImport', () => {
 
       await expect(TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' }))
         .rejects.toThrow('Failed to fetch Trello board comments: 500 Internal Server Error');
+    test.each(['My Board', 'abc12345'])('encodes credentials as query values for %s', async (boardIdOrName: string) => {
+      const mockBoard = createTrelloBoardInfo({ id: 'abc12345', name: 'My Board' });
+      const apiKey = 'key&cards=none+ #?=%';
+      const token = 'token&injected=value+ #?=%';
+      if (boardIdOrName === 'My Board') {
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([mockBoard]) });
+      }
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(mockBoard) });
+
+      const result = await TrelloImport.downloadBoardJson({ boardIdOrName, apiKey, token });
+
+      expect(result).toEqual(mockBoard);
+      expect(fetch).toHaveBeenCalledTimes(boardIdOrName === 'My Board' ? 2 : 1);
+      for (const [request] of vi.mocked(fetch).mock.calls) {
+        const url = new URL(String(request));
+        expect(url.hash).toBe('');
+        expect(Object.fromEntries(url.searchParams)).toEqual({
+          key: apiKey,
+          token,
+          ...(url.pathname === '/1/boards/abc12345' ? {
+            cards: 'all', lists: 'all', checklists: 'all', labels: 'all', members: 'all', fields: 'all',
+          } : {}),
+        });
+      }
     });
 
     test('downloads board by valid ID', async () => {
@@ -987,7 +1169,7 @@ describe('TrelloImport', () => {
       await importer.writeCard('/output/', options, 'Board', card, {}, lists);
 
       const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('tags:Label_With_Spaces_');
+      expect(content).toContain("tags: ['Label_With_Spaces_']");
     });
 
     test('processes board with all entity types', async () => {

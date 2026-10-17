@@ -67,9 +67,9 @@ Options:
 
 * `-p, --path <path>` - Root path for search (default: ".")
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
-* `-r, --reference-file <path>` - Path to output (default "reference.md")
-* `-c, --create-file <path>` - Path to output file
-* `-m, --template-file <path>` - Path to input mustache template (default "reference.md.mustache")
+* `-r, --reference-file <path>` - Path to output reference.md (default: "references.md")
+* `-c, --create-file <path>` - Path to output file (default: "references.md")
+* `-m, --template-file <path>` - Path to input mustache template (default: "references.md.mustache")
 * `-o, --show-orphans` - Output list of orphaned links to console
 * `-t, --task-display <format>` - Display tasks format: 'none', 'by-file', or 'by-priority' (default: 'by-file')
 * `--json-debug-output` - Output JSON intermediate representations
@@ -116,9 +116,9 @@ Options:
 
 * `-p, --path <path>` - Root path for search (default: ".")
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
-* `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: ".")
-* `-r, --rules <rule...>` - Rules to use (default: all known rules)
-* `-f, --propertyFilter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
+* `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: the `--path` directory)
+* `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`)
+* `-f, --property-filter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
   * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first. 
 * `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
 * `-v, --verbose` - Show additional output
@@ -129,6 +129,10 @@ Options:
 * `inline-properties-to-frontmatter` - Ensure YAML frontmatter is correctly formatted, with inline properties moved to frontmatter if specified
   * If `--move` is specified, inline properties will be moved to frontmatter instead of copied
   * This is useful for moving Obsidian dataview properties to YAML frontmatter
+
+## Programmatic API
+
+The package root exports the host-neutral indexing and fixing functions and the asynchronous `FileAdapter` contract. It does not load the Node adapter or CLI dependencies. See [the file adapter guide](docs/file-adapter.md) for path semantics, error behavior, a virtual-adapter example, and the Node-specific `zettel-lint/node` entry point.
 
 ### notes (alias: update)
 
@@ -173,5 +177,6 @@ Each note has the following properties:
 * `{{``markdownEscaping}}` Using the a single backtick at the start of the tag will escape any markdown characters into an HTML escaped version.
 * `{{?tag/filter/}}{{/?tag}}` Using a ? at the start of a tag pair will filter any output using the specified regular expression. An empty filter will match everything.
   * `{{?tag?sort(key)/filter/}}{{/?tag}}` will sort the results according to the specified key, or alphabetically by name if the key name is not supplied.
+  * `{{?tag?distinct()/filter/}}{{/?tag}}` will remove duplicate entries while preserving the first occurrence.
 
 [00000000]: ./00000000-dummy-file.md

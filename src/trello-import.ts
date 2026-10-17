@@ -1,6 +1,7 @@
 import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "fs";
+import path from "node:path";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -119,13 +120,19 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
-function sortableDate(d: Date) : string {
+function escapeYamlSingleQuote(val: string | undefined | null): string {
+  if (!val) return "";
+  return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
+}
+
+function sortableDate(d: Date | string) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
 
   // WTF - card.dateLastActivity is a Date without any date methods.
 
-  return ("" + d).replace(/[^0-9]/g,"").substring(0,14);
+  const dateStr = typeof d === "string" ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
+  return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
 export type TrelloOptions = ImportOptions & {
@@ -143,6 +150,16 @@ export default class TrelloImport implements BaseImporter {
     return response.json();
   }
 
+  /**
+   * Downloads board JSON, requesting all cards, lists, checklists, labels, members,
+   * and board fields.
+   *
+   * @param options - An API key and an 8- or 24-character hexadecimal board ID,
+   *   or an exact, case-sensitive board name. Name lookup requires a token.
+   * @returns The parsed board response, without schema validation.
+   * @throws If name lookup lacks a token, the name is not found, or either HTTP
+   *   response is unsuccessful. Network and JSON parsing errors also propagate.
+   */
   static async downloadBoardJson(options: TrelloOptions): Promise<any> {
     let { boardIdOrName, apiKey, token, verbose } = options;
     // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
@@ -153,8 +170,10 @@ export default class TrelloImport implements BaseImporter {
       if (!token) {
         throw new Error("A Trello token (--trello-token) is required to look up boards by name.");
       }
-      const boardsUrl = `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${token}`;
-      const boards = await TrelloImport.fetchJsonOrThrow(boardsUrl, "Trello board lookup");
+      const boardsUrl = new URL("https://api.trello.com/1/members/me/boards");
+      boardsUrl.searchParams.set("key", apiKey);
+      boardsUrl.searchParams.set("token", token);
+      const boards = await TrelloImport.fetchJsonOrThrow(boardsUrl.toString(), "Trello board lookup");
       const found = boards.find((b: any) => b.name === boardIdOrName);
       if (!found) {
         throw new Error(`Could not find Trello board with name: ${boardIdOrName}`);
@@ -188,7 +207,21 @@ export default class TrelloImport implements BaseImporter {
 
   writeCheckList(cl: TrelloChecklistInfo) {
     return "### " + cl.name + "\n\n" +
-      cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + ci.due.toISOString() : "")).join("\n");
+      cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + new Date(ci.due).toISOString() : "")).join("\n");
+  }
+
+  writeComments(comments: TrelloCommentInfo[]) {
+    return comments.map(c => {
+      const author = c.authorName || "Unknown";
+      let dateStr = "";
+      if (c.date instanceof Date && !Number.isNaN(c.date.getTime())) {
+        dateStr = c.date.toISOString();
+      } else if (c.date) {
+        dateStr = String(c.date);
+      }
+      const header = dateStr ? `### ${author} (${dateStr})` : `### ${author}`;
+      return `${header}\n\n${c.text}`;
+    }).join("\n\n");
   }
 
   writeComments(comments: TrelloCommentInfo[]) {
@@ -209,15 +242,21 @@ export default class TrelloImport implements BaseImporter {
     var filenames: string[] = [];
 
     for await (var attachment of attachments) {
-      const outputFilename = outputFolder + attachment.fileName;  
-      if (options.verbose) {
-       console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
-      }
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
         filenames.push("[" + attachment.name + "](" + attachment.url + ")");
         continue;
-      }      
+      }
+      // Sanitise fileName to prevent path traversal
+      const safeFileName = path.basename(attachment.fileName);
+      if (safeFileName === "." || safeFileName === "..") {
+        filenames.push("[" + attachment.name + "](" + attachment.url + ")");
+        continue;
+      }
+      const outputFilename = path.join(outputFolder, safeFileName);
+      if (options.verbose) {
+       console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
+      }
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
@@ -225,7 +264,7 @@ export default class TrelloImport implements BaseImporter {
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push("![" + attachment.name + "](" + outputFilename + ")");
+        filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }
@@ -233,6 +272,19 @@ export default class TrelloImport implements BaseImporter {
     return filenames;
   }
 
+  /**
+   * Writes or overwrites a Markdown note with frontmatter, description, checklists,
+   * and attachment links. File attachments are downloaded under outputFolder/attachments.
+   * Failed attachment downloads or writes are omitted without failing the note.
+   *
+   * @param outputFolder - Destination directory, with or without a trailing separator.
+   *   This method does not create it or its attachments subdirectory.
+   * @param checklists - Checklists keyed by ID for the card's idChecklists.
+   * @param lists - Lists keyed by ID; missing entries use an empty list name.
+   * @returns True when the note is written; false if checklist rendering or note writing fails.
+   * @throws Errors preparing the filename, attachments, or frontmatter propagate,
+   *   including an invalid activity Date.
+   */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
       boardName: string,
@@ -240,25 +292,26 @@ export default class TrelloImport implements BaseImporter {
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; },
       comments? : TrelloCommentInfo[]) : Promise<boolean> {
-    const outputFilename :string = outputFolder + 
-      sortableDate(card.dateLastActivity) + 
-      "-" + this.sanitiseName(card) + ".md";
+    const outputFilename :string = path.join(outputFolder,
+      sortableDate(card.dateLastActivity) +
+      "-" + this.sanitiseName(card) + ".md");
 
-    const filenames = await this.saveAttachments(outputFolder + "attachments/", options, card.attachments || []);
+    const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
+    const listName = lists[card.idList]?.name || "";
     const header = "---" +
       "\ncreated: " + card.dateLastActivity +
       "\nmodified: " + card.dateLastActivity +
-      "\ntitle: '" + card.name + "'" +
+      "\ntitle: '" + escapeYamlSingleQuote(card.name) + "'" +
       "\nsource: Trello" + 
-      "\ntags:" + card.labels.map(l => l.name.replace(/[^a-zA-Z0-9]/g, "_")).join(" #") +
+      "\ntags: [" + (card.labels || []).map(l => "'" + escapeYamlSingleQuote((l?.name || "").replace(/[^A-Za-z0-9]/g, "_")) + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: '" + boardName + "'" + 
-      "\nlist: '" + lists[card.idList].name + "'" +
-      "\npublished: " + lists[card.idList].name.includes("Published") +
-      "\ntrello-url: '" + card.shortUrl + "'" +
+      "\nboard: '" + escapeYamlSingleQuote(boardName) + "'" +
+      "\nlist: '" + escapeYamlSingleQuote(listName) + "'" +
+      "\npublished: " + listName.includes("Published") +
+      "\ntrello-url: '" + escapeYamlSingleQuote(card.shortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
@@ -267,20 +320,19 @@ export default class TrelloImport implements BaseImporter {
       await fs.writeFile(outputFilename,
         header + 
         card.desc + 
-
-        (card.idChecklists.length > 0 ? "\n\n---\n\n## Checklists\n\n" + card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") : "") +
-        (comments && comments.length > 0 ? "\n\n---\n\n## Comments\n\n" + this.writeComments(comments) : "") +
-        (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
+        (card.idChecklists.length > 0 ? `\n\n---\n\n## Checklists\n\n${card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n")}` : "") +
+        (comments && comments.length > 0 ? `\n\n---\n\n## Comments\n\n${this.writeComments(comments)}` : "") +
+        (filenames.length > 0 ? `\n\n---\n\n## Attachments\n\n* ${filenames.join("\n* ")}` : "")
         , { });
         return true;     
     } catch (error) {
-      console.error("Could not write file " + outputFilename + " because " + error);
+      console.error(`Could not write file ${outputFilename} because ${error}`);
     }
     return false;
   }
 
   private sanitiseName(card: TrelloCardInfo) {
-    return card.name.replace(/[^A-Za-z0-9]/gm, '-').slice(0, min(50, card.name.length));
+    return card.name.replace(/[^A-Za-z0-9]/g, '-').slice(0, min(50, card.name.length));
   }
 
   async importAsync(globpattern: string, outputFolder: string, options: TrelloOptions): Promise<ErrorResponse> {
@@ -326,11 +378,24 @@ export default class TrelloImport implements BaseImporter {
           }
         });
       }
+      const cardComments: { [cardId: string]: TrelloCommentInfo[] } = {};
+      notes.actions?.forEach(action => {
+        if (action.type === "commentCard" && action.data?.card?.id) {
+          const cardId = action.data.card.id;
+          const text = action.data.text || "";
+          const date = action.date ? new Date(action.date) : new Date();
+          const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
+          if (!cardComments[cardId]) {
+            cardComments[cardId] = [];
+          }
+          cardComments[cardId].push(new TrelloCommentInfo(text, date, authorName));
+        }
+      });
       for (const cardId in cardComments) {
         cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
       }
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [])) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [])) {
           totalNotes++;
         }
       }

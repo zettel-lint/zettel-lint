@@ -4,8 +4,8 @@ import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
 import { Command } from '@commander-js/extra-typings';
-import TrelloImport, { TrelloOptions } from "./trello-import.js";
-import { ErrorResponse } from "./base-importer.js";
+import TrelloImport, { TrelloOptions } from "../trello-import.js";
+import { ErrorResponse } from "../base-importer.js";
 
 interface ZlImportOptions {
   source: string;
@@ -52,6 +52,13 @@ function printHeader(program: ZlImportOptions): void {
   }
 }
 
+/**
+ * Runs the selected import, writing or overwriting notes in program.outputFolder.
+ * If the output folder is undefined, sets it to `../<source>/` on program.
+ *
+ * @returns Resolves without a result after processing, including reported failures.
+ * @throws Errors from importing local Trello files propagate.
+ */
 async function importer(program: ZlImportOptions): Promise<void> {
   printHeader(program);
   if(program.outputFolder === undefined) {
@@ -62,6 +69,13 @@ async function importer(program: ZlImportOptions): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Imports local Trello JSON matching program.path, or downloads a board when both
+   * an API key and board are supplied. Downloads create the output directory and
+   * write or overwrite trello-board.json there before importing it.
+   * Errors in the download flow are caught and reported; local import errors propagate.
+   * The source "unknown" completes after a 100 ms delay; unsupported sources report failure.
+   */
   async function parseFiles() {
     let response: ErrorResponse;
       const options : TrelloOptions = {

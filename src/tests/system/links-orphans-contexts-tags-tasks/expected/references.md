@@ -85,6 +85,8 @@ title: References
 * (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others => [Zettel Linter][tasks]
 * (H) Create indexer for notes with a list: header for blogging/Trello imports. => [Zettel Linter][tasks]
 * (L) Add anchored links from pages with tags to a collection page, and generate tag meta pages alongside references.md `tag-blog.md` for example (can then use these instead of a separate tag section in references?) => [Zettel Linter][tasks]
+* (A) Implement `id-to-wiki-links` rule in `zl fix` to convert numeric `[id]` links to wiki-links (migrating `-w, --wiki-links-from-id` from `zl notes`) => [Zettel Linter][tasks]
+* (A) Formally deprecate/remove `zl notes` subcommand and update documentation and CLI tests => [Zettel Linter][tasks]
 * (C) *-Daily files should have a title like YYYY-MM-DD => [Zettel Linter][tasks]
 * (C) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous => [Zettel Linter][tasks]
 * (C) Allow timestamp ids, with or without dashes, and match file that starts with that id, with whatever following content is meaningful => [Zettel Linter][tasks]
