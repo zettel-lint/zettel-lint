@@ -173,5 +173,6 @@ Each note has the following properties:
 * `{{``markdownEscaping}}` Using the a single backtick at the start of the tag will escape any markdown characters into an HTML escaped version.
 * `{{?tag/filter/}}{{/?tag}}` Using a ? at the start of a tag pair will filter any output using the specified regular expression. An empty filter will match everything.
   * `{{?tag?sort(key)/filter/}}{{/?tag}}` will sort the results according to the specified key, or alphabetically by name if the key name is not supplied.
+  * `{{?tag?distinct()/filter/}}{{/?tag}}` will remove duplicate entries while preserving the first occurrence.
 
 [00000000]: ./00000000-dummy-file.md
