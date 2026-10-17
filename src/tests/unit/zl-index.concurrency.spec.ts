@@ -12,7 +12,7 @@ test.each([0, 3, 35])('indexes %i files with bounded reads and preserves discove
   vi.spyOn(NodeFileAdapter.prototype, 'listFiles').mockResolvedValue(files);
   const pending: Array<() => void> = [];
   const completed: string[] = [];
-  vi.spyOn(NodeFileAdapter.prototype, 'readFile').mockImplementation((filename) => {
+  vi.spyOn(NodeFileAdapter.prototype, 'readFile').mockImplementation((filename: Parameters<NodeFileAdapter['readFile']>[0]) => {
     if (filename === 'template.mustache') {
       return Promise.resolve('{{#notes}}{{filename}}\n{{/notes}}');
     }
