@@ -97,13 +97,7 @@ export class IdToWikiLinksRule extends BaseRule {
 			updatedFrontmatter = newLines.join(eol);
 		}
 
-		// Process body (or whole document if no frontmatter)
-		const linkRegex = /(?<!\[)\[(\d+)\](?!\])/g;
-
-		const updatedBody = body.replace(linkRegex, (match, id) => {
-			const mapped = this.links[`[${id}]`];
-			return mapped ? mapped : match;
-		});
+		const updatedBody = this.replaceBodyLinks(body);
 
 		if (frontmatterMatch) {
 			const trailingSep = frontmatterMatch[0].slice(
@@ -113,5 +107,43 @@ export class IdToWikiLinksRule extends BaseRule {
 		}
 
 		return updatedBody;
+	}
+
+	private replaceBodyLinks(body: string): string {
+		// Consume escapes, code spans and complete bracket constructs before
+		// considering a bare numeric link for replacement.
+		const inlineTokens = /\\[\s\S]|(?<!`)(`+)(?!`)([\s\S]*?[^`])\1(?!`)|!?\[(?:\\[\s\S]|[^\[\]\\]|\[[^\[\]]*\])*\](?:\([^\)\r\n]*\)|\[[^\]\r\n]*\])?/g;
+		const replaceInline = (text: string): string =>
+			text.replace(inlineTokens, (match) =>
+				/^\[\d+\]$/.test(match) ? (this.links[match] ?? match) : match,
+			);
+
+		let fence: string | undefined;
+		let start = 0;
+		let updated = "";
+		const fenceLines = /^ {0,3}(`{3,}|~{3,})([^\r\n]*)\r?$/gm;
+
+		for (const match of body.matchAll(fenceLines)) {
+			const marker = match[1];
+			if (!fence) {
+				// Backtick fence info strings cannot contain backticks.
+				if (marker[0] === "`" && match[2].includes("`")) continue;
+				updated += replaceInline(body.slice(start, match.index));
+				start = match.index;
+				fence = marker;
+			} else if (
+				marker[0] === fence[0] &&
+				marker.length >= fence.length &&
+				match[2].trim() === ""
+			) {
+				const end = match.index + match[0].length;
+				updated += body.slice(start, end);
+				start = end;
+				fence = undefined;
+			}
+		}
+
+		const remaining = body.slice(start);
+		return updated + (fence ? remaining : replaceInline(remaining));
 	}
 }
