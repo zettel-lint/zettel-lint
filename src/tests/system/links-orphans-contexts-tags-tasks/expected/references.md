@@ -1,6 +1,6 @@
 ---
-created: 2025-08-28T23:48:16.471Z
-modified: 2025-08-28T23:48:16.472Z
+created: 2026-10-17T00:06:53.046Z
+modified: 2026-10-17T00:06:53.046Z
 title: References
 ---
 
@@ -15,26 +15,26 @@ title: References
   * No links
   * No backlinks
 * [Zettel Linter][tasks] = `tasks.md`:
-  * [[xxxxxxxxxxxxx]], 
+  * [[xxxxxxxxxxxxx]],
   * No backlinks
 * [Testing file][links] = `links-orphans-contexts-tags.md`:
-  * [00000001], [00000000], 
+  * [00000001], [00000000],
   * No backlinks
 * [Readme][README] = `README.md`:
-  * [00000001], [00000000], [[wiki-links]], [[wiki]], [00000000], 
+  * [00000001], [00000000], [[wiki-link]], [00000001], [[wiki-links]], [[wiki]], [00000000],
   * No backlinks
 * [Contributing to the project][CONTRIBUTING] = `CONTRIBUTING.md`:
-  * [[WikiLinks]], [[like-this]], 
+  * [[WikiLinks]], [[like-this]],
   * No backlinks
 * [Contributor Covenant Code of Conduct][CODE_OF_CONDUCT] = `CODE_OF_CONDUCT.md`:
   * No links
   * No backlinks
 * [00000001-another-file][00000001] = `00000001-another-file.md`:
   * No links
-  * [links], [README], 
+  * [links], [README], [README],
 * [00000000-dummy-file][00000000] = `00000000-dummy-file.md`:
   * No links
-  * [links], [README], [README], 
+  * [links], [README], [README],
 
 </details>
 
@@ -43,9 +43,9 @@ title: References
 <details>
 <summary>Show Orphans</summary>
 
-*  `tasks`: [[xxxxxxxxxxxxx]], 
-*  `README`: [[wiki-links]], [[wiki]], 
-*  `CONTRIBUTING`: [[WikiLinks]], [[like-this]], 
+*  `tasks`: [[xxxxxxxxxxxxx]],
+*  `README`: [[wiki-link]], [[wiki-links]], [[wiki]],
+*  `CONTRIBUTING`: [[WikiLinks]], [[like-this]],
 
 </details>
 
@@ -62,10 +62,10 @@ title: References
 <details>
 <summary>Show Tags</summary>
 
-* #Recurring => [Zettel Linter][tasks], 
-* #Template => [Zettel Linter][tasks], 
-* #ToDo => [Zettel Linter][tasks], 
-* #hashtag => [Testing file][links], [Readme][README], [Readme][README], 
+* #Recurring => [Zettel Linter][tasks],
+* #Template => [Zettel Linter][tasks],
+* #ToDo => [Zettel Linter][tasks],
+* #hashtag => [Testing file][links], [Readme][README], [Readme][README],
 
 </details>
 
@@ -85,7 +85,6 @@ title: References
 * (H) Sort all tasks by priority then due date (cli options for this?) - letters, then checkbox then others => [Zettel Linter][tasks]
 * (H) Create indexer for notes with a list: header for blogging/Trello imports. => [Zettel Linter][tasks]
 * (L) Add anchored links from pages with tags to a collection page, and generate tag meta pages alongside references.md `tag-blog.md` for example (can then use these instead of a separate tag section in references?) => [Zettel Linter][tasks]
-* (A) Implement `id-to-wiki-links` rule in `zl fix` to convert numeric `[id]` links to wiki-links (migrating `-w, --wiki-links-from-id` from `zl notes`) => [Zettel Linter][tasks]
 * (A) Formally deprecate/remove `zl notes` subcommand and update documentation and CLI tests => [Zettel Linter][tasks]
 * (C) *-Daily files should have a title like YYYY-MM-DD => [Zettel Linter][tasks]
 * (C) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous => [Zettel Linter][tasks]

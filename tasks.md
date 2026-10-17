@@ -65,7 +65,7 @@ Uses [commander](https://github.com/tj/commander.js) for CLI parsing
 
 ## `zl fix` Tasks (formerly `zl notes`)
 
-* (A) Implement `id-to-wiki-links` rule in `zl fix` to convert numeric `[id]` links to wiki-links (migrating `-w, --wiki-links-from-id` from `zl notes`)
+* x 2026-10-10 (A) Implement `id-to-wiki-links` rule in `zl fix` to convert numeric `[id]` links to wiki-links (migrating `-w, --wiki-links-from-id` from `zl notes`)
 * (A) Formally deprecate/remove `zl notes` subcommand and update documentation and CLI tests
 * (C) *-Daily files should have a title like YYYY-MM-DD
 * (C) Allow prefix links (e.g. only link to day, not day time) if the prefix is unambiguous
