@@ -1593,7 +1593,7 @@ title: References
       ];
       const sut = new Templator(notes, [new TagCollector()]);
       const result = sut.render("{{?Tags?distinct()//}}{{key}}:{{#value}}{{id}},{{/value}};{{/?Tags}}");
-      expect(result).toBe('#work:a,b;#urgent:a,;');
+      expect(result).toBe('#work:a,b,;#urgent:a,;');
     });
 
 
