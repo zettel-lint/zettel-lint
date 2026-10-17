@@ -92,7 +92,7 @@ describe('bump-patch-version workflow', () => {
       const updateTsStep = steps.find(s => s.name === 'Update version in TypeScript file');
       expect(updateTsStep).toBeDefined();
       expect(updateTsStep.run).toContain('sed -i');
-      expect(updateTsStep.run).toContain('src/zl.ts');
+      expect(updateTsStep.run).toContain('src/cli/zl.ts');
     });
 
     test('has commit changes step with tests', () => {
@@ -100,7 +100,7 @@ describe('bump-patch-version workflow', () => {
       expect(commitStep).toBeDefined();
       expect(commitStep.run).toContain('npm ci');
       expect(commitStep.run).toContain('npm test');
-      expect(commitStep.run).toContain('git add package.json package-lock.json src/zl.ts');
+      expect(commitStep.run).toContain('git add package.json package-lock.json src/cli/zl.ts');
       expect(commitStep.run).toContain('git commit -m "chore: bump version to ${{ env.new_version }}"');
       expect(commitStep.run).toContain('git push origin bump-version-${{ env.new_version }}');
     });
@@ -145,7 +145,7 @@ describe('bump-patch-version workflow', () => {
       const sedCommand = updateTsStep.run;
 
       // Verify sed command targets the correct file
-      expect(sedCommand).toContain('src/zl.ts');
+      expect(sedCommand).toContain('src/cli/zl.ts');
 
       // Verify it uses environment variables for version replacement
       expect(sedCommand).toContain('${{ env.current_version }}');
@@ -201,7 +201,7 @@ describe('bump-patch-version workflow', () => {
     test('PR body lists changed files', () => {
       expect(prStep.env.PR_BODY).toContain('Files Changed');
       expect(prStep.env.PR_BODY).toContain('package.json');
-      expect(prStep.env.PR_BODY).toContain('src/zl.ts');
+      expect(prStep.env.PR_BODY).toContain('src/cli/zl.ts');
     });
 
     test('PR body includes bot PR notice', () => {
@@ -367,10 +367,10 @@ describe('bump-patch-version workflow', () => {
       );
       expect(commitStep.run).toContain('git add package.json');
       expect(commitStep.run).toContain('package-lock.json');
-      expect(commitStep.run).toContain('src/zl.ts');
+      expect(commitStep.run).toContain('src/cli/zl.ts');
     });
 
-    test('updates version in both package.json and src/zl.ts', () => {
+    test('updates version in both package.json and src/cli/zl.ts', () => {
       const steps = workflow.jobs['bump-version'].steps;
       const npmVersionStep = steps.find((s: any) => s.name === 'Bump patch version');
       const updateTsStep = steps.find((s: any) => s.name === 'Update version in TypeScript file');
@@ -378,7 +378,7 @@ describe('bump-patch-version workflow', () => {
       expect(npmVersionStep).toBeDefined();
       expect(updateTsStep).toBeDefined();
       expect(npmVersionStep.run).toContain('npm version patch');
-      expect(updateTsStep.run).toContain('src/zl.ts');
+      expect(updateTsStep.run).toContain('src/cli/zl.ts');
     });
   });
 

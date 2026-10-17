@@ -4,8 +4,8 @@ import clear from "clear";
 import chalk from "chalk";
 import figlet from "figlet";
 import { Command } from '@commander-js/extra-typings';
-import TrelloImport, { TrelloOptions } from "./trello-import.js";
-import { ErrorResponse } from "./base-importer.js";
+import TrelloImport, { TrelloOptions } from "../trello-import.js";
+import { ErrorResponse } from "../base-importer.js";
 
 interface ZlImportOptions {
   source: string;
