@@ -1,5 +1,5 @@
 ---
 references:
-  - "[[00000000-dummy]]"
+  - "[[90000000-dummy]]"
 ---
-Ref to [[00000000-dummy]] and unresolved [99999999].
+Ref to [[90000000-dummy]] and unresolved [99999999].
