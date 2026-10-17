@@ -4,6 +4,11 @@
 
 **Action:** Prefer string indexing over regex split/match for hot-path filename parsing, and always cache computed view properties in constructor initializations when used in multiple object properties.
 
+## 2025-02-18 - Loop Invariant Hoisting & RegExpExecArray Direct Access
+
+**Learning:** In collection inversion (`invertDictionary`, `invertData`), formatting links (`formatLink(ref)`) inside inner loops over item tags/data results in $O(N \times M)$ redundant string formatting calls. Hoisting `formatLink` to the outer loop reduces calls to $O(N)$. Additionally, using `next[0]` instead of `next.toString()` on `RegExpExecArray` in `collectMatches` avoids array-to-string coercion on regex matches.
+
+**Action:** Always hoist loop-invariant formatters outside nested collection iterations and access match index `next[0]` directly on `RegExpExecArray` instances.
 ## 2025-05-20 - Single-Match Regex Execution & Global Regex Reuse in File Indexing
 
 **Learning:** `collectFromFile` in `zl-index` created a new RegExp `/^(?:title:|#) (.*)$/gm` per file and called `collectMatches`, which scanned the entire document and allocated an array of all title matches even though only the first title (`[0]`) was used. Calling `exec` with a module-scoped non-global regex `/^(?:title:|#) (.*)$/m` stops scanning at the first match and eliminates array allocations and per-file regex instantiations. In addition, resetting `regex.lastIndex = 0` in `collectMatches` prevents state leakage when reusing global RegExp instances across files.

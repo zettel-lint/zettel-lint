@@ -1,4 +1,3 @@
-
 export class fileWikiLinks {
   id: string | undefined;
   title: string | undefined;
@@ -50,58 +49,49 @@ export function collectBacklinks(references: formatData[]) {
     const ref = references[i];
     const tags = ref.data;
     if (tags) {
-      const refIdentifier = ref.id ?? ref.filename ?? "";
+      const targetId = ref.id ?? ref.filename ?? "";
       for (let j = 0; j < tags.length; j++) {
         let tag = tags[j];
-        const start = tag.startsWith("[") ? 1 : 0;
-        const end = tag.endsWith("]") ? tag.length - 1 : tag.length;
-        if (start > 0 || end < tag.length) {
-          tag = tag.substring(start, end);
+        // Performance optimization: Fast string slicing over multiple replace calls
+        if (tag.startsWith("[") && tag.endsWith("]")) {
+          tag = tag.slice(1, -1);
+        } else {
+          tag = tag.replace("[", "").replace("]", "");
         }
-
         let list = tagList.get(tag);
         if (!list) {
           list = [];
           tagList.set(tag, list);
         }
-        list.push(refIdentifier);
+        list.push(targetId);
       }
     }
   }
   return tagList;
 }
 
-/**
- * Groups references by their exact data values, with `[title][id]` links as values.
- * Preserves order and duplicates within each group and skips undefined data.
- *
- * @throws TypeError if data is null or a tag collides with an inherited object property.
- */
 export function invertDictionary(references: formatData[]) {
-  var tagList: { [tag: string]: string[]; } = {};
+  const tagList: { [tag: string]: string[]; } = {};
 
-  references.forEach(ref => {
+  for (let i = 0; i < references.length; i++) {
+    const ref = references[i];
     const tags = ref.data;
-    if (tags !== undefined) {
-      tags.forEach(tag => {
-        if (tagList[tag] === undefined) {
+    if (tags) {
+      // Performance optimization: Compute formatted link once per ref instead of per tag
+      const link = formatLink(ref);
+      for (let j = 0; j < tags.length; j++) {
+        const tag = tags[j];
+        if (!tagList[tag]) {
           tagList[tag] = [];
         }
-        tagList[tag].push(formatLink(ref));
-      });
+        tagList[tag].push(link);
+      }
     }
-  });
+  }
   return tagList;
 }
 
-/**
- * Groups references by their exact data values, preserving order and duplicates.
- * Each entry is a shallow copy with name set to the grouping value and data replaced
- * by a single `[title][id]` link; nested values such as bag remain shared.
- * Null or undefined references produce an empty map; null or undefined data is skipped.
- */
 export function invertData(references: formatData[]) {
-  // Performance optimization: eliminate redundant Map.set calls for existing entries
   const tagList = new Map<string, formatData[]>();
 
   if (!references) { return tagList; }
@@ -110,6 +100,8 @@ export function invertData(references: formatData[]) {
     const ref = references[i];
     const tags = ref.data;
     if (tags) {
+      // Performance optimization: Cache formatLink and eliminate redundant Map set calls
+      const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
         let current = tagList.get(tag);
@@ -117,7 +109,7 @@ export function invertData(references: formatData[]) {
           current = [];
           tagList.set(tag, current);
         }
-        current.push({...ref, name: tag, data: [formatLink(ref)]});
+        current.push({ ...ref, name: tag, data: [link] });
       }
     }
   }

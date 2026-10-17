@@ -177,3 +177,60 @@ Each note has the following properties:
   * `{{?tag?sort(key)/filter/}}{{/?tag}}` will sort the results according to the specified key, or alphabetically by name if the key name is not supplied.
 
 [00000000]: ./00000000-dummy-file.md
+  * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first. 
+* `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
+* `-v, --verbose` - Show additional output
+
+#### Existing Rules
+
+* `trailing-newline` - Ensure files end with a single newline
+* `inline-properties-to-frontmatter` - Ensure YAML frontmatter is correctly formatted, with inline properties moved to frontmatter if specified
+  * If `--move` is specified, inline properties will be moved to frontmatter instead of copied
+  * This is useful for moving Obsidian dataview properties to YAML frontmatter
+
+### notes (alias: update)
+
+**This has been DEPRECATED and will be removed in a future release. Please use `zl fix` instead.**
+
+Lint and fix notes markdown files. Will update existing files.
+
+Options:
+
+* `-p, --path <path>` - Root path for search (default: ".")
+* `-i, --ignore-dirs <path...>` - Path(s) to ignore
+* `-w, --wiki-links-from-id` - Convert [id]-style links into [[wiki-links]]
+* `-o, --show-orphans` - Output list of orphaned links to console
+* `--json-debug-output` - Output JSON intermediate representations
+* `--no-wiki` - Disable wiki-style links
+* `-v, --verbose` - Show additional output
+
+## Templating (for the `index` and `import` options)
+
+Some features accept a mustache based template to generate their output. See [references.md.mustache](src/references.md.mustache) for an example.
+
+For the indexer, there is a `{{#notes}}` collection with all notes, as well as a collection named after each collector.
+
+Each collector looks for specific features:
+
+* the WikiCollector looks for `[[wiki]]` `[Markdown](example.com)` and footnote local references and populates the `{{#Links}}` collection, where each file has outgoing links in the `{{#data}}` collection and incoming links in the `{{#bag}}` collection
+* the TagCollector looks for #hashtag and +project references, and populates the `{{#Tags}}` collection
+* the TaskCollector looks for `[ ] Tasks` or `(A) todo.txt style`, and populates the `{{#Tasks}}` collection
+* the OrphanCollector looks for all wiki links with a URL, and populates the `{{#Orphans}}` collection
+* the ContextCollector looks for `todo.txt` style `@context` links and populates the `{{#Contexts}}` collection
+
+Each note has the following properties:
+
+* `id` - the unique internal id (usually the timestamp from the filename)
+* `filename`
+* `wikiname` - filename without the last 3 characters, which turns a `.md` file into its wiki reference.
+* `title` - taken from YAML top matter, the first `# H1 header` or the filename, in that order
+* `data` - the collection of matches by this collector in this file
+
+### Template extensions
+
+* `{{``markdownEscaping}}` Using the a single backtick at the start of the tag will escape any markdown characters into an HTML escaped version.
+* `{{?tag/filter/}}{{/?tag}}` Using a ? at the start of a tag pair will filter any output using the specified regular expression. An empty filter will match everything.
+  * `{{?tag?sort(key)/filter/}}{{/?tag}}` will sort the results according to the specified key, or alphabetically by name if the key name is not supplied.
+  * `{{?tag?distinct()/filter/}}{{/?tag}}` will remove duplicate entries while preserving the first occurrence.
+
+[00000000]: ./00000000-dummy-file.md

@@ -70,6 +70,38 @@ class TrelloListInfo {
   readonly closed: boolean = false;
 }
 
+class TrelloMemberCreator {
+  readonly id: string = "";
+  readonly username?: string = "";
+  readonly fullName?: string = "";
+}
+
+class TrelloActionData {
+  readonly text?: string = "";
+  readonly card?: { id: string } = { id: "" };
+}
+
+class TrelloActionInfo {
+  readonly id: string = "";
+  readonly idMemberCreator?: string = "";
+  readonly data?: TrelloActionData = {};
+  readonly type: string = "";
+  readonly date: Date | string = new Date(Date.now());
+  readonly memberCreator?: TrelloMemberCreator = new TrelloMemberCreator();
+}
+
+export class TrelloCommentInfo {
+  readonly text: string = "";
+  readonly date: Date = new Date(Date.now());
+  readonly authorName: string = "";
+
+  constructor(text: string = "", date: Date = new Date(Date.now()), authorName: string = "") {
+    this.text = text;
+    this.date = date;
+    this.authorName = authorName;
+  }
+}
+
 class TrelloBoardInfo {
   readonly id: string = "";
   readonly name: string = "";
@@ -78,7 +110,7 @@ class TrelloBoardInfo {
   readonly prefs: any = {};
   readonly labelNames: any = {};
   readonly limits: any = {};
-  readonly actions: any[] = [];
+  readonly actions: TrelloActionInfo[] = [];
   readonly cards: TrelloCardInfo[] = [];
   readonly checklists: TrelloChecklistInfo[] = [];
   readonly customFields: any[] =[];
@@ -176,6 +208,20 @@ export default class TrelloImport implements BaseImporter {
       cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + new Date(ci.due).toISOString() : "")).join("\n");
   }
 
+  writeComments(comments: TrelloCommentInfo[]) {
+    return comments.map(c => {
+      const author = c.authorName || "Unknown";
+      let dateStr = "";
+      if (c.date instanceof Date && !Number.isNaN(c.date.getTime())) {
+        dateStr = c.date.toISOString();
+      } else if (c.date) {
+        dateStr = String(c.date);
+      }
+      const header = dateStr ? `### ${author} (${dateStr})` : `### ${author}`;
+      return `${header}\n\n${c.text}`;
+    }).join("\n\n");
+  }
+
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
     var filenames: string[] = [];
 
@@ -228,7 +274,8 @@ export default class TrelloImport implements BaseImporter {
       boardName: string,
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
-      lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
+      lists : { [id: string]: TrelloListInfo; },
+      comments? : TrelloCommentInfo[]) : Promise<boolean> {
     const outputFilename :string = path.join(outputFolder,
       sortableDate(card.dateLastActivity) +
       "-" + this.sanitiseName(card) + ".md");
@@ -257,13 +304,13 @@ export default class TrelloImport implements BaseImporter {
       await fs.writeFile(outputFilename,
         header + 
         card.desc + 
-
-        (card.idChecklists.length > 0 ? "\n\n---\n\n## Checklists\n\n" + card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") : "") +
-        (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
+        (card.idChecklists.length > 0 ? `\n\n---\n\n## Checklists\n\n${card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n")}` : "") +
+        (comments && comments.length > 0 ? `\n\n---\n\n## Comments\n\n${this.writeComments(comments)}` : "") +
+        (filenames.length > 0 ? `\n\n---\n\n## Attachments\n\n* ${filenames.join("\n* ")}` : "")
         , { });
         return true;     
     } catch (error) {
-      console.error("Could not write file " + outputFilename + " because " + error);
+      console.error(`Could not write file ${outputFilename} because ${error}`);
     }
     return false;
   }
@@ -300,8 +347,24 @@ export default class TrelloImport implements BaseImporter {
       notes.labels.forEach(label => {
         labels[label.id] = label;
       })
+      const cardComments: { [cardId: string]: TrelloCommentInfo[] } = {};
+      notes.actions?.forEach(action => {
+        if (action.type === "commentCard" && action.data?.card?.id) {
+          const cardId = action.data.card.id;
+          const text = action.data.text || "";
+          const date = action.date ? new Date(action.date) : new Date();
+          const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
+          if (!cardComments[cardId]) {
+            cardComments[cardId] = [];
+          }
+          cardComments[cardId].push(new TrelloCommentInfo(text, date, authorName));
+        }
+      });
+      for (const cardId in cardComments) {
+        cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
+      }
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [])) {
           totalNotes++;
         }
       }
