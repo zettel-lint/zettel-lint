@@ -21,21 +21,21 @@ export class IdToWikiLinksRule extends BaseRule {
   public static buildLinkMap(files: string[], rootPath: string): { [id: string]: string } {
     const links: { [id: string]: string } = {};
 
-    files.forEach(f => {
+    files.forEach((f) => {
       const id = idFromFilename(f);
       if (id && id.trim() !== "") {
         let relPath = relative(rootPath, f).replace(/\\/g, "/");
         if (relPath.endsWith(".md")) {
           relPath = relPath.slice(0, -3);
         }
-        links["[" + id + "]"] = "[[" + relPath + "]]";
+        links[`[${id}]`] = `[[${relPath}]]`;
       }
     });
 
     return links;
   }
 
-  fix(content: string, filePath: string): string {
+  fix(content: string, _filePath: string): string {
     if (!content) return content;
 
     let frontmatter = "";
@@ -60,14 +60,14 @@ export class IdToWikiLinksRule extends BaseRule {
         const keyBracketMatch = line.match(/^(\s*[\w.-]+\s*:)\s*\[([^\]]+)\]\s*$/);
         if (keyBracketMatch) {
           const keyPrefix = keyBracketMatch[1];
-          const rawItems = keyBracketMatch[2].split(",").map(s => s.trim().replace(/^['"]|['"]$/g, ""));
+          const rawItems = keyBracketMatch[2].split(",").map((s) => s.trim().replace(/^['"]|['"]$/g, ""));
 
           let hasResolvableId = false;
           const blockItems: string[] = [];
 
           for (const item of rawItems) {
             const cleanId = item.replace(/^\[|\]$/g, "");
-            const mapped = this.links["[" + cleanId + "]"];
+            const mapped = this.links[`[${cleanId}]`];
             if (mapped) {
               hasResolvableId = true;
               blockItems.push(`  - "${mapped}"`);
@@ -91,14 +91,14 @@ export class IdToWikiLinksRule extends BaseRule {
     // Process body (or whole document if no frontmatter)
     const linkRegex = /(?<!\[)\[(\d+)\](?!\])/g;
 
-    let updatedBody = body.replace(linkRegex, (match, id) => {
-      const mapped = this.links["[" + id + "]"];
+    const updatedBody = body.replace(linkRegex, (match, id) => {
+      const mapped = this.links[`[${id}]`];
       return mapped ? mapped : match;
     });
 
     if (frontmatterMatch) {
       const trailingSep = frontmatterMatch[0].slice(frontmatterMatch[0].lastIndexOf("---"));
-      return `---${eol}${updatedFrontmatter}${eol}${trailingSep}` + updatedBody;
+      return `---${eol}${updatedFrontmatter}${eol}${trailingSep}${updatedBody}`;
     }
 
     return updatedBody;

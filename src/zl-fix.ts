@@ -1,7 +1,7 @@
 import { Command } from '@commander-js/extra-typings';
 import { glob } from "glob";
-import { promises as fs } from "fs";
-import { clear } from "console";
+import { promises as fs } from "node:fs";
+import { clear } from "node:console";
 import { join, relative, dirname } from "node:path";
 import chalk from "chalk";
 import figlet from "figlet";
@@ -14,12 +14,12 @@ interface ZlFixOptions {
   path: string; // Root path for search
   ignoreDirs: string[] | undefined; // Path(s) to ignore
   rules: string[]; // Fixing rules to apply
-  propertyFilter: string[] |  undefined; // Regex patterns to filter which properties to move
+  propertyFilter: string[] | undefined; // Regex patterns to filter which properties to move
   verbose: boolean; // Additional output
   outputDir: string; // Directory to output fixed files to
   move: boolean; // Move inline properties to frontmatter instead of copying
   // Additional options, required for Command compatibility
-  [key: string]: any; // Allow additional options
+  [key: string]: unknown; // Allow additional options
 }
 
 export default function fixerCommand() : Command<[], ZlFixOptions> {
@@ -35,7 +35,7 @@ export default function fixerCommand() : Command<[], ZlFixOptions> {
     .option('-m, --move', "Move inline properties to frontmatter instead of copying", false)
     .option('-v, --verbose', "Additional output", false)
     .allowExcessArguments(true)
-    .action(async (cmdObj) => { await fixNotes(cmdObj as ZlFixOptions) })
+    .action(async (cmdObj) => { await fixNotes(cmdObj as ZlFixOptions); });
   return fixer;
 }
 
@@ -47,13 +47,13 @@ function printHeader(program: ZlFixOptions, rules: string[] = []): void {
         figlet.textSync('zettel-lint-fix', { horizontalLayout: 'full' })
       )
     );
-    console.log("Looking for notes in " + program.path);
-    console.log("Ignoring dirs: " + program.ignoreDirs);
-    console.log("Output dir: " + program.outputDir);
-    console.log("Using rules: " + program.rules);
-    console.log("Known rules: " + rules);
-    console.log("Property filter: " + JSON.stringify(program.propertyFilter ?? []));
-    console.log("Move inline properties: " + program.move);
+    console.log(`Looking for notes in ${program.path}`);
+    console.log(`Ignoring dirs: ${program.ignoreDirs}`);
+    console.log(`Output dir: ${program.outputDir}`);
+    console.log(`Using rules: ${program.rules}`);
+    console.log(`Known rules: ${rules}`);
+    console.log(`Property filter: ${JSON.stringify(program.propertyFilter ?? [])}`);
+    console.log(`Move inline properties: ${program.move}`);
   }
 }
 
@@ -88,8 +88,9 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
         const re = new RegExp(pattern);
         return re.global ? new RegExp(re.source, re.flags.replace('g','')) : re;
       });
-    } catch (e: any) {
-      console.error(`Invalid --propertyFilter pattern: ${e?.message ?? e}`);
+    } catch (e: unknown) {
+      const err = e as Error;
+      console.error(`Invalid --propertyFilter pattern: ${err?.message ?? e}`);
       process.exitCode = 2;
       return;
     }
@@ -98,7 +99,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
   const idToWikiLinksRule = new IdToWikiLinksRule();
   const importedRules: BaseRule[] = [new TrailingNewlineRule(), new InlinePropertiesToFrontmatter(program.move, propertyRegex), idToWikiLinksRule];
   const knownRules: { [key: string]: BaseRule } = {};
-  var ruleNames: string[] = [];
+  const ruleNames: string[] = [];
   importedRules.forEach((r) => { knownRules[r.name] = r; ruleNames.push(r.name); });
 
   printHeader(program, ruleNames);
@@ -108,14 +109,14 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     ignoreList = ignoreList.concat(program.ignoreDirs);
   }
 
-  let outputDir = program.outputDir;
+  const outputDir = program.outputDir;
 
   const activeRules: BaseRule[] = [];
 
   if (program.rules) {
     // remove duplicates
     (new Set(program.rules)).forEach((r) => {
-      if (!knownRules.hasOwnProperty(r)) {
+      if (!Object.prototype.hasOwnProperty.call(knownRules, r)) {
         console.error(`Unknown rule: ${r}. Ignoring.`);
       }
       else {
@@ -127,7 +128,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
 
   if (activeRules.length === 0) {
     console.error("No rules specified. Use --rules to specify rules to run.");
-    console.error("Known rules are: " + Object.keys(knownRules).join(", "));
+    console.error(`Known rules are: ${Object.keys(knownRules).join(", ")}`);
     process.exitCode = 3;
   }
 
@@ -135,7 +136,7 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
     printHeader(program);
 
     const files = await glob(join(program.path, "**", "*.md"), { ignore: ignoreList });
-    console.log(files.length + " files found");
+    console.log(`${files.length} files found`);
 
     const linkMap = IdToWikiLinksRule.buildLinkMap(files, program.path);
     idToWikiLinksRule.setLinkMap(linkMap);
@@ -171,10 +172,11 @@ async function fixNotes(program: ZlFixOptions): Promise<void> {
         } else if (program.verbose) {
           console.log(`No changes for ${filename}`);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Only rethrow if not ENOENT or YAMLParseError
         console.error(`Error processing file ${filename}:`, error);
-        if (error.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
+        const err = error as { code?: string };
+        if (err.code !== 'ENOENT' && !(error instanceof YAMLParseError)) {
           throw error;
         }
       }
