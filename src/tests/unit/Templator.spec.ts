@@ -1586,6 +1586,16 @@ title: References
       expect(countTag1).toBe(1);
     });
 
+    test('should support ?distinct() as a set alias', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#work', '#work', '#urgent'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#work'] } },
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{?Tags?distinct()//}}{{key}}:{{#value}}{{id}},{{/value}};{{/?Tags}}");
+      expect(result).toBe('#work:a,b,;#urgent:a,;');
+    });
+
 
     test('should deduplicate nested value arrays inside collector objects', () => {
       const notes = [
