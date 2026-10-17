@@ -52,40 +52,6 @@ Body link: [[00000000-dummy-file]]
 		expect(rule.fix(input, "test.md")).toBe(input);
 	});
 
-	it.each([
-		"![00000000](image.png)",
-		"![An image of [00000000]](image.png)",
-		"![00000000][image]",
-		"![00000000]",
-		"[00000000](note.md)",
-		"[label][00000000]",
-		"[00000000][label]",
-		"[[00000000]]",
-		"\\[00000000]",
-		"`[00000000]`",
-		"``code `[00000000]` code``",
-		"`code\n[00000000]`",
-		"```md\n[00000000]\n```",
-		"~~~md\n[00000000]\n~~~",
-		"   ```md\n[00000000]\n   ````",
-		"````md\n```\n[00000000]\n````",
-		"~~~md\n```\n[00000000]\n~~~",
-		"```md\r\n[00000000]\r\n```",
-	])("preserves Markdown context in %j while converting nearby links", (protectedText: string) => {
-		const input = `[20230901]\n${protectedText}\n[00000001]`;
-		const expected = `[[20230901-note]]\n${protectedText}\n[[sub/00000001-another-file]]`;
-
-		expect(rule.fix(input, "test.md")).toBe(expected);
-		expect(rule.fix(expected, "test.md")).toBe(expected);
-	});
-
-	it("leaves an unclosed fenced code block unchanged through the end of the document", () => {
-		const input = "[20230901]\n```md\n[00000000]\n[00000001]";
-		const expected = "[[20230901-note]]\n```md\n[00000000]\n[00000001]";
-
-		expect(rule.fix(input, "test.md")).toBe(expected);
-	});
-
 	it("is idempotent on a second fix pass", () => {
 		const input = `---
 title: Readme

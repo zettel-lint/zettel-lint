@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
-import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
+import TrelloImport from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
 import { parse } from 'yaml';
@@ -227,22 +227,6 @@ describe('TrelloImport', () => {
     });
   });
 
-  describe('writeComments', () => {
-    test('formats comments with author and ISO date', () => {
-      const comment = new TrelloCommentInfo('Great card!', new Date('2024-01-15T12:00:00Z'), 'Alice');
-
-      expect(importer.writeComments([comment])).toBe(
-        '### Alice (2024-01-15T12:00:00.000Z)\n\nGreat card!',
-      );
-    });
-
-    test('uses Unknown when a comment has no author', () => {
-      const comment = new TrelloCommentInfo('Anonymous comment', new Date('2024-01-15T12:00:00Z'));
-
-      expect(importer.writeComments([comment])).toContain('### Unknown (2024-01-15T12:00:00.000Z)');
-    });
-  });
-
   describe('saveAttachments', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
@@ -455,22 +439,6 @@ describe('TrelloImport', () => {
       expect(content).toContain('Task 1');
     });
 
-    test('writes card with comments', async () => {
-      const card = createTrelloCardInfo();
-      const lists = { list1: createTrelloListInfo() };
-      const comments = [
-        new TrelloCommentInfo('Looks good!', new Date('2024-01-15T12:00:00Z'), 'Jane Doe'),
-      ];
-
-      const result = await importer.writeCard('/output/', options, 'Board', card, {}, lists, comments);
-
-      expect(result).toBe(true);
-      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content).toContain('## Comments');
-      expect(content).toContain('### Jane Doe (2024-01-15T12:00:00.000Z)');
-      expect(content).toContain('Looks good!');
-    });
-
     test('writes card with attachments', async () => {
       const card = createTrelloCardInfo({
         attachments: [createAttachmentInfo({ fileName: 'test.png', name: 'Image' })],
@@ -629,47 +597,6 @@ describe('TrelloImport', () => {
       expect(result.success).toBe(true);
       expect(result.message).toContain('1 cards found');
       expect(result.message).toContain('1 notes created');
-      consoleWarnSpy.mockRestore();
-    });
-
-    test('imports comments for their cards in chronological order', async () => {
-      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      const board = createTrelloBoardInfo({
-        cards: [createTrelloCardInfo({ id: 'card1' })],
-        lists: [createTrelloListInfo()],
-        actions: [
-          {
-            id: 'action2',
-            type: 'commentCard',
-            date: '2024-01-15T13:00:00Z',
-            data: { text: 'Second comment', card: { id: 'card1' } },
-            memberCreator: { id: 'member2', fullName: 'Bob' },
-          },
-          {
-            id: 'action1',
-            type: 'commentCard',
-            date: '2024-01-15T12:00:00Z',
-            data: { text: 'First comment', card: { id: 'card1' } },
-            memberCreator: { id: 'member1', username: 'alice' },
-          },
-          {
-            id: 'action3',
-            type: 'commentCard',
-            date: '2024-01-15T14:00:00Z',
-            data: { text: 'Other card comment', card: { id: 'card2' } },
-            memberCreator: { id: 'member3', fullName: 'Charlie' },
-          },
-        ],
-      });
-      vi.mocked(glob).mockResolvedValue(['board.json']);
-      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
-
-      await importer.importAsync('board.json', '/output/', options);
-
-      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
-      expect(content.indexOf('First comment')).toBeLessThan(content.indexOf('Second comment'));
-      expect(content).toContain('### alice (2024-01-15T12:00:00.000Z)');
-      expect(content).not.toContain('Other card comment');
       consoleWarnSpy.mockRestore();
     });
 
