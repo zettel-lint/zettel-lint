@@ -77,8 +77,12 @@ export class Templator {
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag?sort(by)/filter/`}}
-                    const query_extract = /^{{`(?<tag>\w+)(?:\?(?<fn>\w+)\((?<args>[\w\s,]*)\))*\/(?<filter>[\s\S]*)\/`}}/;
-                    const [, tag, fn, args, filter] = query_extract.exec(text) || [];
+                    const query_extract = /^{{`(?<tag>\w+)(?:\?(?<fn>\w+)\((?<args>[\w\s,]*)\))?\/(?<filter>[\s\S]*)\/`}}/;
+                    const match = query_extract.exec(text);
+                    if (!match) {
+                        return render(text);
+                    }
+                    const [, tag, fn, args, filter] = match;
 
                     if(fn && fn.toLocaleUpperCase() !== "SORT") {
                         return `{{\`unknown function: ${fn}\`}}`
@@ -90,8 +94,10 @@ export class Templator {
                         const sorted = "s" + view.queryCount++;
                         Object.defineProperty(view, sorted, {
                             value: function() {
-                                let comparator = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
-                                    return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
+                                let comparator = function (a: { key: string; id?: string; }, b: { key: string; id?: string; }): 1 | -1 | 0 {
+                                    const aKey = a.key ?? a.id ?? "";
+                                    const bKey = b.key ?? b.id ?? "";
+                                    return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
                                 };
                                 if (args && args.length > 0) {
                                     // split string to find the argument

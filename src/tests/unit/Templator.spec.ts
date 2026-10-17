@@ -1547,3 +1547,39 @@ title: References
       expect(result).not.toContain("#work"); // Filtered out
     });
   });
+
+describe('query parsing and default sorting regressions', () => {
+  test.each([
+    'Dummy',
+    'Dummy?sort()',
+    'Dummy?sort()?sort()//',
+    'Dummy?unknown()?sort()//',
+  ])('renders the body normally for unmatched query %s', (query: string) => {
+    const sut = new Templator();
+    sut.viewProps.title = 'Fallback';
+
+    expect(sut.render(`{{?${query}}}{{title}}{{/?Dummy}}`)).toBe('Fallback');
+    expect(sut.viewProps.queryCount).toBe(0);
+  });
+
+  test.each(['notes', 'references'])('sorts %s by id when keys are absent', (collection: string) => {
+    const sut = new Templator([
+      {id: 'b', wikiname: 'b', filename: 'b.md', title: 'B', fullpath: '', matchData: {Links: ['[a]', '[b]']}},
+      {id: 'a', wikiname: 'a', filename: 'a.md', title: 'A', fullpath: '', matchData: {}},
+    ]);
+
+    expect(sut.render(`{{?${collection}?sort()//}}{{id}},{{/?${collection}}}`)).toBe('a,b,');
+  });
+
+  test('prefers each key, including an empty key, over its id', () => {
+    const sut = new Templator();
+    sut.viewProps.items = [
+      {key: 'b', id: 'z'},
+      {id: 'a'},
+      {key: '', id: 'y'},
+      {key: 'c', id: '0'},
+    ];
+
+    expect(sut.render('{{?items?sort()//}}{{id}},{{/?items}}')).toBe('y,a,z,0,');
+  });
+});

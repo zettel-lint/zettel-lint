@@ -701,6 +701,76 @@ describe('TrelloImport', () => {
   });
 
   describe('downloadBoardJson', () => {
+    test('requests all comment actions with a page size of 1,000', async () => {
+      const actions = Array.from({ length: 51 }, (_, i) => ({ id: `action${i}`, type: 'commentCard' }));
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => createTrelloBoardInfo({ actions }) });
+
+      const board = await TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' });
+
+      const url = new URL(String(vi.mocked(fetch).mock.calls[0][0]));
+      expect(url.searchParams.get('actions')).toBe('commentCard');
+      expect(url.searchParams.get('actions_limit')).toBe('1000');
+      expect(board.actions).toEqual(actions);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([1000, 2001])('downloads and imports all %i comments across page boundaries', async (count: number) => {
+      const actions = Array.from({ length: count }, (_, i) => ({
+        id: (count - i).toString(16).padStart(24, '0'),
+        type: 'commentCard',
+        data: { card: { id: 'card1' }, text: `Comment ${i}` },
+        date: new Date(Date.UTC(2024, 0, 1, 0, 0, count - i)).toISOString(),
+        memberCreator: { fullName: 'Alice' },
+      }));
+      vi.mocked(fetch).mockImplementation(async (input: string | URL | Request) => {
+        const url = new URL(String(input));
+        expect(url.searchParams.get('key')).toBe('test-key');
+        expect(url.searchParams.get('token')).toBe('test-token');
+        if (!url.pathname.endsWith('/actions')) {
+          return { ok: true, json: async () => createTrelloBoardInfo({
+            cards: [createTrelloCardInfo()], lists: [createTrelloListInfo()], actions: actions.slice(0, 1000),
+          }) };
+        }
+        expect(url.pathname).toBe('/1/boards/abc12345/actions');
+        expect(url.searchParams.get('filter')).toBe('commentCard');
+        expect(url.searchParams.get('limit')).toBe('1000');
+        const before = url.searchParams.get('before');
+        const previousIndex = actions.findIndex(action => action.id === before);
+        expect(previousIndex).toBeGreaterThanOrEqual(0);
+        return { ok: true, json: async () => actions.slice(previousIndex + 1, previousIndex + 1001) };
+      });
+
+      const board = await TrelloImport.downloadBoardJson({
+        boardIdOrName: 'abc12345', apiKey: 'test-key', token: 'test-token',
+      });
+
+      expect(board.actions).toEqual(actions);
+      expect(fetch).toHaveBeenCalledTimes(Math.floor(count / 1000) + 1);
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const result = await importer.importAsync('board.json', '/output/', options);
+        expect(result.success).toBe(true);
+        const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+        const importedComments = content.match(/Comment \d+/g);
+        expect(importedComments).toEqual(actions.map(action => action.data.text).reverse());
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test('rejects a failed action page instead of returning incomplete comments', async () => {
+      const actions = Array.from({ length: 1000 }, (_, i) => ({ id: `action${i}`, type: 'commentCard' }));
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({ ok: true, json: async () => createTrelloBoardInfo({ actions }) })
+        .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error' });
+
+      await expect(TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' }))
+        .rejects.toThrow('Failed to fetch Trello board comments: 500 Internal Server Error');
+    });
+
     test('downloads board by valid ID', async () => {
       const mockBoard = createTrelloBoardInfo();
       vi.mocked(fetch).mockResolvedValue({ ok: true, json: () => Promise.resolve(mockBoard) });

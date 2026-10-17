@@ -164,11 +164,20 @@ export default class TrelloImport implements BaseImporter {
         console.log(`Resolved board name '${options.boardIdOrName}' to id: ${boardIdOrName}`);
       }
     }
-    const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all` + (token ? `&token=${token}` : '');
+    const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all&actions=commentCard&actions_limit=1000` + (token ? `&token=${token}` : '');
     if (verbose) {
       console.log(`Downloading Trello board ${boardIdOrName}`);
     }
-    return TrelloImport.fetchJsonOrThrow(url, "Trello board download");
+    const board = await TrelloImport.fetchJsonOrThrow(url, "Trello board download");
+    let actions: TrelloActionInfo[] = board.actions || [];
+    // Trello returns newest actions first; use the oldest action id as an exclusive cursor.
+    while (actions.length === 1000) {
+      const before = actions[actions.length - 1].id;
+      const actionsUrl = `https://api.trello.com/1/boards/${boardIdOrName}/actions?key=${apiKey}&filter=commentCard&limit=1000&before=${before}` + (token ? `&token=${token}` : '');
+      actions = await TrelloImport.fetchJsonOrThrow(actionsUrl, "Trello board comments");
+      board.actions.push(...actions);
+    }
+    return board;
   }
   async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
