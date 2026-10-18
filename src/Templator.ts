@@ -109,12 +109,12 @@ export class Templator {
                 const view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag?sort(by)/filter/`}}
-                    const query_extract = /^{{`(?<tag>\w+)(?:\?(?<fn>\w+)\((?<args>[\w\s,]*)\))?\/(?<filter>[\s\S]*)\/`}}/;
+                    const query_extract = /^{{`(?<tag>\w+)(?:\?(?<fns>\w+)\((?<args>[\w\s,]*)\))?\/(?<filter>[\s\S]*)\/`}}/;
                     const match = query_extract.exec(text);
-                    if (!match) {
+                    if (!match || !match.groups || !match.groups.tag || !match.groups.filter) {
                         return render(text);
                     }
-                    const { tag, fns, filter } = match.groups;
+                    const { tag, fns, args, filter } = match.groups;
 
                     if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype') {
                         return `{{\`invalid tag: ${tag}\`}}`;
@@ -129,16 +129,23 @@ export class Templator {
                         };
                     });
 
-                    if(fn && fn.toLocaleUpperCase() !== "SORT") {
-                        return `{{\`unknown function: ${fn}\`}}`
+                    if(fns && fns.toLocaleUpperCase() !== "SORT") {
+                        return `{{\`unknown function: ${fns}\`}}`
                     }
                     const query_end = text.indexOf("`}}") + 3;
 
                     let ntag = tag;
-                    if (fn && fn.length > 0) {
+                    if (fns && fns.length > 0) {
                         const sorted = "s" + view.queryCount++;
                         Object.defineProperty(view, sorted, {
                             value: function() {
+                                let list = view[tag];
+                                if (!list) return [];
+                                if (Array.isArray(list)) {
+                                    list = [...list];
+                                } else {
+                                    return list;
+                                }
                                 let comparator = function (a: { key: string; id?: string; }, b: { key: string; id?: string; }): 1 | -1 | 0 {
                                     const aKey = a.key ?? a.id ?? "";
                                     const bKey = b.key ?? b.id ?? "";
@@ -154,8 +161,8 @@ export class Templator {
                                     };
                                 }
 
-                                for (const { fn, args } of fnCalls) {
-                                    if (fn === "SORT") {
+                                for (const { fn: fns, args } of fnCalls) {
+                                    if (fns === "SORT") {
                                         let comparator = function (a: any, b: any): 1 | -1 | 0 {
                                             const aKey = a && typeof a === 'object' && 'key' in a ? a.key : (a?.id ?? String(a));
                                             const bKey = b && typeof b === 'object' && 'key' in b ? b.key : (b?.id ?? String(b));
@@ -179,7 +186,7 @@ export class Templator {
                                             };
                                         }
                                         list = list.sort(comparator);
-                                    } else if (fn === "SET") {
+                                    } else if (fns === "SET") {
                                         const seen = new Set<string>();
                                         const deduplicated: any[] = [];
 

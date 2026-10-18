@@ -378,7 +378,6 @@ export default class TrelloImport implements BaseImporter {
           }
         });
       }
-      const cardComments: { [cardId: string]: TrelloCommentInfo[] } = {};
       notes.actions?.forEach(action => {
         if (action.type === "commentCard" && action.data?.card?.id) {
           const cardId = action.data.card.id;

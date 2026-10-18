@@ -1582,6 +1582,7 @@ describe('query parsing and default sorting regressions', () => {
 
     expect(sut.render('{{?items?sort()//}}{{id}},{{/?items}}')).toBe('y,a,z,0,');
   });
+});
 
   describe('Templator set operator and deduplication query functions', () => {
     test('should support % set operator syntax on collector lists', () => {
