@@ -120,6 +120,16 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+function isHttpUrl(val: string | undefined | null): boolean {
+  if (!val) return false;
+  try {
+    const url = new URL(val);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function escapeYamlSingleQuote(val: string | undefined | null): string {
   if (!val) return "";
   return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
@@ -226,6 +236,13 @@ export default class TrelloImport implements BaseImporter {
     var filenames: string[] = [];
 
     for await (var attachment of attachments) {
+      // Validate attachment URL protocol to prevent malicious URI scheme injection (e.g., javascript:) and non-HTTP fetches
+      if (!isHttpUrl(attachment.url)) {
+        if (options.verbose) {
+          console.warn(`Skipping attachment with unsafe or invalid URL: ${attachment.url}`);
+        }
+        continue;
+      }
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
         filenames.push("[" + attachment.name + "](" + attachment.url + ")");
