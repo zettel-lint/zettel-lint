@@ -224,20 +224,6 @@ export default class TrelloImport implements BaseImporter {
     }).join("\n\n");
   }
 
-  writeComments(comments: TrelloCommentInfo[]) {
-    return comments.map(c => {
-      const author = c.authorName || "Unknown";
-      let dateStr = "";
-      if (c.date instanceof Date && !isNaN(c.date.getTime())) {
-        dateStr = c.date.toISOString();
-      } else if (c.date) {
-        dateStr = String(c.date);
-      }
-      const header = dateStr ? `### ${author} (${dateStr})` : `### ${author}`;
-      return `${header}\n\n${c.text}`;
-    }).join("\n\n");
-  }
-
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
     var filenames: string[] = [];
 

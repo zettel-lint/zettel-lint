@@ -136,7 +136,7 @@ export class Templator {
 
                     let ntag = tag;
                     if (fns && fns.length > 0) {
-                        const sorted = "s" + view.queryCount++;
+                        const sorted = `s${view.queryCount++}`;
                         Object.defineProperty(view, sorted, {
                             value: function() {
                                 let list = view[tag];
@@ -153,12 +153,10 @@ export class Templator {
                                 };
                                 if (args && args.length > 0) {
                                     // split string to find the argument
-                                    const ccarg = args + ":"
-                                    const cc = function(c: {key: string}) : string { return c.key.split(ccarg)[1] || "ZZZZZ"}
-                                    comparator = function (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 {
-                                        return cc(a) < cc(b) ? -1
-                                            : cc(a) > cc(b) ? 1 : 0;
-                                    };
+                                    const ccarg = `${args}:`
+                                    const cc = (c: { key: string; }): string => c.key.split(ccarg)[1] || "ZZZZZ"
+                                    comparator = (a: { key: string; }, b: { key: string; }): 1 | -1 | 0 => cc(a) < cc(b) ? -1
+                                        : cc(a) > cc(b) ? 1 : 0;
                                 }
 
                                 for (const { fn: fns, args } of fnCalls) {

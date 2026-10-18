@@ -928,7 +928,7 @@ describe('TrelloImport', () => {
       await expect(TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' }))
         .rejects.toThrow('Failed to fetch Trello board comments: 500 Internal Server Error');
     });
-    
+
     test.each(['My Board', 'abc12345'])('encodes credentials as query values for %s', async (boardIdOrName: string) => {
       const mockBoard = createTrelloBoardInfo({ id: 'abc12345', name: 'My Board' });
       const apiKey = 'key&cards=none+ #?=%';
@@ -1207,7 +1207,7 @@ describe('TrelloImport', () => {
         lists: [list],
         checklists: [checklist],
         labels: [label],
-        actions: [action as any],
+        actions: [action],
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
