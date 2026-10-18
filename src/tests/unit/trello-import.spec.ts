@@ -318,6 +318,38 @@ describe('TrelloImport', () => {
       expect(result).toEqual(['[External Link](https://example.com/page)']);
     });
 
+    test.each([
+      ['http:', ''],
+      ['https:', ''],
+      ['http:', '..'],
+      ['https:', '..'],
+    ])('escapes Markdown syntax in %s attachment URLs with fileName "%s"', async (protocol: string, fileName: string) => {
+      const attachment = createAttachmentInfo({
+        fileName,
+        name: 'External Link',
+        url: `${protocol}//example.com/)[click](javascript:alert(1))`,
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual([
+        `[External Link](${protocol}//example.com/%29%5Bclick%5D%28javascript:alert%281%29%29)`,
+      ]);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    test.each(['', '..', 'attachment.png'])('rejects unsafe or invalid URLs with fileName "%s"', async (fileName: string) => {
+      const attachments = ['javascript:alert(1)', 'data:text/html,test', 'ftp://example.com/file', 'not a URL', '']
+        .map(url => createAttachmentInfo({ fileName, url }));
+
+      const result = await importer.saveAttachments('/output/', options, attachments);
+
+      expect(result).toEqual([]);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
     test('handles attachment with null fileName', async () => {
       const attachment = createAttachmentInfo({
         fileName: 'null',
