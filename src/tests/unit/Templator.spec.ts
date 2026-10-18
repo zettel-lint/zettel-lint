@@ -1571,6 +1571,17 @@ describe('query parsing and default sorting regressions', () => {
     expect(sut.render(`{{?${collection}?sort()//}}{{id}},{{/?${collection}}}`)).toBe('a,b,');
   });
 
+  test.each([
+    { ranks: [10, 2, 0, -1], expected: '-1,0,2,10,' },
+    { ranks: ['2', '10'], expected: '10,2,' },
+    { ranks: ['beta', 'alpha'], expected: 'alpha,beta,' },
+  ])('sorts property values $ranks in their native order', ({ ranks, expected }: { ranks: (string | number)[]; expected: string }) => {
+    const sut = new Templator();
+    sut.viewProps.items = ranks.map(rank => ({ rank }));
+
+    expect(sut.render('{{?items?sort(rank)//}}{{rank}},{{/?items}}')).toBe(expected);
+  });
+
   test('prefers each key, including an empty key, over its id', () => {
     const sut = new Templator();
     sut.viewProps.items = [

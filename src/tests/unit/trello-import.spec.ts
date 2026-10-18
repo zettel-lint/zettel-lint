@@ -688,6 +688,45 @@ describe('TrelloImport', () => {
       consoleWarnSpy.mockRestore();
     });
 
+    test('includes comments from later files before writing cards from earlier files', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo()],
+        lists: [createTrelloListInfo()],
+        actions: [{
+          id: 'action2', type: 'commentCard', date: '2024-01-15T13:00:00Z',
+          data: { text: 'Second comment', card: { id: 'card1' } },
+          memberCreator: { fullName: 'Bob' },
+        }],
+      });
+      const laterFile = createTrelloBoardInfo({
+        actions: [{
+          id: 'action1', type: 'commentCard', date: '2024-01-15T12:00:00Z',
+          data: { text: 'First comment', card: { id: 'card1' } },
+          memberCreator: { fullName: 'Alice' },
+        }],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json', 'comments.json']);
+      vi.mocked(fs.readFile)
+        .mockResolvedValueOnce(JSON.stringify(board))
+        .mockResolvedValueOnce(JSON.stringify(laterFile));
+
+      try {
+        const result = await importer.importAsync('*.json', '/output/', options);
+
+        expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+        expect(fs.writeFile).toHaveBeenCalledTimes(1);
+        const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+        expect(content).toContain("board: 'Test Board'");
+        expect(content).toContain('### Alice (2024-01-15T12:00:00.000Z)');
+        expect(content).toContain('First comment');
+        expect(content).toContain('Second comment');
+        expect(content.indexOf('First comment')).toBeLessThan(content.indexOf('Second comment'));
+      } finally {
+        consoleWarnSpy.mockRestore();
+      }
+    });
+
     test('imports cards with a missing list using empty list metadata', async () => {
       const board = createTrelloBoardInfo({
         cards: [createTrelloCardInfo({ idList: 'missing-list' })],

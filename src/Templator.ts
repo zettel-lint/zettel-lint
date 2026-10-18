@@ -151,14 +151,14 @@ export class Templator {
                     const items = Array.isArray(view[tag]) ? [...view[tag]] : [];
                     for (const { fn, args } of fnCalls) {
                         if (fn === "SORT") {
-                            const getSortKey = (item: any): string => {
+                            const getSortKey = (item: any): string | number => {
                                 if (args && !['__proto__', 'constructor', 'prototype'].includes(args)) {
                                     if (item && typeof item === 'object') {
                                         if (typeof item.key === 'string' && item.key.includes(`${args}:`)) {
                                             return item.key.split(`${args}:`)[1] || "ZZZZZ";
                                         }
                                         if (Object.prototype.hasOwnProperty.call(item, args)) {
-                                            return String(item[args]);
+                                            return typeof item[args] === 'number' ? item[args] : String(item[args]);
                                         }
                                     }
                                     return "ZZZZZ";
@@ -169,8 +169,13 @@ export class Templator {
                                 return String(item);
                             };
                             items.sort((a, b) => {
-                                const aKey = getSortKey(a);
-                                const bKey = getSortKey(b);
+                                const aValue = getSortKey(a);
+                                const bValue = getSortKey(b);
+                                if (typeof aValue === 'number' && typeof bValue === 'number') {
+                                    return aValue - bValue;
+                                }
+                                const aKey = String(aValue);
+                                const bKey = String(bValue);
                                 return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
                             });
                         } else if (fn === "SET") {

@@ -347,6 +347,7 @@ export default class TrelloImport implements BaseImporter {
       outputFolder += "/";
     }
     const files = await glob(globpattern);
+    const boards: TrelloBoardInfo[] = [];
     var totalCards = 0;
     var totalNotes = 0;
     var checklists : { [id: string]: TrelloChecklistInfo; } = {};
@@ -360,6 +361,7 @@ export default class TrelloImport implements BaseImporter {
     }
     for await (const file of files) {
       const notes = await this.extractNotes(file);
+      boards.push(notes);
       totalCards += notes.cards.length;
       notes.checklists.forEach(checklist => {
         checklists[checklist.id] = checklist;
@@ -384,9 +386,11 @@ export default class TrelloImport implements BaseImporter {
           }
         });
       }
-      for (const cardId in cardComments) {
-        cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
-      }
+    }
+    for (const cardId in cardComments) {
+      cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
+    }
+    for (const notes of boards) {
       for await(const note of notes.cards) {
         if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [])) {
           totalNotes++;
