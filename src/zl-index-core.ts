@@ -14,22 +14,35 @@ const collectors: Collector[] = [new WikiCollector(), new ContextCollector(), ne
 
 export type FileErrorHandler = (filepath: FilePath, error: unknown) => boolean;
 
+// Performance optimization: Module-scoped non-global regex stops scanning at first title match,
+// avoiding per-file RegExp allocations and unnecessary full-document scans.
+const TITLE_REGEX = /^(?:title:|#) (.*)$/m;
+
 export async function collectFromFile(filename: FilePath, program: ZlIndexOptions, adapter: FileAdapter): Promise<fileWikiLinks> {
-  const titleReg = /^(?:title:|#) (.*)$/gm;
   const contents = await adapter.readFile(filename);
   const matchData: { [collector: string]: string[] } = {};
-  collectors.forEach((collector) => {
+  // Performance optimization: Use indexed loop to eliminate callback allocation per file
+  for (let i = 0; i < collectors.length; i++) {
+    const collector = collectors[i];
     matchData[collector.dataName] = collector.collector(filename, contents, program);
-  });
+  }
 
-  const name = filename.split("/").pop();
-  const capturedTitle = collectMatches(contents, titleReg)?.[0];
+  // Performance optimization: Use lastIndexOf/slice instead of .split() array allocations
+  const lastSlash = Math.max(filename.lastIndexOf("/"), filename.lastIndexOf("\\"));
+  const name = lastSlash !== -1 ? filename.slice(lastSlash + 1) : filename;
+
+  const match = TITLE_REGEX.exec(contents);
+  const capturedTitle = match ? match[1].trim() : undefined;
+
+  const lastDot = name.lastIndexOf(".");
+  const fallbackTitle = lastDot !== -1 ? name.slice(0, lastDot) : name;
+
   return {
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
-    wikiname: name?.slice(0, -3),
-    title: capturedTitle?.length > 0 ? capturedTitle : name?.split(".")[0],
+    wikiname: name ? name.slice(0, -3) : name,
+    title: capturedTitle && capturedTitle.length > 0 ? capturedTitle : fallbackTitle,
     matchData,
   };
 }
