@@ -183,7 +183,20 @@ export default class TrelloImport implements BaseImporter {
         console.log(`Resolved board name '${options.boardIdOrName}' to id: ${boardIdOrName}`);
       }
     }
-    const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all&actions=commentCard&actions_limit=1000` + (token ? `&token=${token}` : '');
+    const boardUrl = new URL(`https://api.trello.com/1/boards/${encodeURIComponent(boardIdOrName)}`);
+    boardUrl.searchParams.set("key", apiKey);
+    boardUrl.searchParams.set("cards", "all");
+    boardUrl.searchParams.set("lists", "all");
+    boardUrl.searchParams.set("checklists", "all");
+    boardUrl.searchParams.set("labels", "all");
+    boardUrl.searchParams.set("members", "all");
+    boardUrl.searchParams.set("fields", "all");
+    boardUrl.searchParams.set("actions", "commentCard");
+    boardUrl.searchParams.set("actions_limit", "1000");
+    if (token) {
+      boardUrl.searchParams.set("token", token);
+    }
+    const url = boardUrl.toString();
     if (verbose) {
       console.log(`Downloading Trello board ${boardIdOrName}`);
     }
@@ -192,8 +205,15 @@ export default class TrelloImport implements BaseImporter {
     // Trello returns newest actions first; use the oldest action id as an exclusive cursor.
     while (actions.length === 1000) {
       const before = actions[actions.length - 1].id;
-      const actionsUrl = `https://api.trello.com/1/boards/${boardIdOrName}/actions?key=${apiKey}&filter=commentCard&limit=1000&before=${before}` + (token ? `&token=${token}` : '');
-      actions = await TrelloImport.fetchJsonOrThrow(actionsUrl, "Trello board comments");
+      const actionsUrl = new URL(`https://api.trello.com/1/boards/${encodeURIComponent(boardIdOrName)}/actions`);
+      actionsUrl.searchParams.set("key", apiKey);
+      actionsUrl.searchParams.set("filter", "commentCard");
+      actionsUrl.searchParams.set("limit", "1000");
+      actionsUrl.searchParams.set("before", before);
+      if (token) {
+        actionsUrl.searchParams.set("token", token);
+      }
+      actions = await TrelloImport.fetchJsonOrThrow(actionsUrl.toString(), "Trello board comments");
       board.actions.push(...actions);
     }
     return board;
@@ -364,18 +384,6 @@ export default class TrelloImport implements BaseImporter {
           }
         });
       }
-      notes.actions?.forEach(action => {
-        if (action.type === "commentCard" && action.data?.card?.id) {
-          const cardId = action.data.card.id;
-          const text = action.data.text || "";
-          const date = action.date ? new Date(action.date) : new Date();
-          const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
-          if (!cardComments[cardId]) {
-            cardComments[cardId] = [];
-          }
-          cardComments[cardId].push(new TrelloCommentInfo(text, date, authorName));
-        }
-      });
       for (const cardId in cardComments) {
         cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
       }

@@ -950,6 +950,7 @@ describe('TrelloImport', () => {
           token,
           ...(url.pathname === '/1/boards/abc12345' ? {
             cards: 'all', lists: 'all', checklists: 'all', labels: 'all', members: 'all', fields: 'all',
+            actions: 'commentCard', actions_limit: '1000',
           } : {}),
         });
       }
@@ -1225,5 +1226,4 @@ describe('TrelloImport', () => {
       consoleErrorSpy.mockRestore();
     });
   });
-});
 });
