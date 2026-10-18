@@ -1,5 +1,6 @@
 import { expect, test, describe } from "vitest";
-import importerCommand from "../../cli/zl-import";
+import importerCommand from "../../cli/zl-import.js";
+import TrelloImport, { TrelloOptions } from "../../trello-import.js";
 
 describe('zl-import Trello options', () => {
   test('parses --trello-api-key', () => {
@@ -42,5 +43,64 @@ describe('zl-import Trello options', () => {
     expect(opts.trelloApiKey).toBe("abc123");
     expect(opts.trelloBoard).toBe("bid123");
     expect(opts.trelloToken).toBe("tok123");
+  });
+});
+
+describe('TrelloImport.saveAttachments security', () => {
+  const options: TrelloOptions = {
+    boardIdOrName: "bid123",
+    apiKey: "key",
+    verbose: false,
+  };
+
+  test('filters out unsafe attachment URL protocols like javascript:', async () => {
+    const importer = new TrelloImport();
+    const attachments = [
+      {
+        id: "att1",
+        name: "Safe Link",
+        url: "https://example.com/file.png",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/html",
+        previews: [],
+        pos: 0
+      },
+      {
+        id: "att2",
+        name: "Malicious JS Link",
+        url: "javascript:alert(1)",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/html",
+        previews: [],
+        pos: 1
+      },
+      {
+        id: "att3",
+        name: "Local File Link",
+        url: "file:///etc/passwd",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/plain",
+        previews: [],
+        pos: 2
+      }
+    ];
+
+    const result = await importer.saveAttachments("/tmp/out", options, attachments);
+    expect(result).toEqual(["[Safe Link](https://example.com/file.png)"]);
   });
 });

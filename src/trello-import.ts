@@ -120,6 +120,18 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
+  if (!val) return undefined;
+  try {
+    const url = new URL(val);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    // URL serialization leaves Markdown delimiters unescaped.
+    return url.href.replace(/[\\()[\]]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  } catch {
+    return undefined;
+  }
+}
+
 function escapeYamlSingleQuote(val: string | undefined | null): string {
   if (!val) return "";
   return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
@@ -226,15 +238,23 @@ export default class TrelloImport implements BaseImporter {
     var filenames: string[] = [];
 
     for await (var attachment of attachments) {
+      // Validate attachment URL protocol to prevent malicious URI scheme injection (e.g., javascript:) and non-HTTP fetches
+      const markdownUrl = toMarkdownHttpUrl(attachment.url);
+      if (!markdownUrl) {
+        if (options.verbose) {
+          console.warn(`Skipping attachment with unsafe or invalid URL: ${attachment.url}`);
+        }
+        continue;
+      }
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
-        filenames.push("[" + attachment.name + "](" + attachment.url + ")");
+        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
       }
       // Sanitise fileName to prevent path traversal
       const safeFileName = path.basename(attachment.fileName);
       if (safeFileName === "." || safeFileName === "..") {
-        filenames.push("[" + attachment.name + "](" + attachment.url + ")");
+        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
       }
       const outputFilename = path.join(outputFolder, safeFileName);
