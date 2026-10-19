@@ -75,8 +75,17 @@ describe("invertDictionary security", () => {
 		expect(result.valueOf).toEqual(["[Note 1][note1]"]);
 		expect(result["#validTag"]).toEqual(["[Note 1][note1]"]);
 
-		expect(Object.hasOwn(result, "__proto__")).toBe(false);
-		expect(Object.hasOwn(result, "constructor")).toBe(false);
-		expect(Object.hasOwn(result, "prototype")).toBe(false);
+		// biome-ignore lint/suspicious/noPrototypeBuiltins: checking own property existence on dictionary
+		expect(Object.prototype.hasOwnProperty.call(result, "__proto__")).toBe(
+			false,
+		);
+		// biome-ignore lint/suspicious/noPrototypeBuiltins: checking own property existence on dictionary
+		expect(Object.prototype.hasOwnProperty.call(result, "constructor")).toBe(
+			false,
+		);
+		// biome-ignore lint/suspicious/noPrototypeBuiltins: checking own property existence on dictionary
+		expect(Object.prototype.hasOwnProperty.call(result, "prototype")).toBe(
+			false,
+		);
 	});
 });

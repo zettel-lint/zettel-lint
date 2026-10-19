@@ -88,7 +88,8 @@ export function invertDictionary(references: formatData[]) {
 				) {
 					continue;
 				}
-				if (!Object.hasOwn(tagList, tag)) {
+				// biome-ignore lint/suspicious/noPrototypeBuiltins: tagList is Object.prototype based map
+				if (!Object.prototype.hasOwnProperty.call(tagList, tag)) {
 					tagList[tag] = [];
 				}
 				tagList[tag].push(link);
