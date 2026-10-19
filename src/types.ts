@@ -52,11 +52,12 @@ export function collectBacklinks(references: formatData[]) {
       const targetId = ref.id ?? ref.filename ?? "";
       for (let j = 0; j < tags.length; j++) {
         let tag = tags[j];
-        // Performance optimization: Fast string slicing over multiple replace calls
+        // Performance optimization: Fast boundary string slicing over regex replace
         if (tag.startsWith("[") && tag.endsWith("]")) {
           tag = tag.slice(1, -1);
         } else {
-          tag = tag.replace("[", "").replace("]", "");
+          if (tag.startsWith("[")) tag = tag.slice(1);
+          if (tag.endsWith("]")) tag = tag.slice(0, -1);
         }
         let list = tagList.get(tag);
         if (!list) {
