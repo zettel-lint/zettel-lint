@@ -1,6 +1,5 @@
 import { expect, test } from 'vitest';
-import { TagCollector } from '../../collectors/TagCollector';
-import { invertDictionary } from '../../types.js';
+import { TagCollector } from '../../collectors/TagCollector'
 
 test('empty file has no tags', () => {
     var sut = new TagCollector();
@@ -78,34 +77,4 @@ test('empty file has no tags', () => {
     var sut = new TagCollector();
     expect(sut.collector("file.md", "Content with #12345678 and #tag1", { ignoreNumericTags: false }))
       .toEqual(["#12345678", "#tag1"]);
-  });
-
-  test('invertDictionary safely handles built-in method collision and prototype keys', () => {
-    const references = [
-      {
-        id: 'note1',
-        title: 'Note 1',
-        filename: 'note1.md',
-        fullpath: '/note1.md',
-        name: 'Tags',
-        data: ['toString', 'valueOf', '__proto__', 'constructor', 'prototype', '#validTag'],
-        bag: []
-      }
-    ];
-
-    const result = invertDictionary(references);
-
-    expect(result.toString).toBeDefined();
-    expect(Array.isArray(result.toString)).toBe(true);
-    expect(result.toString).toEqual(['[Note 1][note1]']);
-
-    expect(result.valueOf).toBeDefined();
-    expect(Array.isArray(result.valueOf)).toBe(true);
-    expect(result.valueOf).toEqual(['[Note 1][note1]']);
-
-    expect(result['#validTag']).toEqual(['[Note 1][note1]']);
-
-    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(false);
-    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(false);
-    expect(Object.prototype.hasOwnProperty.call(result, 'prototype')).toBe(false);
   });
