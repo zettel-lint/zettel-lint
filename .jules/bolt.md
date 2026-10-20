@@ -31,3 +31,9 @@
 **Learning:** In backlink processing loops over large note collections, calling `.replace("[", "").replace("]", "")` creates unnecessary intermediate string instances and regex matching overhead per tag. Furthermore, nested `.forEach` array closures allocate iterator callbacks in hot paths. Replacing string `.replace()` with `startsWith`/`endsWith` slicing and `.forEach` with indexed `for` loops speeds up backlink collection by ~2x and reduces GC pressure.
 
 **Action:** Use direct string `substring` slicing instead of `.replace()` for trimming known boundary characters, and use indexed `for` loops in hot data processing pipelines.
+
+## 2026-04-01 - Single-Pass Extraction and Array Allocation Elimination in `WikiCollector`
+
+**Learning:** In `WikiCollector.extractAll`, using functional `.filter().map()` chains created intermediate arrays, and `[...result.values()].flat()` allocated an unnecessary flattened array before backlink collection. Replacing these array method chains with indexed `for` loops and single-pass collection eliminates intermediate array allocations and reduces garbage collection pressure during vault indexing.
+
+**Action:** Replace multi-step array method chains (`.filter().map().flat()`) with single-pass indexed `for` loops when collecting objects across large file lists.
