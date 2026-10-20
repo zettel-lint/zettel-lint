@@ -360,17 +360,17 @@ export default class TrelloImport implements BaseImporter {
       const notes = await this.extractNotes(file);
       totalCards += notes.cards.length;
       notes.checklists.forEach(checklist => {
-        if (checklist.id && checklist.id !== "__proto__" && checklist.id !== "constructor" && checklist.id !== "prototype") {
+        if (checklist.id) {
           checklists[checklist.id] = checklist;
         }
       });
       notes.lists.forEach(list => {
-        if (list.id && list.id !== "__proto__" && list.id !== "constructor" && list.id !== "prototype") {
+        if (list.id) {
           lists[list.id] = list;
         }
       });
       notes.labels.forEach(label => {
-        if (label.id && label.id !== "__proto__" && label.id !== "constructor" && label.id !== "prototype") {
+        if (label.id) {
           labels[label.id] = label;
         }
       });
@@ -378,7 +378,6 @@ export default class TrelloImport implements BaseImporter {
       notes.actions?.forEach(action => {
         if (action.type === "commentCard" && action.data?.card?.id) {
           const cardId = action.data.card.id;
-          if (cardId === "__proto__" || cardId === "constructor" || cardId === "prototype") return;
           const text = action.data.text || "";
           const date = action.date ? new Date(action.date) : new Date();
           const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
