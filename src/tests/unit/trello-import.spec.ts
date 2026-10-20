@@ -873,6 +873,46 @@ describe('TrelloImport', () => {
       expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('2 files found'));
       consoleWarnSpy.mockRestore();
     });
+
+    test('ignores special keys (__proto__, constructor, prototype) and prevents property collisions (e.g. toString) during import', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const board = createTrelloBoardInfo({
+        cards: [
+          createTrelloCardInfo({ id: 'card1', idList: 'toString' }),
+          createTrelloCardInfo({ id: 'card2', idList: '__proto__' }),
+        ],
+        lists: [
+          createTrelloListInfo({ id: 'toString', name: 'Built-in Name' }),
+          createTrelloListInfo({ id: '__proto__', name: 'Poluted Proto' }),
+          createTrelloListInfo({ id: 'constructor', name: 'Constructor List' }),
+        ],
+        checklists: [
+          createTrelloChecklistInfo({ id: '__proto__', name: 'Proto Checklist' }),
+        ],
+        labels: [
+          createTrelloLabelInfo({ id: 'prototype', name: 'Proto Label' }),
+        ],
+        actions: [
+          {
+            id: 'act1',
+            type: 'commentCard',
+            date: '2024-01-15T12:00:00Z',
+            data: { text: 'Test comment', card: { id: '__proto__' } },
+            memberCreator: { id: 'm1', fullName: 'Attacker' },
+          },
+        ],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result.success).toBe(true);
+      // Verify Object.prototype was not polluted
+      expect((Object.prototype as any).name).toBeUndefined();
+      expect((Object.prototype as any).checkItems).toBeUndefined();
+      consoleWarnSpy.mockRestore();
+    });
   });
 
   describe('downloadBoardJson', () => {
