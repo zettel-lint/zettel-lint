@@ -6,14 +6,18 @@ export class WikiCollector extends RegexCollector {
     const result = new Map<string, formatData[]>();
     if (!files) return result;
 
-    // Performance optimization: Single indexed pass over files eliminates intermediate array
-    // allocations from .filter(), .map(), and [...result.values()].flat()
-    const extractedList: formatData[] = [];
+    // Performance optimization: Indexed extraction avoids intermediate .filter() and .map() arrays.
     for (let i = 0; i < files.length; i++) {
       const ref = files[i];
       if (ref.id !== undefined) {
         const data = this.extractData(ref);
         result.set(ref.id, [data]);
+      }
+    }
+
+    const extractedList: formatData[] = [];
+    for (const dataList of result.values()) {
+      for (const data of dataList) {
         extractedList.push(data);
       }
     }
