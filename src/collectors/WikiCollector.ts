@@ -3,19 +3,45 @@ import { RegexCollector } from "./RegexCollector.js";
 
 export class WikiCollector extends RegexCollector {
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
-    var result = new Map<string, formatData[]>();
-    
-    files
-      ?.filter(ref => ref.id != undefined)
-      .map(ref => result.set(ref.id ?? "", [{...this.extractData(ref)}]));
-    const bag = collectBacklinks([...result.values()].flat());
-    bag.forEach((v, k) => v.forEach(n => result.get(k)?.forEach(data => data.bag.push(n))));
+    const result = new Map<string, formatData[]>();
+    if (!files) return result;
+
+    // Performance optimization: Indexed extraction avoids intermediate .filter() and .map() arrays.
+    for (let i = 0; i < files.length; i++) {
+      const ref = files[i];
+      if (ref.id !== undefined) {
+        const data = this.extractData(ref);
+        result.set(ref.id, [data]);
+      }
+    }
+
+    const extractedList: formatData[] = [];
+    for (const dataList of result.values()) {
+      for (const data of dataList) {
+        extractedList.push(data);
+      }
+    }
+
+    const bag = collectBacklinks(extractedList);
+    // Performance optimization: Single-pass Map lookup per key and direct loops replace 3-level
+    // nested .forEach closures and repeated Map.get lookups per backlink
+    for (const [k, v] of bag.entries()) {
+      const targetDataList = result.get(k);
+      if (targetDataList) {
+        for (let i = 0; i < targetDataList.length; i++) {
+          const data = targetDataList[i];
+          for (let j = 0; j < v.length; j++) {
+            data.bag.push(v[j]);
+          }
+        }
+      }
+    }
     return result;
   }
   public extractData(ref: fileWikiLinks): formatData {
     var data = super.extractData(ref);
     return {...data, bag: collectBacklinks([data]).get(ref.filename ?? "") ?? []}
-  }  
+  }
   protected format(references: formatData[]): string {
     var backList: { [target: string]: string[]; } = invertDictionary(references);
 

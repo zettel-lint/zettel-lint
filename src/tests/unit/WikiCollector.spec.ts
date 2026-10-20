@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { WikiCollector } from '../../collectors/WikiCollector'
+import { fileWikiLinks } from '../../types'
 
 test('empty file has no links', () => {
     var sut = new WikiCollector();
@@ -33,4 +34,24 @@ test('empty file has no links', () => {
   test('rejects non-ASCII wiki links', () => {
     var sut = new WikiCollector();
     expect(sut.collect('[[Wïkï-Link]]')).toHaveLength(0);
+  });
+
+  test('collects backlinks only from the last note for each ID in map order', () => {
+    const sut = new WikiCollector();
+    const files = [
+      { ...new fileWikiLinks(), id: 'source', filename: 'old.md', matchData: { Links: ['[old-target]', '[shared]'] } },
+      { ...new fileWikiLinks(), id: 'other', matchData: { Links: ['[shared]'] } },
+      { ...new fileWikiLinks(), id: 'source', filename: 'new.md', matchData: { Links: ['[new-target]', '[shared]'] } },
+      { ...new fileWikiLinks(), id: 'old-target', matchData: { Links: [] } },
+      { ...new fileWikiLinks(), id: 'new-target', matchData: { Links: [] } },
+      { ...new fileWikiLinks(), id: 'shared', matchData: { Links: [] } },
+    ];
+
+    const result = sut.extractAll(files);
+
+    expect(result.get('source')).toHaveLength(1);
+    expect(result.get('source')?.[0].filename).toBe('new.md');
+    expect(result.get('old-target')?.[0].bag).toEqual([]);
+    expect(result.get('new-target')?.[0].bag).toEqual(['source']);
+    expect(result.get('shared')?.[0].bag).toEqual(['source', 'other']);
   });
