@@ -52,11 +52,12 @@ export function collectBacklinks(references: formatData[]) {
       const targetId = ref.id ?? ref.filename ?? "";
       for (let j = 0; j < tags.length; j++) {
         let tag = tags[j];
-        // Performance optimization: Fast string slicing over multiple replace calls
-        if (tag.startsWith("[") && tag.endsWith("]")) {
-          tag = tag.slice(1, -1);
-        } else {
-          tag = tag.replace("[", "").replace("]", "");
+        // Performance optimization: Boundary index checking avoids string allocations on
+        // unbracketed tags and replaces .replace() calls with direct slicing
+        const start = tag.startsWith("[") ? 1 : 0;
+        const end = tag.endsWith("]") ? tag.length - 1 : tag.length;
+        if (start > 0 || end < tag.length) {
+          tag = start < end ? tag.slice(start, end) : "";
         }
         let list = tagList.get(tag);
         if (!list) {
@@ -81,10 +82,12 @@ export function invertDictionary(references: formatData[]) {
       const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
-        if (!tagList[tag]) {
-          tagList[tag] = [];
+        let list = tagList[tag];
+        if (!list) {
+          list = [];
+          tagList[tag] = list;
         }
-        tagList[tag].push(link);
+        list.push(link);
       }
     }
   }
