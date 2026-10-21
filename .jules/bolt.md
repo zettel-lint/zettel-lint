@@ -31,3 +31,9 @@
 **Learning:** In backlink processing loops over large note collections, calling `.replace("[", "").replace("]", "")` creates unnecessary intermediate string instances and regex matching overhead per tag. Furthermore, nested `.forEach` array closures allocate iterator callbacks in hot paths. Replacing string `.replace()` with `startsWith`/`endsWith` slicing and `.forEach` with indexed `for` loops speeds up backlink collection by ~2x and reduces GC pressure.
 
 **Action:** Use direct string `substring` slicing instead of `.replace()` for trimming known boundary characters, and use indexed `for` loops in hot data processing pipelines.
+
+## 2026-04-01 - Batch Extraction Optimization in `WikiCollector.extractAll`
+
+**Learning:** In `WikiCollector.extractAll`, calling `this.extractData(ref)` during batch processing executed `collectBacklinks([data])` for every individual file before running `collectBacklinks(allNotes)` on the aggregated dataset. Reusing `super.extractData(ref)` during batch file collection eliminates $N$ redundant single-file backlink collector passes.
+
+**Action:** When aggregating data across multiple notes in batch collectors, use base property extractions (`super.extractData`) to avoid invoking single-item collection routines prior to batch processing.
