@@ -799,16 +799,16 @@ describe('TrelloImport', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    test('skips cards in closed lists', async () => {
+    test.each(['list2', '__proto__', 'constructor', 'prototype'])('skips cards in closed list %s', async (closedListId: string) => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const board = createTrelloBoardInfo({
         cards: [
           createTrelloCardInfo({ id: 'card1', idList: 'list1' }),
-          createTrelloCardInfo({ id: 'card2', idList: 'list2' }),
+          createTrelloCardInfo({ id: 'card2', idList: closedListId }),
         ],
         lists: [
           createTrelloListInfo({ id: 'list1', closed: false }),
-          createTrelloListInfo({ id: 'list2', closed: true }),
+          createTrelloListInfo({ id: closedListId, closed: true }),
         ],
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
@@ -871,6 +871,48 @@ describe('TrelloImport', () => {
       await importer.importAsync('*.json', '/output/', options);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('2 files found'));
+      consoleWarnSpy.mockRestore();
+    });
+
+    test.each(['__proto__', 'constructor', 'prototype', 'toString'])('preserves ID %s without prototype pollution or property collisions', async (id: string) => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const originalPrototype = Object.getOwnPropertyDescriptors(Object.prototype);
+      const label = createTrelloLabelInfo({ id });
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ id, idList: id, idChecklists: [id], labels: [label] })],
+        lists: [createTrelloListInfo({ id, name: 'Published List' })],
+        checklists: [createTrelloChecklistInfo({
+          id,
+          name: 'Tasks',
+          checkItems: [createTrelloCheckItemInfo({ name: 'Task 1' })],
+        })],
+        labels: [label],
+        actions: [
+          {
+            id: 'act1',
+            type: 'commentCard',
+            date: '2024-01-15T12:00:00Z',
+            data: { text: 'Test comment', card: { id } },
+            memberCreator: { id: 'm1', fullName: 'Alice' },
+          },
+        ],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("list: 'Published List'");
+      expect(content).toContain('published: true');
+      expect(content).toContain('### Tasks');
+      expect(content).toContain('* [ ] Task 1');
+      expect(content).toContain("tags: ['Test_Label']");
+      expect(content).toContain('### Alice (2024-01-15T12:00:00.000Z)');
+      expect(content).toContain('Test comment');
+      expect(Object.getOwnPropertyDescriptors(Object.prototype)).toEqual(originalPrototype);
       consoleWarnSpy.mockRestore();
     });
   });
