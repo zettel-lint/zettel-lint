@@ -37,3 +37,9 @@
 **Learning:** In `WikiCollector.extractAll`, calling `this.extractData(ref)` during batch processing executed `collectBacklinks([data])` for every individual file before running `collectBacklinks(allNotes)` on the aggregated dataset. Reusing `super.extractData(ref)` during batch file collection eliminates $N$ redundant single-file backlink collector passes.
 
 **Action:** When aggregating data across multiple notes in batch collectors, use base property extractions (`super.extractData`) to avoid invoking single-item collection routines prior to batch processing.
+
+## 2026-04-02 - Direct Set Accumulation and Property Fast-Paths in PropertyCollector
+
+**Learning:** `PropertyCollector.collectPairs` repeatedly re-allocated `Set` instances and spread arrays `[...new Set([...existing, ...values])]` on every inline property match, causing $O(N^2)$ memory churn during file scanning. Accumulating values directly into a single `Set` per property key during regex iteration and converting to Array once at the end eliminates unnecessary allocations. In addition, when merging YAML and inline properties in `collectProperties`, fast-pathing single-source properties avoids redundant `Set` conversions.
+
+**Action:** In regex collection loops, accumulate values directly in persistent `Set` instances per key rather than re-creating and spreading Sets on every match, and fast-path single-source data structures.
