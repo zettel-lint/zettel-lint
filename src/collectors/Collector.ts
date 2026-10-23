@@ -35,15 +35,23 @@ export abstract class Collector {
     if (!content.startsWith(this.yamlSep)){
       return result;
     }
-    const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
+    // Performance optimization: Avoid scanning full document when delimiter is unclosed,
+    // and replace Object.entries array/callback allocations with for...in object iteration.
+    const endIdx = content.indexOf(this.yamlSep, this.yamlSep.length);
+    if (endIdx === -1) {
+      return result;
+    }
+    const header = content.substring(this.yamlSep.length, endIdx);
     const yamlData = parse(header);
 
     if (!yamlData || typeof yamlData !== 'object') {
       return result;
     }
 
-    Object.entries(yamlData).forEach(([key, value]) => {
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') return;
+    for (const key in yamlData) {
+      if (!Object.prototype.hasOwnProperty.call(yamlData, key)) continue;
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+      const value = yamlData[key];
       if (key === 'tags') {
         result[key] = Array.isArray(value)
           ? value.map(v => String(v))
@@ -52,7 +60,7 @@ export abstract class Collector {
         const arr = Array.isArray(value) ? value : [value];
         result[key] = arr.map(v => String(v));
       }
-    });
+    }
 
     return result;
   }

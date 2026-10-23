@@ -43,3 +43,9 @@
 **Learning:** `PropertyCollector.collectPairs` repeatedly re-allocated `Set` instances and spread arrays `[...new Set([...existing, ...values])]` on every inline property match, causing $O(N^2)$ memory churn during file scanning. Accumulating values directly into a single `Set` per property key during regex iteration and converting to Array once at the end eliminates unnecessary allocations. In addition, when merging YAML and inline properties in `collectProperties`, fast-pathing single-source properties avoids redundant `Set` conversions.
 
 **Action:** In regex collection loops, accumulate values directly in persistent `Set` instances per key rather than re-creating and spreading Sets on every match, and fast-path single-source data structures.
+
+## 2026-04-03 - Single-Pass Tag Processing and Early Unclosed YAML Guard
+
+**Learning:** `TagCollector.collect` executed 4 intermediate array operations (`.map`, `.concat`, `.filter`, `.filter`) and evaluated regex `/^#\d/` on every tag, causing high array allocation churn and regex overhead during note scanning. Single-pass indexed loop processing with direct ASCII digit check (`tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57`) eliminates array allocations and regex matching. Furthermore, in `Collector.collectYaml`, missing closing `---\n` frontmatter delimiters caused `indexOf` to scan full document strings and return `-1`, passing invalid substrings to YAML parsing; returning early on `-1` and replacing `Object.entries` with `for...in` iteration prevents unnecessary document parsing and callback allocations.
+
+**Action:** Consolidate array pipeline transformations into single-pass loops with direct charCode comparisons, and always guard against unclosed boundary delimiters before performing string slicing or parsing.

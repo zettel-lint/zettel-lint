@@ -24,17 +24,37 @@ export class TagCollector extends RegexCollector {
    * @throws Errors from parsing YAML frontmatter are propagated to the caller.
    */
   collect(content: string) : string[] {
-    let result = super.collect(content);
-    let tags = this.collectYaml(content)?.tags;
-    if (typeof(tags) === 'string') {
-      tags = (tags as string).split(' ');
-    }
-    result = result
-      .concat(tags?.map((tg :string) => tg.startsWith("#") ? tg : "#" + tg) || [])
-      .filter(tg => tg.length > 0 && tg != "#");
+    const rawMatches = super.collect(content);
+    const yamlTags = this.collectYaml(content)?.tags;
+    const ignoreNumeric = Boolean(
+      this.programArgs?.ignoreNumericTags || this.programArgs?.["ignore-numeric-tags"]
+    );
 
-    if (this.programArgs?.ignoreNumericTags || this.programArgs?.["ignore-numeric-tags"]) {
-      result = result.filter(tg => !/^#\d/.test(tg));
+    // Performance optimization: Single-pass tag processing with indexed loops eliminates 4 intermediate
+    // array allocations (.map, .concat, .filter, .filter) and replaces regex /^#\d/ with ASCII digit check.
+    const result: string[] = [];
+
+    for (let i = 0; i < rawMatches.length; i++) {
+      const tg = rawMatches[i];
+      if (tg.length > 0 && tg !== "#") {
+        if (!ignoreNumeric || !(tg.length > 1 && tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57)) {
+          result.push(tg);
+        }
+      }
+    }
+
+    if (yamlTags) {
+      const tagsArray = typeof yamlTags === "string" ? (yamlTags as string).split(" ") : yamlTags;
+      for (let i = 0; i < tagsArray.length; i++) {
+        const raw = tagsArray[i];
+        if (!raw) continue;
+        const tg = raw.startsWith("#") ? raw : "#" + raw;
+        if (tg.length > 0 && tg !== "#") {
+          if (!ignoreNumeric || !(tg.length > 1 && tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57)) {
+            result.push(tg);
+          }
+        }
+      }
     }
 
     return result;
