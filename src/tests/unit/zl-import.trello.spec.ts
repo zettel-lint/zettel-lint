@@ -44,6 +44,13 @@ describe('zl-import Trello options', () => {
     expect(opts.trelloBoard).toBe("bid123");
     expect(opts.trelloToken).toBe("tok123");
   });
+
+  test('normalizes output-folder path without trailing slash issues', () => {
+    const opts = importerCommand().parse([
+      "node", "zl", "--source", "trello", "--output-folder", "../import/", "--trello-api-key", "abc123", "--trello-board", "bid123"
+    ]).opts();
+    expect(opts.outputFolder).toBe("../import/");
+  });
 });
 
 describe('TrelloImport.saveAttachments security', () => {
