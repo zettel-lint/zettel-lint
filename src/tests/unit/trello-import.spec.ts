@@ -230,16 +230,31 @@ describe('TrelloImport', () => {
   describe('writeComments', () => {
     test('formats comments with author and ISO date', () => {
       const comment = new TrelloCommentInfo('Great card!', new Date('2024-01-15T12:00:00Z'), 'Alice');
+      const result = importer.writeComments([comment]);
 
-      expect(importer.writeComments([comment])).toBe(
-        '### Alice (2024-01-15T12:00:00.000Z)\n\nGreat card!',
-      );
+      expect(result).toContain('### Alice (2024-01-15T12:00:00.000Z)');
+      expect(result).toContain('Great card!');
     });
 
-    test('uses Unknown when a comment has no author', () => {
-      const comment = new TrelloCommentInfo('Anonymous comment', new Date('2024-01-15T12:00:00Z'));
+    test('handles missing author gracefully', () => {
+      const comment = new TrelloCommentInfo('Anonymous comment', new Date('2024-01-15T12:00:00Z'), '');
+      const result = importer.writeComments([comment]);
 
-      expect(importer.writeComments([comment])).toContain('### Unknown (2024-01-15T12:00:00.000Z)');
+      expect(result).toContain('### Unknown (2024-01-15T12:00:00.000Z)');
+      expect(result).toContain('Anonymous comment');
+    });
+
+    test('handles multiple comments', () => {
+      const comments = [
+        new TrelloCommentInfo('First comment', new Date('2024-01-15T12:00:00Z'), 'Alice'),
+        new TrelloCommentInfo('Second comment', new Date('2024-01-15T13:00:00Z'), 'Bob'),
+      ];
+      const result = importer.writeComments(comments);
+
+      expect(result).toContain('### Alice');
+      expect(result).toContain('First comment');
+      expect(result).toContain('### Bob');
+      expect(result).toContain('Second comment');
     });
   });
 
@@ -488,7 +503,7 @@ describe('TrelloImport', () => {
     });
 
     test('writes card with comments', async () => {
-      const card = createTrelloCardInfo();
+      const card = createTrelloCardInfo({ id: 'card1' });
       const lists = { list1: createTrelloListInfo() };
       const comments = [
         new TrelloCommentInfo('Looks good!', new Date('2024-01-15T12:00:00Z'), 'Jane Doe'),
@@ -705,6 +720,45 @@ describe('TrelloImport', () => {
       consoleWarnSpy.mockRestore();
     });
 
+    test('includes comments from later files before writing cards from earlier files', async () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo()],
+        lists: [createTrelloListInfo()],
+        actions: [{
+          id: 'action2', type: 'commentCard', date: '2024-01-15T13:00:00Z',
+          data: { text: 'Second comment', card: { id: 'card1' } },
+          memberCreator: { fullName: 'Bob' },
+        }],
+      });
+      const laterFile = createTrelloBoardInfo({
+        actions: [{
+          id: 'action1', type: 'commentCard', date: '2024-01-15T12:00:00Z',
+          data: { text: 'First comment', card: { id: 'card1' } },
+          memberCreator: { fullName: 'Alice' },
+        }],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json', 'comments.json']);
+      vi.mocked(fs.readFile)
+        .mockResolvedValueOnce(JSON.stringify(board))
+        .mockResolvedValueOnce(JSON.stringify(laterFile));
+
+      try {
+        const result = await importer.importAsync('*.json', '/output/', options);
+
+        expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+        expect(fs.writeFile).toHaveBeenCalledTimes(1);
+        const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+        expect(content).toContain("board: 'Test Board'");
+        expect(content).toContain('### Alice (2024-01-15T12:00:00.000Z)');
+        expect(content).toContain('First comment');
+        expect(content).toContain('Second comment');
+        expect(content.indexOf('First comment')).toBeLessThan(content.indexOf('Second comment'));
+      } finally {
+        consoleWarnSpy.mockRestore();
+      }
+    });
+
     test('imports cards with a missing list using empty list metadata', async () => {
       const board = createTrelloBoardInfo({
         cards: [createTrelloCardInfo({ idList: 'missing-list' })],
@@ -876,6 +930,76 @@ describe('TrelloImport', () => {
   });
 
   describe('downloadBoardJson', () => {
+    test('requests all comment actions with a page size of 1,000', async () => {
+      const actions = Array.from({ length: 51 }, (_, i) => ({ id: `action${i}`, type: 'commentCard' }));
+      vi.mocked(fetch).mockResolvedValue({ ok: true, json: async () => createTrelloBoardInfo({ actions }) });
+
+      const board = await TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' });
+
+      const url = new URL(String(vi.mocked(fetch).mock.calls[0][0]));
+      expect(url.searchParams.get('actions')).toBe('commentCard');
+      expect(url.searchParams.get('actions_limit')).toBe('1000');
+      expect(board.actions).toEqual(actions);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([1000, 2001])('downloads and imports all %i comments across page boundaries', async (count: number) => {
+      const actions = Array.from({ length: count }, (_, i) => ({
+        id: (count - i).toString(16).padStart(24, '0'),
+        type: 'commentCard',
+        data: { card: { id: 'card1' }, text: `Comment ${i}` },
+        date: new Date(Date.UTC(2024, 0, 1, 0, 0, count - i)).toISOString(),
+        memberCreator: { fullName: 'Alice' },
+      }));
+      vi.mocked(fetch).mockImplementation(async (input: string | URL | Request) => {
+        const url = new URL(String(input));
+        expect(url.searchParams.get('key')).toBe('test-key');
+        expect(url.searchParams.get('token')).toBe('test-token');
+        if (!url.pathname.endsWith('/actions')) {
+          return { ok: true, json: async () => createTrelloBoardInfo({
+            cards: [createTrelloCardInfo()], lists: [createTrelloListInfo()], actions: actions.slice(0, 1000),
+          }) };
+        }
+        expect(url.pathname).toBe('/1/boards/abc12345/actions');
+        expect(url.searchParams.get('filter')).toBe('commentCard');
+        expect(url.searchParams.get('limit')).toBe('1000');
+        const before = url.searchParams.get('before');
+        const previousIndex = actions.findIndex(action => action.id === before);
+        expect(previousIndex).toBeGreaterThanOrEqual(0);
+        return { ok: true, json: async () => actions.slice(previousIndex + 1, previousIndex + 1001) };
+      });
+
+      const board = await TrelloImport.downloadBoardJson({
+        boardIdOrName: 'abc12345', apiKey: 'test-key', token: 'test-token',
+      });
+
+      expect(board.actions).toEqual(actions);
+      expect(fetch).toHaveBeenCalledTimes(Math.floor(count / 1000) + 1);
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const result = await importer.importAsync('board.json', '/output/', options);
+        expect(result.success).toBe(true);
+        const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+        const importedComments = content.match(/Comment \d+/g);
+        expect(importedComments).toEqual(actions.map(action => action.data.text).reverse());
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    test('rejects a failed action page instead of returning incomplete comments', async () => {
+      const actions = Array.from({ length: 1000 }, (_, i) => ({ id: `action${i}`, type: 'commentCard' }));
+      vi.mocked(fetch)
+        .mockResolvedValueOnce({ ok: true, json: async () => createTrelloBoardInfo({ actions }) })
+        .mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Internal Server Error' });
+
+      await expect(TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' }))
+        .rejects.toThrow('Failed to fetch Trello board comments: 500 Internal Server Error');
+    });
+
     test.each(['My Board', 'abc12345'])('encodes credentials as query values for %s', async (boardIdOrName: string) => {
       const mockBoard = createTrelloBoardInfo({ id: 'abc12345', name: 'My Board' });
       const apiKey = 'key&cards=none+ #?=%';
@@ -897,6 +1021,7 @@ describe('TrelloImport', () => {
           token,
           ...(url.pathname === '/1/boards/abc12345' ? {
             cards: 'all', lists: 'all', checklists: 'all', labels: 'all', members: 'all', fields: 'all',
+            actions: 'commentCard', actions_limit: '1000',
           } : {}),
         });
       }
@@ -1131,15 +1256,30 @@ describe('TrelloImport', () => {
       const list = createTrelloListInfo();
       const label = createTrelloLabelInfo();
       const card = createTrelloCardInfo({
+        id: 'card1',
         idChecklists: ['cl1'],
         labels: [label],
         attachments: [createAttachmentInfo({ fileName: 'file.png' })],
       });
+      const action = {
+        id: 'act1',
+        type: 'commentCard',
+        date: '2024-01-15T12:00:00Z',
+        data: {
+          text: 'Integration comment test',
+          card: { id: 'card1' },
+        },
+        memberCreator: {
+          id: 'mem1',
+          fullName: 'Reviewer Name',
+        },
+      };
       const board = createTrelloBoardInfo({
         cards: [card],
         lists: [list],
         checklists: [checklist],
         labels: [label],
+        actions: [action],
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
       vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
@@ -1150,6 +1290,8 @@ describe('TrelloImport', () => {
       expect(result.success).toBe(true);
       const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string; // [0] is attachment, [1] is card
       expect(content).toContain('## Checklists');
+      expect(content).toContain('## Comments');
+      expect(content).toContain('Integration comment test');
       expect(content).toContain('## Attachments');
       consoleWarnSpy.mockRestore();
       consoleErrorSpy.mockRestore();

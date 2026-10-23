@@ -195,18 +195,40 @@ export default class TrelloImport implements BaseImporter {
         console.log(`Resolved board name '${options.boardIdOrName}' to id: ${boardIdOrName}`);
       }
     }
-    const url = new URL(`https://api.trello.com/1/boards/${boardIdOrName}`);
-    url.searchParams.set("key", apiKey);
-    for (const field of ["cards", "lists", "checklists", "labels", "members", "fields"]) {
-      url.searchParams.set(field, "all");
-    }
+    const boardUrl = new URL(`https://api.trello.com/1/boards/${encodeURIComponent(boardIdOrName)}`);
+    boardUrl.searchParams.set("key", apiKey);
+    boardUrl.searchParams.set("cards", "all");
+    boardUrl.searchParams.set("lists", "all");
+    boardUrl.searchParams.set("checklists", "all");
+    boardUrl.searchParams.set("labels", "all");
+    boardUrl.searchParams.set("members", "all");
+    boardUrl.searchParams.set("fields", "all");
+    boardUrl.searchParams.set("actions", "commentCard");
+    boardUrl.searchParams.set("actions_limit", "1000");
     if (token) {
-      url.searchParams.set("token", token);
+      boardUrl.searchParams.set("token", token);
     }
+    const url = boardUrl.toString();
     if (verbose) {
       console.log(`Downloading Trello board ${boardIdOrName}`);
     }
-    return TrelloImport.fetchJsonOrThrow(url.toString(), "Trello board download");
+    const board = await TrelloImport.fetchJsonOrThrow(url, "Trello board download");
+    let actions: TrelloActionInfo[] = board.actions || [];
+    // Trello returns newest actions first; use the oldest action id as an exclusive cursor.
+    while (actions.length === 1000) {
+      const before = actions[actions.length - 1].id;
+      const actionsUrl = new URL(`https://api.trello.com/1/boards/${encodeURIComponent(boardIdOrName)}/actions`);
+      actionsUrl.searchParams.set("key", apiKey);
+      actionsUrl.searchParams.set("filter", "commentCard");
+      actionsUrl.searchParams.set("limit", "1000");
+      actionsUrl.searchParams.set("before", before);
+      if (token) {
+        actionsUrl.searchParams.set("token", token);
+      }
+      actions = await TrelloImport.fetchJsonOrThrow(actionsUrl.toString(), "Trello board comments");
+      board.actions.push(...actions);
+    }
+    return board;
   }
   async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
@@ -345,11 +367,13 @@ export default class TrelloImport implements BaseImporter {
       outputFolder += "/";
     }
     const files = await glob(globpattern);
+    const boards: TrelloBoardInfo[] = [];
     var totalCards = 0;
     var totalNotes = 0;
     var checklists : { [id: string]: TrelloChecklistInfo; } = {};
     var lists : { [id: string]: TrelloListInfo; } = {};
     var labels : { [id: string]: TrelloLabelInfo; } = {};
+    var cardComments : { [cardId: string]: TrelloCommentInfo[] } = {};
     if (files.length === 0) {
       return { success: false, message: "No files found matching " + globpattern };
     } else  {
@@ -357,6 +381,7 @@ export default class TrelloImport implements BaseImporter {
     }
     for await (const file of files) {
       const notes = await this.extractNotes(file);
+      boards.push(notes);
       totalCards += notes.cards.length;
       notes.checklists.forEach(checklist => {
         checklists[checklist.id] = checklist;
@@ -366,23 +391,26 @@ export default class TrelloImport implements BaseImporter {
       });
       notes.labels.forEach(label => {
         labels[label.id] = label;
-      })
-      const cardComments: { [cardId: string]: TrelloCommentInfo[] } = {};
-      notes.actions?.forEach(action => {
-        if (action.type === "commentCard" && action.data?.card?.id) {
-          const cardId = action.data.card.id;
-          const text = action.data.text || "";
-          const date = action.date ? new Date(action.date) : new Date();
-          const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
-          if (!cardComments[cardId]) {
-            cardComments[cardId] = [];
-          }
-          cardComments[cardId].push(new TrelloCommentInfo(text, date, authorName));
-        }
       });
-      for (const cardId in cardComments) {
-        cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
+      if (notes.actions) {
+        notes.actions.forEach(action => {
+          if (action.type === "commentCard" && action.data?.card?.id) {
+            const cardId = action.data.card.id;
+            const text = action.data.text || "";
+            const date = action.date ? new Date(action.date) : new Date();
+            const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
+            if (!cardComments[cardId]) {
+              cardComments[cardId] = [];
+            }
+            cardComments[cardId].push(new TrelloCommentInfo(text, date, authorName));
+          }
+        });
       }
+    }
+    for (const cardId in cardComments) {
+      cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
+    }
+    for (const notes of boards) {
       for await(const note of notes.cards) {
         if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [])) {
           totalNotes++;

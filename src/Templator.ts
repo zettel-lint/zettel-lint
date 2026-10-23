@@ -91,7 +91,7 @@ export class Templator {
                 return this.notes.filter(note => referencedIds.has(note.id ?? ""));
             })(),
             on(){
-                const view = this;
+                var view = this;
                 return function(text: string, render: any) {
                     // query = {{`tag[filter]`}}
                     const query_end = text.indexOf("`}}") + 3
@@ -108,19 +108,18 @@ export class Templator {
             query_filter() {
                 const view = this;
                 return function(text: string, render: any) {
-                    // query = {{`tag?sort(by)?set()/filter/`}}
-                    const query_extract = /^{{`(?<tag>\w+)(?<fns>[^/]*)\/(?<filter>[\s\S]*)\/`}}/;
+                    const query_extract = /^{{`(?<tag>\w+)(?<operations>(?:\?[a-zA-Z0-9_]+\([\w\s,]*\))*)\/(?<filter>[\s\S]*)\/`}}/;
                     const match = query_extract.exec(text);
-                    if (!match || !match.groups) {
+                    if (!match?.groups) {
                         return render(text);
                     }
-                    const { tag, fns, filter } = match.groups;
+                    const { tag, operations, filter } = match.groups;
 
                     if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype') {
                         return `{{\`invalid tag: ${tag}\`}}`;
                     }
 
-                    const fnMatches = fns ? [...fns.matchAll(/\?([a-zA-Z0-9_]+)(?:\(([\w\s,]*)\))?/g)] : [];
+                    const fnMatches = [...operations.matchAll(/\?([a-zA-Z0-9_]+)\(([\w\s,]*)\)/g)];
                     const fnCalls: { fn: string; args: string }[] = fnMatches.map(m => {
                         const fn = m[1].toUpperCase();
                         return {
@@ -129,97 +128,17 @@ export class Templator {
                         };
                     });
 
-                    const validFunctions = new Set(["SORT", "SET"]);
-                    for (const call of fnCalls) {
-                        if (!validFunctions.has(call.fn)) {
-                            return `{{\`unknown function: ${call.fn.toLowerCase()}\`}}`;
-                        }
+                    if (fnCalls.length > 1 &&
+                        (fnCalls.some(({ fn }) => fn !== "SORT" && fn !== "SET") ||
+                            fnCalls.every(({ fn }) => fn === "SORT"))) {
+                        return render(text);
                     }
 
+                    const unsupportedFunction = fnCalls.find(({ fn }) => fn !== "SORT" && fn !== "SET");
+                    if (unsupportedFunction) {
+                        return `{{\`unknown function: ${unsupportedFunction.fn.toLowerCase()}\`}}`;
+                    }
                     const query_end = text.indexOf("`}}") + 3;
-
-                    let ntag = tag;
-                    if (fnCalls.length > 0) {
-                        const transformedProp = "s" + view.queryCount++;
-                        Object.defineProperty(view, transformedProp, {
-                            value: function() {
-                                let list = view[tag];
-                                if (!list) return [];
-                                if (Array.isArray(list)) {
-                                    list = [...list];
-                                } else {
-                                    return list;
-                                }
-
-                                for (const { fn, args } of fnCalls) {
-                                    if (fn === "SORT") {
-                                        let comparator = function (a: any, b: any): 1 | -1 | 0 {
-                                            const aKey = a && typeof a === 'object' && 'key' in a ? a.key : (a?.id ?? String(a));
-                                            const bKey = b && typeof b === 'object' && 'key' in b ? b.key : (b?.id ?? String(b));
-                                            return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
-                                        };
-                                        if (args && args.length > 0 && args !== '__proto__' && args !== 'constructor' && args !== 'prototype') {
-                                            const ccarg = args + ":";
-                                            const cc = function(c: any) : string {
-                                                if (c && typeof c === 'object') {
-                                                    if ('key' in c && typeof c.key === 'string') {
-                                                        return c.key.split(ccarg)[1] || "ZZZZZ";
-                                                    }
-                                                    if (Object.prototype.hasOwnProperty.call(c, args)) {
-                                                        return String(c[args]);
-                                                    }
-                                                }
-                                                return "ZZZZZ";
-                                            };
-                                            comparator = function (a: any, b: any): 1 | -1 | 0 {
-                                                return cc(a) < cc(b) ? -1 : cc(a) > cc(b) ? 1 : 0;
-                                            };
-                                        }
-                                        list = list.sort(comparator);
-                                    } else if (fn === "SET") {
-                                        const seen = new Set<string>();
-                                        const deduplicated: any[] = [];
-
-                                        for (const item of list) {
-                                            let itemKey: string;
-                                            if (args && args.length > 0 && args !== '__proto__' && args !== 'constructor' && args !== 'prototype' && item && typeof item === 'object') {
-                                                if (Object.prototype.hasOwnProperty.call(item, args)) {
-                                                    itemKey = String(item[args]);
-                                                } else if ('key' in item && typeof item.key === 'string' && item.key.includes(args + ":")) {
-                                                    itemKey = item.key.split(args + ":")[1] || item.key;
-                                                } else {
-                                                    itemKey = item.key ?? item.id ?? item.filename ?? JSON.stringify(item);
-                                                }
-                                            } else if (item && typeof item === 'object') {
-                                                itemKey = item.key ?? item.id ?? item.filename ?? JSON.stringify(item);
-                                            } else {
-                                                itemKey = String(item);
-                                            }
-
-                                            if (!seen.has(itemKey)) {
-                                                seen.add(itemKey);
-                                                if (item && typeof item === 'object' && 'value' in item && Array.isArray(item.value)) {
-                                                    const valSeen = new Set<string>();
-                                                    const dedupedValue = item.value.filter((val: any) => {
-                                                        const valKey = val && typeof val === 'object' ? (val.id ?? val.filename ?? JSON.stringify(val)) : String(val);
-                                                        if (valSeen.has(valKey)) return false;
-                                                        valSeen.add(valKey);
-                                                        return true;
-                                                    });
-                                                    deduplicated.push({ ...item, value: dedupedValue });
-                                                } else {
-                                                    deduplicated.push(item);
-                                                }
-                                            }
-                                        }
-                                        list = deduplicated;
-                                    }
-                                }
-                                return list;
-                            }
-                        });
-                        ntag = transformedProp;
-                    }
 
                     let rr: RegExp;
                     try {
@@ -229,8 +148,82 @@ export class Templator {
                         return `{{\`error in filter: ${errorMsg}\`}}`;
                     }
 
-                    const filtered = "q" + view.queryCount++;
+                    const items = Array.isArray(view[tag]) ? [...view[tag]] : [];
+                    for (const { fn, args } of fnCalls) {
+                        if (fn === "SORT") {
+                            const getSortKey = (item: any): string | number => {
+                                if (args && !['__proto__', 'constructor', 'prototype'].includes(args)) {
+                                    if (item && typeof item === 'object') {
+                                        if (typeof item.key === 'string' && item.key.includes(`${args}:`)) {
+                                            return item.key.split(`${args}:`)[1] || "ZZZZZ";
+                                        }
+                                        if (Object.prototype.hasOwnProperty.call(item, args)) {
+                                            return typeof item[args] === 'number' ? item[args] : String(item[args]);
+                                        }
+                                    }
+                                    return "ZZZZZ";
+                                }
+                                if (item && typeof item === 'object') {
+                                    return String(item.key ?? item.id ?? "");
+                                }
+                                return String(item);
+                            };
+                            items.sort((a, b) => {
+                                const aValue = getSortKey(a);
+                                const bValue = getSortKey(b);
+                                if (typeof aValue === 'number' && typeof bValue === 'number') {
+                                    return aValue - bValue;
+                                }
+                                const aKey = String(aValue);
+                                const bKey = String(bValue);
+                                return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
+                            });
+                        } else if (fn === "SET") {
+                            const seen = new Set<string>();
+                            const deduplicated: any[] = [];
+                            for (const item of items) {
+                                let itemKey: string;
+                                if (args && !['__proto__', 'constructor', 'prototype'].includes(args) &&
+                                    item && typeof item === 'object' &&
+                                    Object.prototype.hasOwnProperty.call(item, args)) {
+                                    itemKey = String(item[args]);
+                                } else if (item && typeof item === 'object') {
+                                    itemKey = String(item.key ?? item.id ?? item.filename ?? JSON.stringify(item));
+                                } else {
+                                    itemKey = String(item);
+                                }
+
+                                if (!seen.has(itemKey)) {
+                                    seen.add(itemKey);
+                                    if (item && typeof item === 'object' && Array.isArray(item.value)) {
+                                        const valueSeen = new Set<string>();
+                                        const value = item.value.filter((entry: any) => {
+                                            const valueKey = entry && typeof entry === 'object'
+                                                ? String(entry.id ?? entry.filename ?? JSON.stringify(entry))
+                                                : String(entry);
+                                            if (valueSeen.has(valueKey)) return false;
+                                            valueSeen.add(valueKey);
+                                            return true;
+                                        });
+                                        deduplicated.push({ ...item, value });
+                                    } else {
+                                        deduplicated.push(item);
+                                    }
+                                }
+                            }
+                            items.splice(0, items.length, ...deduplicated);
+                        }
+                    }
+
+                    const queryId = view.queryCount++;
+                    const collection = `c${queryId}`;
+                    const filtered = `q${queryId}`;
+                    Object.defineProperty(view, collection, {
+                        configurable: true,
+                        value: items,
+                    });
                     Object.defineProperty(view, filtered, {
+                        configurable: true,
                         value: function() {
                             return function(text: string, render: any) {
                                 const result = render(text);
@@ -240,7 +233,7 @@ export class Templator {
                             }
                         }
                     })
-                    const children = `{{#${ntag}}}{{#${filtered}}}${text.substr(query_end)}{{/${filtered}}}{{/${ntag}}}`;
+                    const children = `{{#${collection}}}{{#${filtered}}}${text.substr(query_end)}{{/${filtered}}}{{/${collection}}}`;
                     return render(children);
                 }
             }
@@ -260,18 +253,10 @@ export class Templator {
             // Escaped and non-escaped versions
             .replace(/{{{[``](\w+)}}}/g, "{{#markdown_escape}}{{{$1}}}{{/markdown_escape}}")
             .replace(/{{[``](\w+)}}/g, "{{#markdown_escape}}{{$1}}{{/markdown_escape}}")
+            .replace(/{{%(\w+)(?:\/([\s\S]*?)\/)?}}/g, (_match, tag: string, filter?: string) =>
+                `{{?${tag}?set()/${filter ?? ""}/}}`)
             .replace(/{{[\?]([^}]+)}}/g, "{{#query_filter}}{{`$1`}}")
-            .replace(/{{\/[\?](\w*)}}/g, "{{/query_filter}}")
-            .replace(/{{[\%]([^}]+)}}/g, (_, expr: string) => {
-                const slashIdx = expr.indexOf('/');
-                if (slashIdx !== -1) {
-                    const tagAndFns = expr.slice(0, slashIdx);
-                    const filterAndRest = expr.slice(slashIdx);
-                    return `{{#query_filter}}{{\`${tagAndFns}?set()${filterAndRest}\`}}`;
-                }
-                return `{{#query_filter}}{{\`${expr}?set()//\`}}`;
-            })
-            .replace(/{{\/[\%](\w*)}}/g, "{{/query_filter}}")
+            .replace(/{{\/[%?](\w*)}}/g, "{{/query_filter}}")
 /*            .replace(/{{[\@]([^}]+)}}/g, "{{#on}}{{`$1`}}")
             .replace(/{{\/[\@](\w+)}}/g, "{{/on}}")
 */            ;
