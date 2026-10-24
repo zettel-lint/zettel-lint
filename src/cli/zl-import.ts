@@ -105,7 +105,7 @@ async function importer(program: ZlImportOptions): Promise<void> {
         await fsPromises.mkdir(program.outputFolder, { recursive: true });
         await fsPromises.writeFile(tempFile, JSON.stringify(boardJson, null, 2));
         // Now import as usual
-        response = await (new TrelloImport).importAsync(tempFile, program.outputFolder, options);
+        response = await (new TrelloImport).importAsync(tempFile.split(path.sep).join("/"), program.outputFolder, options);
       } catch (err: any) {
         console.error("Failed to process Trello board:", err.message || err);
         response = { success: false, message: "Failed to process Trello board: " + (err.message || err) };
