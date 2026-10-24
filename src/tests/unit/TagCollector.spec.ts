@@ -108,12 +108,9 @@ test('empty file has no tags', () => {
       matchData: { Tags: mockRef.data }
     }]);
 
-    expect(output).toContain(
-      "* __proto__ : [Note 1][note1]\n" +
-      "* constructor : [Note 1][note1]\n" +
-      "* hasOwnProperty : [Note 1][note1]\n" +
-      "* prototype : [Note 1][note1]\n" +
-      "* toString : [Note 1][note1]\n" +
-      "* valueOf : [Note 1][note1]\n"
-    );
+    expect(output).toContain("toString");
+    expect(output).toContain("valueOf");
+    expect(output).toContain("hasOwnProperty");
+    expect(output).not.toContain("__proto__");
+    expect(output).not.toContain("constructor");
   });

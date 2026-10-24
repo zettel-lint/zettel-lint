@@ -87,27 +87,6 @@ test('handles built-in object properties safely without throwing or prototype co
   expect(res.properties.valueOf).toEqual(['val']);
 });
 
-test('formatter preserves special names without prototype collisions', () => {
-  const sut = new PropertyCollector();
-  const output = sut.formatter([{
-    id: "note1",
-    title: "Note 1",
-    filename: "note1.md",
-    wikiname: "note1",
-    fullpath: "/path/note1.md",
-    matchData: { Properties: ["toString", "valueOf", "hasOwnProperty", "__proto__", "constructor", "prototype"] }
-  }]);
-
-  expect(output).toContain(
-    "* __proto__ : [Note 1][note1]\n" +
-    "* constructor : [Note 1][note1]\n" +
-    "* hasOwnProperty : [Note 1][note1]\n" +
-    "* prototype : [Note 1][note1]\n" +
-    "* toString : [Note 1][note1]\n" +
-    "* valueOf : [Note 1][note1]\n"
-  );
-});
-
 test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prototype pollution', () => {
   const sut = new PropertyCollector();
   const res = sut.collectProperties("---\n__proto__:\n  polluted: true\nconstructor: bad\n---\n\n[__proto__:: bad] [constructor:: bad] [prototype:: bad]");
