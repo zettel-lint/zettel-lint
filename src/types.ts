@@ -81,9 +81,6 @@ export function invertDictionary(references: formatData[]) {
       const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
-        if (tag === "__proto__" || tag === "constructor" || tag === "prototype") {
-          continue;
-        }
         if (!tagList[tag]) {
           tagList[tag] = [];
         }
