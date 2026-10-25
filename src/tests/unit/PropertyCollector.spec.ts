@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
-import { PropertyCollector } from '../../collectors/PropertyCollector'
+import { PropertyCollector } from '../../collectors/PropertyCollector';
+import { invertDictionary, formatData } from '../../types';
 
 test('empty file has no properties', () => {
     var sut = new PropertyCollector();
@@ -94,4 +95,25 @@ test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prot
   expect(res.properties.constructor).toBeUndefined();
   expect(res.properties.prototype).toBeUndefined();
   expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+});
+
+test('invertDictionary safely handles built-in property keys and ignores prototype keys', () => {
+  const sampleData: formatData[] = [
+    {
+      id: 'note1',
+      title: 'Note 1',
+      filename: 'note1.md',
+      fullpath: 'note1.md',
+      name: 'Properties',
+      data: ['toString', 'valueOf', '__proto__', 'constructor', 'prototype'],
+      bag: []
+    }
+  ];
+
+  const inverted = invertDictionary(sampleData);
+  expect(inverted['toString']).toEqual(['[Note 1][note1]']);
+  expect(inverted['valueOf']).toEqual(['[Note 1][note1]']);
+  expect(inverted['__proto__']).toBeUndefined();
+  expect(inverted['constructor']).toBeUndefined();
+  expect(inverted['prototype']).toBeUndefined();
 });
