@@ -38,7 +38,7 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
 
@@ -47,7 +47,7 @@ jobs:
 
       # Execute Codacy Analysis CLI v2 and upload results
       - name: Run Codacy Analysis CLI
-        uses: codacy/codacy-analysis-cli-action@d43360362776a6789b47b99ae8973510854e2d3d
+        uses: codacy/codacy-analysis-cli-action@6f415a0d3790c227a9cff580098545188e0f4e5a
         with:
           # Check https://github.com/codacy/codacy-analysis-cli#project-token to get your project token from your Codacy repository
           # You can also omit the token and run the tools that support default configurations
@@ -85,7 +85,7 @@ jobs:
     
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
 
@@ -97,7 +97,7 @@ jobs:
 
 
       - name: Upload SARIF results file
-        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        uses: github/codeql-action/upload-sarif@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           sarif_file: ${{ matrix.sarif_file }}
           category: codacy
