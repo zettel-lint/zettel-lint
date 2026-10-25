@@ -43,9 +43,3 @@
 **Learning:** `PropertyCollector.collectPairs` repeatedly re-allocated `Set` instances and spread arrays `[...new Set([...existing, ...values])]` on every inline property match, causing $O(N^2)$ memory churn during file scanning. Accumulating values directly into a single `Set` per property key during regex iteration and converting to Array once at the end eliminates unnecessary allocations. In addition, when merging YAML and inline properties in `collectProperties`, fast-pathing single-source properties avoids redundant `Set` conversions.
 
 **Action:** In regex collection loops, accumulate values directly in persistent `Set` instances per key rather than re-creating and spreading Sets on every match, and fast-path single-source data structures.
-
-## 2026-04-03 - Avoid Array Chaining and Per-Element Regex in Hot Collector Paths
-
-**Learning:** In `TagCollector.collect`, combining inline matches with YAML tags via `concat`, `map`, and `filter` allocated 3–4 intermediate arrays per file scanned. Additionally, checking for numeric tags via `.filter(tg => !/^#\d/.test(tg))` executed regex matching engines on every extracted tag string. Pushing items directly into a single result array and performing in-place filtering with direct ASCII character code checks (`tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57`) eliminates garbage collection pressure and regex execution overhead.
-
-**Action:** Avoid `.concat`, `.map`, and `.filter` pipeline chaining in per-file collection methods, and replace simple single-character regex pattern checks with direct ASCII `charCodeAt` position inspections.
