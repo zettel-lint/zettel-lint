@@ -2,8 +2,10 @@ import Mustache from 'mustache';
 import { Collector } from './collectors/Collector.js';
 import { fileWikiLinks, formatData } from './types.js';
 
+const hasOwnProp = Object.prototype.hasOwnProperty;
+
 function isForbiddenProperty(prop: string): boolean {
-    return prop === 'prototype' || Object.prototype.hasOwnProperty.call(Object.prototype, prop);
+    return prop === 'prototype' || hasOwnProp.call(Object.prototype, prop);
 }
 
 export class Templator {
@@ -147,7 +149,7 @@ export class Templator {
                         const transformedProp = "s" + view.queryCount++;
                         Object.defineProperty(view, transformedProp, {
                             value: function() {
-                                let list = Object.prototype.hasOwnProperty.call(view, tag) ? view[tag] : undefined;
+                                let list = hasOwnProp.call(view, tag) ? view[tag] : undefined;
                                 if (!list) return [];
                                 if (Array.isArray(list)) {
                                     list = [...list];
@@ -169,7 +171,7 @@ export class Templator {
                                                     if ('key' in c && typeof c.key === 'string') {
                                                         return c.key.split(ccarg)[1] || "ZZZZZ";
                                                     }
-                                                    if (Object.prototype.hasOwnProperty.call(c, args)) {
+                                                    if (hasOwnProp.call(c, args)) {
                                                         return String(c[args]);
                                                     }
                                                 }
@@ -187,7 +189,7 @@ export class Templator {
                                         for (const item of list) {
                                             let itemKey: string;
                                             if (args && args.length > 0 && !isForbiddenProperty(args) && item && typeof item === 'object') {
-                                                if (Object.prototype.hasOwnProperty.call(item, args)) {
+                                                if (hasOwnProp.call(item, args)) {
                                                     itemKey = String(item[args]);
                                                 } else if ('key' in item && typeof item.key === 'string' && item.key.includes(args + ":")) {
                                                     itemKey = item.key.split(args + ":")[1] || item.key;
