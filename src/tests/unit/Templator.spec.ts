@@ -1647,6 +1647,9 @@ title: References
       expect(sut.render("{{?__proto__//}}content{{/?__proto__}}")).toBe("{{`invalid tag: __proto__`}}");
       expect(sut.render("{{?constructor//}}content{{/?constructor}}")).toBe("{{`invalid tag: constructor`}}");
       expect(sut.render("{{?prototype//}}content{{/?prototype}}")).toBe("{{`invalid tag: prototype`}}");
+      expect(sut.render("{{?toString//}}content{{/?toString}}")).toBe("{{`invalid tag: toString`}}");
+      expect(sut.render("{{?valueOf//}}content{{/?valueOf}}")).toBe("{{`invalid tag: valueOf`}}");
+      expect(sut.render("{{?hasOwnProperty//}}content{{/?hasOwnProperty}}")).toBe("{{`invalid tag: hasOwnProperty`}}");
     });
 
     test('should ignore sensitive prototype keys in sort args', () => {
@@ -1658,6 +1661,8 @@ title: References
       // Sorting by __proto__ should be safely ignored and default comparison applied
       const result = sut.render("{{?Tags?sort(__proto__)//}}{{key}},{{/?Tags}}");
       expect(result).toBe("#a,#b,");
+      const resultToString = sut.render("{{?Tags?sort(toString)//}}{{key}},{{/?Tags}}");
+      expect(resultToString).toBe("#a,#b,");
     });
 
     test('should ignore sensitive prototype keys in set args', () => {
@@ -1669,5 +1674,7 @@ title: References
       // set(__proto__) should safely fall back to default item key without throwing or prototype pollution
       const result = sut.render("{{?notes?set(__proto__)//}}[{{id}}]{{/?notes}}");
       expect(result).toBe("[n1][n2]");
+      const resultValueOf = sut.render("{{?notes?set(valueOf)//}}[{{id}}]{{/?notes}}");
+      expect(resultValueOf).toBe("[n1][n2]");
     });
   });
