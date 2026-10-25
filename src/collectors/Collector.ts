@@ -59,6 +59,7 @@ export abstract class Collector {
 
     // Performance optimization: Avoid Object.entries array allocations and map closures per property
     for (const key in yamlData) {
+      // biome-ignore lint/suspicious/noPrototypeBuiltins: TS target is es2021 so Object.hasOwn cannot be used
       if (!Object.prototype.hasOwnProperty.call(yamlData, key)) continue;
       if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
       const value = yamlData[key];

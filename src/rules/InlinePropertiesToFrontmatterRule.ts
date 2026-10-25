@@ -29,6 +29,7 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
     let hasProperties = false;
     let hasError = false;
     for (const p in properties) {
+      // biome-ignore lint/suspicious/noPrototypeBuiltins: TS target is es2021 so Object.hasOwn cannot be used
       if (!Object.prototype.hasOwnProperty.call(properties, p)) continue;
       hasProperties = true;
       if (!properties[p] || p.length === 0 || p.includes(":")) {
