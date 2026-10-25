@@ -49,3 +49,9 @@
 **Learning:** In `TagCollector.collect`, combining inline matches with YAML tags via `concat`, `map`, and `filter` allocated 3–4 intermediate arrays per file scanned. Additionally, checking for numeric tags via `.filter(tg => !/^#\d/.test(tg))` executed regex matching engines on every extracted tag string. Pushing items directly into a single result array and performing in-place filtering with direct ASCII character code checks (`tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57`) eliminates garbage collection pressure and regex execution overhead.
 
 **Action:** Avoid `.concat`, `.map`, and `.filter` pipeline chaining in per-file collection methods, and replace simple single-character regex pattern checks with direct ASCII `charCodeAt` position inspections.
+
+## 2026-04-04 - Unclosed YAML Frontmatter Guard & Direct Property Iteration
+
+**Learning:** `Collector.collectYaml` calculated closing delimiter position using `indexOf("---\n", 4)`. When no closing delimiter existed, `indexOf` returned `-1` and `substring(4, -1)` extracted `"---\n"`, invoking the expensive YAML parser unnecessarily on unclosed files. Checking `endIndex === -1` early avoids calling `parse()`. In addition, replacing `Object.entries(yamlData).forEach` and `[value].map` with direct `for...in` loops and scalar fast-paths eliminates tuple and array wrapper allocations during frontmatter extraction.
+
+**Action:** Always check for missing closing section delimiters before invoking third-party parsers, and avoid `Object.entries` array allocations in per-file collection passes.
