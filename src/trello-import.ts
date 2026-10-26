@@ -347,9 +347,9 @@ export default class TrelloImport implements BaseImporter {
     const files = await glob(globpattern);
     var totalCards = 0;
     var totalNotes = 0;
-    var checklists : { [id: string]: TrelloChecklistInfo; } = {};
-    var lists : { [id: string]: TrelloListInfo; } = {};
-    var labels : { [id: string]: TrelloLabelInfo; } = {};
+    var checklists : { [id: string]: TrelloChecklistInfo; } = Object.create(null);
+    var lists : { [id: string]: TrelloListInfo; } = Object.create(null);
+    var labels : { [id: string]: TrelloLabelInfo; } = Object.create(null);
     if (files.length === 0) {
       return { success: false, message: "No files found matching " + globpattern };
     } else  {
@@ -367,7 +367,7 @@ export default class TrelloImport implements BaseImporter {
       notes.labels.forEach(label => {
         labels[label.id] = label;
       })
-      const cardComments: { [cardId: string]: TrelloCommentInfo[] } = {};
+      const cardComments: { [cardId: string]: TrelloCommentInfo[] } = Object.create(null);
       notes.actions?.forEach(action => {
         if (action.type === "commentCard" && action.data?.card?.id) {
           const cardId = action.data.card.id;
