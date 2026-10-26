@@ -111,3 +111,86 @@ describe('TrelloImport.saveAttachments security', () => {
     expect(result).toEqual(["[Safe Link](https://example.com/file.png)"]);
   });
 });
+
+describe('TrelloImport prototype collision resilience', () => {
+  const options: TrelloOptions = {
+    boardIdOrName: "bid123",
+    apiKey: "key",
+    verbose: false,
+  };
+
+  test('handles card comments and lists with prototype collision IDs without crashing', async () => {
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const os = await import("os");
+
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-proto-test-"));
+    const jsonPath = path.join(tmpDir, "trello-export.json");
+    const outFolder = path.join(tmpDir, "output");
+    await fs.mkdir(outFolder, { recursive: true });
+
+    const boardContent = {
+      name: "Test Board",
+      cards: [
+        {
+          id: "toString",
+          name: "Card with Prototype ID",
+          desc: "Description",
+          closed: false,
+          isTemplate: false,
+          idList: "toString",
+          dateLastActivity: new Date().toISOString(),
+          idChecklists: [],
+          attachments: [],
+          labels: []
+        }
+      ],
+      checklists: [
+        {
+          id: "toString",
+          name: "Prototype Checklist",
+          checkItems: []
+        }
+      ],
+      lists: [
+        {
+          id: "toString",
+          name: "Prototype List",
+          closed: false
+        }
+      ],
+      labels: [],
+      actions: [
+        {
+          type: "commentCard",
+          data: {
+            card: { id: "toString" },
+            text: "A comment on toString card"
+          },
+          date: new Date().toISOString(),
+          memberCreator: { fullName: "Tester" }
+        },
+        {
+          type: "commentCard",
+          data: {
+            card: { id: "valueOf" },
+            text: "A comment on valueOf card"
+          },
+          date: new Date().toISOString(),
+          memberCreator: { fullName: "Tester" }
+        }
+      ]
+    };
+
+    await fs.writeFile(jsonPath, JSON.stringify(boardContent));
+
+    const importer = new TrelloImport();
+    const response = await importer.importAsync(jsonPath, outFolder, options);
+
+    expect(response.success).toBe(true);
+    expect(response.message).toContain("1 notes created");
+
+    // Clean up
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+});
