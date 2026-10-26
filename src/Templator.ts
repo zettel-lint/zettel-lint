@@ -55,10 +55,11 @@ export class Templator {
         collectors: Collector[] | undefined = undefined) {
         this.notes = files;
         if (files != undefined && collectors != undefined) {
-            collectors.forEach(collector =>
-                this.data.set(collector.dataName,
-                    collector.extractAll(files))
-            );
+            // Performance optimization: Indexed loop over collectors
+            for (let i = 0; i < collectors.length; i++) {
+                const collector = collectors[i];
+                this.data.set(collector.dataName, collector.extractAll(files));
+            }
             this.collectors = collectors;
         }
 
@@ -245,10 +246,20 @@ export class Templator {
                 }
             }
         }
-        collectors?.forEach(collector =>
-            Object.defineProperty(this.viewProps, collector.dataName,
-                {value: [...this.data.get(collector.dataName)?.entries() ?? []].map(this.listToNamedTuple)},
-            ));
+        if (collectors) {
+            // Performance optimization: Single-pass Array.from over Map entries with listToNamedTuple
+            // avoids intermediate array spreading [...Map.entries()] and callback closure allocations.
+            for (let i = 0; i < collectors.length; i++) {
+                const collector = collectors[i];
+                const collectorMap = this.data.get(collector.dataName);
+                const namedTuples = collectorMap
+                    ? Array.from(collectorMap, this.listToNamedTuple)
+                    : [];
+                Object.defineProperty(this.viewProps, collector.dataName, {
+                    value: namedTuples,
+                });
+            }
+        }
     }
 
     listToNamedTuple(input: [string, formatData[]]) {
