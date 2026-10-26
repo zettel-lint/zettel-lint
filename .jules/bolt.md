@@ -55,3 +55,9 @@
 **Learning:** `Collector.collectYaml` calculated closing delimiter position using `indexOf("---\n", 4)`. When no closing delimiter existed, `indexOf` returned `-1` and `substring(4, -1)` extracted `"---\n"`, invoking the expensive YAML parser unnecessarily on unclosed files. Checking `endIndex === -1` early avoids calling `parse()`. In addition, replacing `Object.entries(yamlData).forEach` and `[value].map` with direct `for...in` loops and scalar fast-paths eliminates tuple and array wrapper allocations during frontmatter extraction.
 
 **Action:** Always check for missing closing section delimiters before invoking third-party parsers, and avoid `Object.entries` array allocations in per-file collection passes.
+
+## 2026-04-05 - Direct Array.from Map Entry Mapping in Templator ViewProps
+
+**Learning:** `Templator` constructor initialized collector view properties by spreading Map entries `[...this.data.get(collector.dataName)?.entries() ?? []].map(this.listToNamedTuple)`. This created two intermediate arrays per collector (one from spreading the entries iterator, and one from `.map()`). Replacing this with `Array.from(collectorMap, this.listToNamedTuple)` directly transforms Map entries into named tuples in a single pass without intermediate tuple array spreading.
+
+**Action:** Use `Array.from(map, mapFn)` when converting Map entries into formatted object arrays rather than spreading `[...map.entries()].map(mapFn)`.
