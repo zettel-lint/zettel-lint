@@ -10,6 +10,7 @@ export interface ZlIndexOptions {
   taskDisplay: "none" | "by-file" | "by-priority";
   jsonDebugOutput: boolean;
   ignoreNumericTags: boolean;
+  ignoreQuoted?: boolean;
   wiki: boolean;
   verbose: boolean;
 }

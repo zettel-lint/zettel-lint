@@ -34,3 +34,16 @@ test('empty file has no links', () => {
     var sut = new WikiCollector();
     expect(sut.collect('[[Wïkï-Link]]')).toHaveLength(0);
   });
+
+  test('respects ignoreQuoted option', () => {
+    var sut = new WikiCollector();
+    const content = `
+[[Valid-Link]]
+\`\`\`
+[[Codeblock-Link]]
+\`\`\`
+> [[Blockquote-Link]]
+"[[Quoted-Link]]"
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["[[Valid-Link]]"]);
+  });
