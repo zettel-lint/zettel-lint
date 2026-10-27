@@ -12,9 +12,32 @@ export abstract class Collector {
   public collector(filename: string, content: string, program: any): string[] {
     this.programArgs = program;
     if (this.shouldCollect(filename)) {
-      return this.collect(content);
+      const processedContent = program?.ignoreQuoted ? this.stripQuoted(content) : content;
+      return this.collect(processedContent);
     }
     return [];
+  }
+
+  /**
+   * Strips quoted sections from content when ignoreQuoted option is enabled.
+   * Strips:
+   * 1. Code blocks (fenced with ``` or ~~~)
+   * 2. Inline code (`code`)
+   * 3. Blockquotes (lines starting with >)
+   * 4. Double-quoted strings ("...") and single-quoted strings ('...')
+   */
+  protected stripQuoted(content: string): string {
+    // Fenced code blocks: ```...``` or ~~~...~~~
+    let stripped = content.replace(/(?:```|~~~)[\s\S]*?(?:```|~~~)/g, "");
+    // Inline code: `...`
+    stripped = stripped.replace(/`[^`\n]+`/g, "");
+    // Blockquotes: lines starting with optional whitespace then >
+    stripped = stripped.replace(/^[ \t]*>.*$/gm, "");
+    // Double-quoted strings: "..."
+    stripped = stripped.replace(/"[^"\n]*"/g, "");
+    // Single-quoted strings: '...' (with boundary checks to preserve contractions like don't, it's)
+    stripped = stripped.replace(/(?:^|[\s([{<])'[^'\n]+?'(?=[\s,.;:!?)]|$)/g, " ");
+    return stripped;
   }
   protected shouldCollect(filename: string): boolean { return true; }
   protected abstract collect(content: string): string[];

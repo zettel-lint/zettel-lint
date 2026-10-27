@@ -78,3 +78,17 @@ test('empty file has no tags', () => {
     expect(sut.collector("file.md", "Content with #12345678 and #tag1", { ignoreNumericTags: false }))
       .toEqual(["#12345678", "#tag1"]);
   });
+
+  test('respects ignoreQuoted option', () => {
+    const sut = new TagCollector();
+    const content = `#valid
+\`\`\`
+#codeblock
+\`\`\`
+> #blockquote
+"#quoted"
+It's a test file with contractions.
+'#singlequoted'
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["#valid"]);
+  });
