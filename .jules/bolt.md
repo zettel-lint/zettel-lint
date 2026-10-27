@@ -61,3 +61,9 @@
 **Learning:** `Templator` constructor initialized collector view properties by spreading Map entries `[...this.data.get(collector.dataName)?.entries() ?? []].map(this.listToNamedTuple)`. This created two intermediate arrays per collector (one from spreading the entries iterator, and one from `.map()`). Replacing this with `Array.from(collectorMap, this.listToNamedTuple)` directly transforms Map entries into named tuples in a single pass without intermediate tuple array spreading.
 
 **Action:** Use `Array.from(map, mapFn)` when converting Map entries into formatted object arrays rather than spreading `[...map.entries()].map(mapFn)`.
+
+## 2026-04-06 - Early Non-Empty Filtering for Inversion Passes in Collector.extractAll
+
+**Learning:** `Collector.extractAll` mapped every vault file with `files.map(ref => this.extractData(ref))` before passing the full list to `invertData`. For collectors targeting sparse data (e.g. tasks, contexts, tags), most files returned empty data arrays (`item.data.length === 0`). Filtering empty items upfront in an indexed `for` loop before invoking `invertData` avoids storing thousands of empty `formatData` objects in the intermediate list and skips empty item checks during map inversion.
+
+**Action:** In collection inversion pipelines, filter out empty data items in a single pass before handing off to batch inversion functions.
