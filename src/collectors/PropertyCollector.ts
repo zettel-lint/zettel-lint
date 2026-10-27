@@ -75,7 +75,7 @@ export class PropertyCollector extends RegexCollector {
       const [, key, value] = match;
       if (key && value) {
         const trimmedKey = key.trim();
-        if (trimmedKey !== '__proto__' && trimmedKey !== 'constructor' && trimmedKey !== 'prototype') {
+        if (trimmedKey !== '__proto__' && trimmedKey !== 'constructor' && trimmedKey !== 'prototype' && !trimmedKey.includes(':')) {
           let set = pairSets[trimmedKey];
           if (!set) {
             set = new Set<string>();
