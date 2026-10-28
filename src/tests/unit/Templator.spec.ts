@@ -1647,6 +1647,9 @@ title: References
       expect(sut.render("{{?__proto__//}}content{{/?__proto__}}")).toBe("{{`invalid tag: __proto__`}}");
       expect(sut.render("{{?constructor//}}content{{/?constructor}}")).toBe("{{`invalid tag: constructor`}}");
       expect(sut.render("{{?prototype//}}content{{/?prototype}}")).toBe("{{`invalid tag: prototype`}}");
+      expect(sut.render("{{?toString//}}content{{/?toString}}")).toBe("{{`invalid tag: toString`}}");
+      expect(sut.render("{{?valueOf//}}content{{/?valueOf}}")).toBe("{{`invalid tag: valueOf`}}");
+      expect(sut.render("{{?hasOwnProperty//}}content{{/?hasOwnProperty}}")).toBe("{{`invalid tag: hasOwnProperty`}}");
     });
 
     test('should ignore sensitive prototype keys in sort args', () => {

@@ -117,7 +117,7 @@ export class Templator {
                     }
                     const { tag, fns, filter } = match.groups;
 
-                    if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype') {
+                    if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype' || tag in Object.prototype) {
                         return `{{\`invalid tag: ${tag}\`}}`;
                     }
 
