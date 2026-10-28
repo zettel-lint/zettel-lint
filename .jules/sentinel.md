@@ -14,3 +14,8 @@
 **Vulnerability:** `saveAttachments` embedded raw attachment URLs from external imports into Markdown links and passed them to `fetch()` without URL protocol validation. This allowed malicious URI schemes like `javascript:alert(1)`, `data:`, or `file:` to be written into Markdown links or fetched.
 **Learning:** External data importers must validate URL protocols before embedding links in Markdown notes or performing HTTP requests.
 **Prevention:** Validate that imported URLs use `http:` or `https:` protocols before creating Markdown link targets or initiating network fetches.
+
+## 2025-05-21 - Inherited Object.prototype Method Execution in Template Query Filters
+**Vulnerability:** Mustache view context resolution evaluated un-sanitized tag query names against inherited `Object.prototype` methods (e.g. `toString`, `valueOf`). Because Mustache executes zero-argument functions found in the context object, querying built-in prototype methods invoked `Object.prototype` methods or returned function references.
+**Learning:** Checking for explicit keys (`__proto__`, `constructor`, `prototype`) is insufficient if `tag in Object.prototype` can match other inherited methods.
+**Prevention:** Always validate untrusted template tag queries with `tag in Object.prototype` or `Object.prototype.hasOwnProperty.call(view, tag)`.
