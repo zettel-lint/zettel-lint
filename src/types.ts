@@ -89,7 +89,7 @@ export function invertDictionary(references: formatData[]) {
       }
     }
   }
-  return tagList;
+  return { ...tagList };
 }
 
 export function invertData(references: formatData[]) {
