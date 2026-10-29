@@ -8,7 +8,3 @@ title: 'https://trello.com/b/nPNSBZjB/trello-resources'
 ## Checklists
 
 ---
-
-## Attachments
-
-* 
