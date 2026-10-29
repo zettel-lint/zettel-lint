@@ -78,3 +78,25 @@ test('empty file has no tags', () => {
     expect(sut.collector("file.md", "Content with #12345678 and #tag1", { ignoreNumericTags: false }))
       .toEqual(["#12345678", "#tag1"]);
   });
+
+  test('formatter handles prototype property keys gracefully without throwing', () => {
+    const sut = new TagCollector();
+    const refs = [
+      {
+        id: '1',
+        title: 'Test Note',
+        filename: 'test.md',
+        wikiname: 'test',
+        fullpath: 'test.md',
+        matchData: {
+          Tags: ['toString', 'valueOf', '__proto__', 'constructor', 'prototype', '#validTag'],
+        },
+      },
+    ];
+    expect(() => sut.formatter(refs)).not.toThrow();
+    const formatted = sut.formatter(refs);
+    expect(formatted).toContain('* #validTag');
+    expect(formatted).toContain('* toString');
+    expect(formatted).toContain('* valueOf');
+    expect(formatted).not.toContain('__proto__');
+  });
