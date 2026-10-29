@@ -67,3 +67,9 @@
 **Learning:** `Collector.extractAll` mapped every vault file with `files.map(ref => this.extractData(ref))` before passing the full list to `invertData`. For collectors targeting sparse data (e.g. tasks, contexts, tags), most files returned empty data arrays (`item.data.length === 0`). Filtering empty items upfront in an indexed `for` loop before invoking `invertData` avoids storing thousands of empty `formatData` objects in the intermediate list and skips empty item checks during map inversion.
 
 **Action:** In collection inversion pipelines, filter out empty data items in a single pass before handing off to batch inversion functions.
+
+## 2026-04-07 - Direct Key Accumulation & Frontmatter Fast-Path in Property Collector Rules
+
+**Learning:** In `PropertyCollector.collectProperties`, creating `new Set([...Object.keys(yaml), ...Object.keys(pairs)])` allocated 3 intermediate arrays per note processed during property extraction. Accumulating keys directly using `for...in` loops on `Object.create(null)` objects and iterating with `for...of` eliminates array wrapper allocations and closure callbacks. Additionally, fast-path checking `content.startsWith("---")` in `InlinePropertiesToFrontmatterRule` skips expensive multiline frontmatter regex searches for notes lacking frontmatter headers.
+
+**Action:** Accumulate dictionary keys directly with `for...in` loops instead of spreading `Object.keys()` arrays into Sets, and fast-path delimiter string checks before running section-stripping regular expressions.
