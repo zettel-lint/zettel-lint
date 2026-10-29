@@ -1155,4 +1155,23 @@ describe('TrelloImport', () => {
       consoleErrorSpy.mockRestore();
     });
   });
+
+  describe('expected fixtures formatting (issue #497)', () => {
+    test('expected markdown fixtures have LF line endings and no trailing placeholder bullets', async () => {
+      const fsActual = await vi.importActual('fs') as typeof import('fs');
+      const pathActual = await vi.importActual('path') as typeof import('path');
+      const expectedDir = pathActual.join(__dirname, '../system/import-trello/expected');
+      const files = await fsActual.promises.readdir(expectedDir);
+
+      for (const file of files) {
+        if (!file.endsWith('.md')) continue;
+        const content = await fsActual.promises.readFile(pathActual.join(expectedDir, file), 'utf8');
+
+        expect(content).not.toContain('\r');
+        expect(content.endsWith('\n')).toBe(true);
+        expect(content.endsWith('\n\n')).toBe(false);
+        expect(content).not.toContain('## Attachments\n\n* ');
+      }
+    });
+  });
 });
