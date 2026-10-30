@@ -51,6 +51,75 @@ describe('zl-import Trello options', () => {
     ]).opts();
     expect(opts.outputFolder).toBe("../import/");
   });
+
+  test('redacts custom options containing key or token when printed', async () => {
+    const originalConsoleLog = console.log;
+    let loggedOutput = "";
+    console.log = (...args: any[]) => {
+      loggedOutput += args.join(" ") + "\n";
+    };
+
+    try {
+      const cmd = importerCommand();
+      // Parse command with various sensitive flags
+      const program = cmd.parse([
+        "node", "zl", "--source", "trello", "--path", "export.json", "--trello-api-key", "MY_SECRET_KEY", "--trello-token", "MY_SECRET_TOKEN"
+      ]);
+      // Run action which triggers printHeader
+      await cmd.parseAsync([
+        "node", "zl", "--source", "unknown", "--path", ".", "--trello-api-key", "MY_SECRET_KEY", "--trello-token", "MY_SECRET_TOKEN"
+      ]);
+
+      expect(loggedOutput).not.toContain("MY_SECRET_KEY");
+      expect(loggedOutput).not.toContain("MY_SECRET_TOKEN");
+      expect(loggedOutput).toContain("[REDACTED]");
+    } finally {
+      console.log = originalConsoleLog;
+    }
+  });
+});
+
+describe('TrelloImport credential redaction in errors', () => {
+  test('redacts key and token in downloadBoardJson error messages when fetch fails', async () => {
+    const options: TrelloOptions = {
+      boardIdOrName: "0123456789abcdef01234567",
+      apiKey: "SECRET_KEY_123",
+      token: "SECRET_TOKEN_456",
+      verbose: false,
+    };
+
+    try {
+      await TrelloImport.downloadBoardJson(options);
+      expect.unreachable("Should have thrown error");
+    } catch (err: any) {
+      expect(err.message).not.toContain("SECRET_KEY_123");
+      expect(err.message).not.toContain("SECRET_TOKEN_456");
+    }
+  });
+
+  test('redacts secret query parameters in error messages containing raw URLs', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new TypeError("Failed to fetch https://api.trello.com/1/boards/123?key=SECRET_KEY_999&token=SECRET_TOKEN_888");
+    };
+
+    try {
+      const options: TrelloOptions = {
+        boardIdOrName: "0123456789abcdef01234567",
+        apiKey: "SECRET_KEY_999",
+        token: "SECRET_TOKEN_888",
+        verbose: false,
+      };
+      await TrelloImport.downloadBoardJson(options);
+      expect.unreachable("Should have thrown error");
+    } catch (err: any) {
+      expect(err.message).not.toContain("SECRET_KEY_999");
+      expect(err.message).not.toContain("SECRET_TOKEN_888");
+      expect(err.message).toContain("[REDACTED]");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe('TrelloImport.saveAttachments security', () => {

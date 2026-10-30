@@ -147,6 +147,10 @@ function sortableDate(d: Date | string) : string {
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
+function sanitizeErrorUrl(msg: string): string {
+  return msg.replace(/([?&](?:key|token|secret|auth|password)=)[^&]+/gi, "$1[REDACTED]");
+}
+
 export type TrelloOptions = ImportOptions & {
   boardIdOrName: string;
   apiKey: string;
@@ -155,11 +159,16 @@ export type TrelloOptions = ImportOptions & {
 
 export default class TrelloImport implements BaseImporter {
   private static async fetchJsonOrThrow(url: string, context: string): Promise<any> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${context}: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${context}: ${response.status} ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error: any) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(sanitizeErrorUrl(msg));
     }
-    return response.json();
   }
 
   /**
@@ -270,7 +279,8 @@ export default class TrelloImport implements BaseImporter {
         await fs.writeFile(outputFilename, Buffer.from(data));
         filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
-        console.error("Could not write file " + outputFilename + " because " + error);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error("Could not write file " + outputFilename + " because " + sanitizeErrorUrl(msg));
       }
     }
     return filenames;
