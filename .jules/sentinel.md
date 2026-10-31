@@ -19,3 +19,8 @@
 **Vulnerability:** Mustache view context resolution evaluated un-sanitized tag query names against inherited `Object.prototype` methods (e.g. `toString`, `valueOf`). Because Mustache executes zero-argument functions found in the context object, querying built-in prototype methods invoked `Object.prototype` methods or returned function references.
 **Learning:** Checking for explicit keys (`__proto__`, `constructor`, `prototype`) is insufficient if `tag in Object.prototype` can match other inherited methods.
 **Prevention:** Always validate untrusted template tag queries with `tag in Object.prototype` or `Object.prototype.hasOwnProperty.call(view, tag)`.
+
+## 2026-10-29 - Prototype Pollution and Built-in Method Collision in invertDictionary
+**Vulnerability:** `invertDictionary` indexed user-supplied reference data (tags, contexts, properties) directly onto a plain `{}` object. If a tag or property was named `toString` or `valueOf`, `!tagList[tag]` evaluated to false because `Object.prototype.toString` exists, and subsequent `tagList[tag].push(link)` caused a fatal `TypeError: tagList[tag].push is not a function`. Keys like `__proto__` also posed prototype pollution risks.
+**Learning:** Plain `{}` dictionary accumulators that index user-derived tags or keys are susceptible to both prototype pollution and denial-of-service via prototype method collisions.
+**Prevention:** Instantiate dictionary accumulators using `Object.create(null)` and explicitly ignore `__proto__`, `constructor`, and `prototype` keys.
