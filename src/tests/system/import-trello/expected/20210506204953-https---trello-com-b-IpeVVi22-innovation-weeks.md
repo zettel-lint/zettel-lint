@@ -6,5 +6,3 @@ title: 'https://trello.com/b/IpeVVi22/innovation-weeks'
 ---
 
 ## Checklists
-
----

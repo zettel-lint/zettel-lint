@@ -6,5 +6,3 @@ title: 'https://trello.com/b/7TPOzY8O/personal-review-yyyy-mm-dd'
 ---
 
 ## Checklists
-
----
