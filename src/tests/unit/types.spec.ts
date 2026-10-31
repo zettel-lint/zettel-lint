@@ -10,15 +10,16 @@ describe("invertDictionary security and prototype resilience", () => {
         filename: "note1.md",
         fullpath: "note1.md",
         name: "test",
-        data: ["toString", "valueOf"],
+        data: ["toString", "valueOf", "hasOwnProperty", "toString"],
         bag: [],
       },
     ];
 
     expect(() => {
       const res = invertDictionary(refs);
-      expect(res["toString"]).toEqual(["[Note 1][note1]"]);
+      expect(res["toString"]).toEqual(["[Note 1][note1]", "[Note 1][note1]"]);
       expect(res["valueOf"]).toEqual(["[Note 1][note1]"]);
+      expect(res["hasOwnProperty"]).toEqual(["[Note 1][note1]"]);
     }).not.toThrow();
   });
 
@@ -36,17 +37,23 @@ describe("invertDictionary security and prototype resilience", () => {
     ];
 
     const res = invertDictionary(refs);
-    expect(res["__proto__"]).toBeUndefined();
-    expect(res["constructor"]).toBeUndefined();
-    expect(res["prototype"]).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(res, "__proto__")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(res, "constructor")).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(res, "prototype")).toBe(false);
     expect(res["normalKey"]).toEqual(["[Note 2][note2]"]);
+    expect(res.hasOwnProperty("normalKey")).toBe(true);
+    expect(res.hasOwnProperty("missing")).toBe(false);
+    expect(Object.getPrototypeOf(res)).toBe(Object.prototype);
     // Ensure Object.prototype was not polluted
     expect((Object.prototype as any).polluted).toBeUndefined();
   });
 
   test("handles empty or nullish references safely", () => {
-    expect(invertDictionary([])).toEqual(Object.create(null));
-    expect(invertDictionary(undefined as any)).toEqual(Object.create(null));
-    expect(invertDictionary(null as any)).toEqual(Object.create(null));
+    for (const refs of [[], undefined, null]) {
+      const res = invertDictionary(refs as formatData[]);
+      expect(res).toStrictEqual({});
+      expect(Object.getPrototypeOf(res)).toBe(Object.prototype);
+      expect(res.hasOwnProperty("tag")).toBe(false);
+    }
   });
 });

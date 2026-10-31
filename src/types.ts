@@ -69,9 +69,8 @@ export function collectBacklinks(references: formatData[]) {
 }
 
 export function invertDictionary(references: formatData[]): { [tag: string]: string[] } {
-  // Use Object.create(null) and filter dangerous keys to guard against prototype pollution
-  // and runtime collisions with Object.prototype methods (e.g. toString, valueOf).
-  const tagList: { [tag: string]: string[] } = Object.create(null);
+  // Filter dangerous keys and check own properties to avoid prototype collisions.
+  const tagList: { [tag: string]: string[] } = {};
 
   if (!references) return tagList;
 
@@ -86,7 +85,7 @@ export function invertDictionary(references: formatData[]): { [tag: string]: str
         if (tag === "__proto__" || tag === "constructor" || tag === "prototype") {
           continue;
         }
-        if (!tagList[tag]) {
+        if (!Object.prototype.hasOwnProperty.call(tagList, tag)) {
           tagList[tag] = [];
         }
         tagList[tag].push(link);
