@@ -68,8 +68,12 @@ export function collectBacklinks(references: formatData[]) {
   return tagList;
 }
 
-export function invertDictionary(references: formatData[]) {
-  const tagList: { [tag: string]: string[]; } = {};
+export function invertDictionary(references: formatData[]): { [tag: string]: string[] } {
+  // Use Object.create(null) and filter dangerous keys to guard against prototype pollution
+  // and runtime collisions with Object.prototype methods (e.g. toString, valueOf).
+  const tagList: { [tag: string]: string[] } = Object.create(null);
+
+  if (!references) return tagList;
 
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
@@ -79,6 +83,9 @@ export function invertDictionary(references: formatData[]) {
       const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
+        if (tag === "__proto__" || tag === "constructor" || tag === "prototype") {
+          continue;
+        }
         if (!tagList[tag]) {
           tagList[tag] = [];
         }
