@@ -1,6 +1,6 @@
 import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
-import { YamlHeaders } from "./Collector.js";
+import type { YamlHeaders } from "./Collector.js";
 
 export class PropertyCollector extends RegexCollector {
   readonly dataName = "Properties";
@@ -25,46 +25,91 @@ export class PropertyCollector extends RegexCollector {
   collectProperties(content: string, regexes: Array<RegExp> = []): {properties: YamlHeaders, hasInline: boolean} {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
-    const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
-    const result: YamlHeaders = { };
-    // Only grab pairs that match a regex, if any are provided
-    // Normalise supplied regexes to avoid stateful /g behaviour.
-    const safeRegexes = regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r));
 
-    var hasInline = false;
-    // Merge properties from both sources
-    allKeys.forEach(key => {
-      const yamlValues = yaml[key] || [];
-      let pairValues: string[] = [];
-      if (safeRegexes.length === 0 || safeRegexes.some(r => r.test(key))) {
-        pairValues = pairs[key] ?? [];
+    // Performance optimization: Accumulate keys directly from Object.create(null) sources
+    // to avoid intermediate Object.keys arrays and array spread [...a, ...b] allocations.
+    const allKeys = new Set<string>();
+    for (const key in yaml) {
+      allKeys.add(key);
+    }
+    for (const key in pairs) {
+      allKeys.add(key);
+    }
+    const result: YamlHeaders = Object.create(null);
+
+    // Performance optimization: Avoid mapping/allocating new RegExp instances when regexes array is empty.
+    const safeRegexes = regexes.length > 0
+      ? regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r))
+      : [];
+
+    let hasInline = false;
+    // Performance optimization: Direct for...of Set iteration avoids callback closure allocations
+    // and reuses array references directly when only one property source exists.
+    for (const key of allKeys) {
+      const yamlValues = yaml[key];
+      const pairValues = pairs[key];
+      const hasYaml = yamlValues !== undefined && yamlValues.length > 0;
+      const hasPair = pairValues !== undefined && pairValues.length > 0 && (safeRegexes.length === 0 || safeRegexes.some(r => r.test(key)));
+
+      if (hasPair) {
+        hasInline = true;
       }
-      if (pairValues.length > 0) { hasInline = true; }
-      
-      if (yamlValues.length > 0 || pairValues.length > 0) {
-        result[key] = [...new Set([...yamlValues, ...pairValues])];
+
+      if (hasYaml || hasPair) {
+        if (hasYaml && hasPair) {
+          const combinedSet = new Set(yamlValues);
+          for (let i = 0; i < pairValues.length; i++) {
+            combinedSet.add(pairValues[i]);
+          }
+          result[key] = Array.from(combinedSet);
+        } else if (hasYaml) {
+          result[key] = yamlValues;
+        } else {
+          result[key] = pairValues;
+        }
       }
-    });
+    }
 
     return { properties: result, hasInline };
   }
 
   private collectPairs(content: string): YamlHeaders {
     this.regex.lastIndex = 0; // Reset regex state
-    const result: YamlHeaders = { tags: [] };
-    let match: RegExpExecArray | null;
+    // Performance optimization: Accumulate values into direct Sets during regex execution
+    // to avoid allocating new Sets and array spreads [...new Set([...existing, ...values])] on every match.
+    const pairSets: Record<string, Set<string>> = Object.create(null);
+    let match = this.regex.exec(content);
 
-    while ((match = this.regex.exec(content)) !== null) {
+    while (match !== null) {
       const [, key, value] = match;
-      if (!key || !value) continue;
-
-      const trimmedKey = key.trim();
-      const values = trimmedKey === 'tags' ? value.split(", ") : [value.trim()];
-      result[trimmedKey] = result[trimmedKey]
-        ? [...new Set([...result[trimmedKey]!, ...values])]
-        : values;
+      if (key && value) {
+        const trimmedKey = key.trim();
+        if (trimmedKey !== '__proto__' && trimmedKey !== 'constructor' && trimmedKey !== 'prototype') {
+          let set = pairSets[trimmedKey];
+          if (!set) {
+            set = new Set<string>();
+            pairSets[trimmedKey] = set;
+          }
+          if (trimmedKey === 'tags') {
+            const parts = value.split(", ");
+            for (let i = 0; i < parts.length; i++) {
+              set.add(parts[i]);
+            }
+          } else {
+            set.add(value.trim());
+          }
+        }
+      }
+      match = this.regex.exec(content);
     }
 
+    const result: YamlHeaders = Object.create(null);
+    result.tags = pairSets.tags ? Array.from(pairSets.tags) : [];
+    for (const k in pairSets) {
+      if (k !== 'tags') {
+        result[k] = Array.from(pairSets[k]);
+      }
+    }
     return result;
   }
 }

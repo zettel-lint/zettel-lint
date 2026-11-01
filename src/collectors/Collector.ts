@@ -19,39 +19,71 @@ export abstract class Collector {
   protected shouldCollect(filename: string): boolean { return true; }
   protected abstract collect(content: string): string[];
   private listOf(value: string): string[] {
-    if (value.trim().startsWith("[")) {
-      return value.trim().slice(1,-1).replaceAll(", ", ",").split(",");
+    const trimmed = value.trim();
+    if (trimmed.startsWith("[")) {
+      return trimmed.slice(1, -1).replaceAll(", ", ",").split(",");
     }
-    return value.split(" ").filter(v => v.length > 0);
+    const parts = trimmed.split(" ");
+    const result: string[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i].length > 0) {
+        result.push(parts[i]);
+      }
+    }
+    return result;
   }
   private getValue(headers: string[][], key: string) : string {
-    const maybeValue = headers.find(h => h[0] === key);
-    return maybeValue ? maybeValue[1] : "";
+    for (let i = 0; i < headers.length; i++) {
+      if (headers[i][0] === key) return headers[i][1];
+    }
+    return "";
   }
   private readonly yamlSep = "---\n";
   protected collectYaml(content: string) : YamlHeaders {
+    const result: YamlHeaders = Object.create(null);
+    result.tags = undefined;
     if (!content.startsWith(this.yamlSep)){
-      return {tags: undefined};
+      return result;
     }
-    const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
+    // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
+    const endIndex = content.indexOf(this.yamlSep, this.yamlSep.length);
+    if (endIndex === -1) {
+      return result;
+    }
+    const header = content.substring(this.yamlSep.length, endIndex);
     const yamlData = parse(header);
-    const result: YamlHeaders = { };
-    
+
     if (!yamlData || typeof yamlData !== 'object') {
       return result;
     }
-    
-    Object.entries(yamlData).forEach(([key, value]) => {
+
+    // Performance optimization: Avoid Object.entries array allocations and map closures per property
+    for (const key in yamlData) {
+      // biome-ignore lint/suspicious/noPrototypeBuiltins: TS target is es2021 so Object.hasOwn cannot be used
+      if (!Object.prototype.hasOwnProperty.call(yamlData, key)) continue;
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+      const value = yamlData[key];
       if (key === 'tags') {
-        result[key] = Array.isArray(value)
-          ? value.map(v => String(v))
-          : this.listOf(String(value));
+        if (Array.isArray(value)) {
+          const arr: string[] = new Array(value.length);
+          for (let i = 0; i < value.length; i++) {
+            arr[i] = String(value[i]);
+          }
+          result[key] = arr;
+        } else {
+          result[key] = this.listOf(String(value));
+        }
+      } else if (Array.isArray(value)) {
+        const arr: string[] = new Array(value.length);
+        for (let i = 0; i < value.length; i++) {
+          arr[i] = String(value[i]);
+        }
+        result[key] = arr;
       } else {
-        const arr = Array.isArray(value) ? value : [value];
-        result[key] = arr.map(v => String(v));
+        result[key] = [String(value)];
       }
-    });
-    
+    }
+
     return result;
   }
   public extractData(ref: fileWikiLinks): formatData {
@@ -63,7 +95,18 @@ export abstract class Collector {
     };
   };
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
-    return invertData(files?.map(ref => this.extractData(ref)));
+    if (!files || files.length === 0) return new Map<string, formatData[]>();
+
+    // Performance optimization: Avoid array allocation overhead by only accumulating
+    // formatData items that contain non-empty collector data before passing to invertData.
+    const formatDataList: formatData[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const item = this.extractData(files[i]);
+      if (item.data && item.data.length > 0) {
+        formatDataList.push(item);
+      }
+    }
+    return invertData(formatDataList);
   }
   public formatter(references: fileWikiLinks[]): string {
     return "## " + this.dataName + "\n\n<details>\n<summary>Show " + this.dataName + "</summary>\n\n" +

@@ -4,6 +4,16 @@
 
 **Action:** Prefer string indexing over regex split/match for hot-path filename parsing, and always cache computed view properties in constructor initializations when used in multiple object properties.
 
+## 2025-02-18 - Loop Invariant Hoisting & RegExpExecArray Direct Access
+
+**Learning:** In collection inversion (`invertDictionary`, `invertData`), formatting links (`formatLink(ref)`) inside inner loops over item tags/data results in $O(N \times M)$ redundant string formatting calls. Hoisting `formatLink` to the outer loop reduces calls to $O(N)$. Additionally, using `next[0]` instead of `next.toString()` on `RegExpExecArray` in `collectMatches` avoids array-to-string coercion on regex matches.
+
+**Action:** Always hoist loop-invariant formatters outside nested collection iterations and access match index `next[0]` directly on `RegExpExecArray` instances.
+## 2025-05-20 - Single-Match Regex Execution & Global Regex Reuse in File Indexing
+
+**Learning:** `collectFromFile` in `zl-index` created a new RegExp `/^(?:title:|#) (.*)$/gm` per file and called `collectMatches`, which scanned the entire document and allocated an array of all title matches even though only the first title (`[0]`) was used. Calling `exec` with a module-scoped non-global regex `/^(?:title:|#) (.*)$/m` stops scanning at the first match and eliminates array allocations and per-file regex instantiations. In addition, resetting `regex.lastIndex = 0` in `collectMatches` prevents state leakage when reusing global RegExp instances across files.
+
+**Action:** For first-match extractions in hot file-processing paths, use module-scoped non-global regex `exec()` instead of global match loops, and always reset `lastIndex = 0` at entry when executing reused global regexes.
 ## 2025-02-23 - Stateful Regex Reset, Match Coercion & Map Lookup Reuse
 
 **Learning:** Reusing stateful global regular expressions (`/g`) across files in `collectMatches` requires resetting `regex.lastIndex = 0` to avoid search index leakage. When `useCaptureGroup` is false, calling `next.toString()` on `RegExpExecArray` invokes `Array.prototype.toString()` which coerces the array to a comma-separated string (~35% overhead). Accessing `next[0]` directly avoids array serialization. Additionally, in `collectBacklinks` and `invertData`, replacing `replace()` and redundant `Map.get`/`Map.set` calls with `startsWith`/`endsWith` slicing and held Map references speeds up data processing by ~40%.
@@ -21,3 +31,45 @@
 **Learning:** In backlink processing loops over large note collections, calling `.replace("[", "").replace("]", "")` creates unnecessary intermediate string instances and regex matching overhead per tag. Furthermore, nested `.forEach` array closures allocate iterator callbacks in hot paths. Replacing string `.replace()` with `startsWith`/`endsWith` slicing and `.forEach` with indexed `for` loops speeds up backlink collection by ~2x and reduces GC pressure.
 
 **Action:** Use direct string `substring` slicing instead of `.replace()` for trimming known boundary characters, and use indexed `for` loops in hot data processing pipelines.
+
+## 2026-04-01 - Batch Extraction Optimization in `WikiCollector.extractAll`
+
+**Learning:** In `WikiCollector.extractAll`, calling `this.extractData(ref)` during batch processing executed `collectBacklinks([data])` for every individual file before running `collectBacklinks(allNotes)` on the aggregated dataset. Reusing `super.extractData(ref)` during batch file collection eliminates $N$ redundant single-file backlink collector passes.
+
+**Action:** When aggregating data across multiple notes in batch collectors, use base property extractions (`super.extractData`) to avoid invoking single-item collection routines prior to batch processing.
+
+## 2026-04-02 - Direct Set Accumulation and Property Fast-Paths in PropertyCollector
+
+**Learning:** `PropertyCollector.collectPairs` repeatedly re-allocated `Set` instances and spread arrays `[...new Set([...existing, ...values])]` on every inline property match, causing $O(N^2)$ memory churn during file scanning. Accumulating values directly into a single `Set` per property key during regex iteration and converting to Array once at the end eliminates unnecessary allocations. In addition, when merging YAML and inline properties in `collectProperties`, fast-pathing single-source properties avoids redundant `Set` conversions.
+
+**Action:** In regex collection loops, accumulate values directly in persistent `Set` instances per key rather than re-creating and spreading Sets on every match, and fast-path single-source data structures.
+
+## 2026-04-03 - Avoid Array Chaining and Per-Element Regex in Hot Collector Paths
+
+**Learning:** In `TagCollector.collect`, combining inline matches with YAML tags via `concat`, `map`, and `filter` allocated 3–4 intermediate arrays per file scanned. Additionally, checking for numeric tags via `.filter(tg => !/^#\d/.test(tg))` executed regex matching engines on every extracted tag string. Pushing items directly into a single result array and performing in-place filtering with direct ASCII character code checks (`tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57`) eliminates garbage collection pressure and regex execution overhead.
+
+**Action:** Avoid `.concat`, `.map`, and `.filter` pipeline chaining in per-file collection methods, and replace simple single-character regex pattern checks with direct ASCII `charCodeAt` position inspections.
+
+## 2026-04-04 - Unclosed YAML Frontmatter Guard & Direct Property Iteration
+
+**Learning:** `Collector.collectYaml` calculated closing delimiter position using `indexOf("---\n", 4)`. When no closing delimiter existed, `indexOf` returned `-1` and `substring(4, -1)` extracted `"---\n"`, invoking the expensive YAML parser unnecessarily on unclosed files. Checking `endIndex === -1` early avoids calling `parse()`. In addition, replacing `Object.entries(yamlData).forEach` and `[value].map` with direct `for...in` loops and scalar fast-paths eliminates tuple and array wrapper allocations during frontmatter extraction.
+
+**Action:** Always check for missing closing section delimiters before invoking third-party parsers, and avoid `Object.entries` array allocations in per-file collection passes.
+
+## 2026-04-05 - Direct Array.from Map Entry Mapping in Templator ViewProps
+
+**Learning:** `Templator` constructor initialized collector view properties by spreading Map entries `[...this.data.get(collector.dataName)?.entries() ?? []].map(this.listToNamedTuple)`. This created two intermediate arrays per collector (one from spreading the entries iterator, and one from `.map()`). Replacing this with `Array.from(collectorMap, this.listToNamedTuple)` directly transforms Map entries into named tuples in a single pass without intermediate tuple array spreading.
+
+**Action:** Use `Array.from(map, mapFn)` when converting Map entries into formatted object arrays rather than spreading `[...map.entries()].map(mapFn)`.
+
+## 2026-04-06 - Early Non-Empty Filtering for Inversion Passes in Collector.extractAll
+
+**Learning:** `Collector.extractAll` mapped every vault file with `files.map(ref => this.extractData(ref))` before passing the full list to `invertData`. For collectors targeting sparse data (e.g. tasks, contexts, tags), most files returned empty data arrays (`item.data.length === 0`). Filtering empty items upfront in an indexed `for` loop before invoking `invertData` avoids storing thousands of empty `formatData` objects in the intermediate list and skips empty item checks during map inversion.
+
+**Action:** In collection inversion pipelines, filter out empty data items in a single pass before handing off to batch inversion functions.
+
+## 2026-04-07 - Direct Key Accumulation & Frontmatter Fast-Path in Property Collector Rules
+
+**Learning:** In `PropertyCollector.collectProperties`, creating `new Set([...Object.keys(yaml), ...Object.keys(pairs)])` allocated 3 intermediate arrays per note processed during property extraction. Accumulating keys directly using `for...in` loops on `Object.create(null)` objects and iterating with `for...of` eliminates array wrapper allocations and closure callbacks. Additionally, fast-path checking `content.startsWith("---")` in `InlinePropertiesToFrontmatterRule` skips expensive multiline frontmatter regex searches for notes lacking frontmatter headers.
+
+**Action:** Accumulate dictionary keys directly with `for...in` loops instead of spreading `Object.keys()` arrays into Sets, and fast-path delimiter string checks before running section-stripping regular expressions.

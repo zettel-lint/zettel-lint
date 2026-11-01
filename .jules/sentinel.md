@@ -9,3 +9,18 @@
 **Vulnerability:** Untrusted fields (`card.name`, `boardName`, list name, `card.shortUrl`) were concatenated directly inside single quotes in YAML frontmatter string templates, allowing single quotes and newlines in card or board titles to inject YAML attributes or cause YAML syntax errors.
 **Learning:** Single-quoted scalar values in manual YAML generation must escape single quotes as `''` and sanitize line breaks.
 **Prevention:** Use an escaping helper function like `escapeYamlString` whenever manually formatting YAML scalars from external source data.
+
+## 2025-05-20 - Prototype Pollution and Built-in Property Collision in Property Collectors
+**Vulnerability:** Inline property collection (`[key:: value]`) and YAML frontmatter parsing stored user-defined keys on standard `{}` objects. When processing keys like `toString`, `valueOf`, `__proto__`, or `constructor`, lookup of inherited prototype methods caused runtime exceptions (`TypeError: result[key] is not iterable`) or prototype pollution risks.
+**Learning:** Storing dynamic untrusted keys in plain JS object maps `{}` leads to built-in method collision or prototype pollution when property keys match `Object.prototype` methods or special keys.
+**Prevention:** Use `Object.create(null)` for prototype-less object maps and explicitly filter out dangerous keys (`__proto__`, `constructor`, `prototype`).
+
+## 2025-05-20 - Unsafe Attachment URL Scheme Injection in Importers
+**Vulnerability:** `saveAttachments` embedded raw attachment URLs from external imports into Markdown links and passed them to `fetch()` without URL protocol validation. This allowed malicious URI schemes like `javascript:alert(1)`, `data:`, or `file:` to be written into Markdown links or fetched.
+**Learning:** External data importers must validate URL protocols before embedding links in Markdown notes or performing HTTP requests.
+**Prevention:** Validate that imported URLs use `http:` or `https:` protocols before creating Markdown link targets or initiating network fetches.
+
+## 2025-05-21 - Inherited Object.prototype Method Execution in Template Query Filters
+**Vulnerability:** Mustache view context resolution evaluated un-sanitized tag query names against inherited `Object.prototype` methods (e.g. `toString`, `valueOf`). Because Mustache executes zero-argument functions found in the context object, querying built-in prototype methods invoked `Object.prototype` methods or returned function references.
+**Learning:** Checking for explicit keys (`__proto__`, `constructor`, `prototype`) is insufficient if `tag in Object.prototype` can match other inherited methods.
+**Prevention:** Always validate untrusted template tag queries with `tag in Object.prototype` or `Object.prototype.hasOwnProperty.call(view, tag)`.

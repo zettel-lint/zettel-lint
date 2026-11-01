@@ -20,6 +20,7 @@ export function collectMatches(contents: string, regex: RegExp, useCaptureGroup:
     if (useCaptureGroup && next[1]) {
       result.push(next[1].trim());
     } else {
+      // Use full match string directly instead of next.toString() array conversion
       result.push(next[0].trim());
     }
     next = regex.exec(contents);

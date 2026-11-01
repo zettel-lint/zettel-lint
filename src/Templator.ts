@@ -55,10 +55,11 @@ export class Templator {
         collectors: Collector[] | undefined = undefined) {
         this.notes = files;
         if (files != undefined && collectors != undefined) {
-            collectors.forEach(collector =>
-                this.data.set(collector.dataName,
-                    collector.extractAll(files))
-            );
+            // Performance optimization: Indexed loop over collectors
+            for (let i = 0; i < collectors.length; i++) {
+                const collector = collectors[i];
+                this.data.set(collector.dataName, collector.extractAll(files));
+            }
             this.collectors = collectors;
         }
 
@@ -116,11 +117,18 @@ export class Templator {
                     }
                     const { tag, fns, filter } = match.groups;
 
+                    if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype' || tag in Object.prototype) {
+                        return `{{\`invalid tag: ${tag}\`}}`;
+                    }
+
                     const fnMatches = fns ? [...fns.matchAll(/\?([a-zA-Z0-9_]+)(?:\(([\w\s,]*)\))?/g)] : [];
-                    const fnCalls: { fn: string; args: string }[] = fnMatches.map(m => ({
-                        fn: m[1].toUpperCase(),
-                        args: m[2] ? m[2].trim() : ""
-                    }));
+                    const fnCalls: { fn: string; args: string }[] = fnMatches.map(m => {
+                        const fn = m[1].toUpperCase();
+                        return {
+                            fn: fn === "DISTINCT" ? "SET" : fn,
+                            args: m[2] ? m[2].trim() : ""
+                        };
+                    });
 
                     const validFunctions = new Set(["SORT", "SET"]);
                     for (const call of fnCalls) {
@@ -151,7 +159,7 @@ export class Templator {
                                             const bKey = b && typeof b === 'object' && 'key' in b ? b.key : (b?.id ?? String(b));
                                             return aKey < bKey ? -1 : aKey > bKey ? 1 : 0;
                                         };
-                                        if (args && args.length > 0) {
+                                        if (args && args.length > 0 && args !== '__proto__' && args !== 'constructor' && args !== 'prototype') {
                                             const ccarg = args + ":";
                                             const cc = function(c: any) : string {
                                                 if (c && typeof c === 'object') {
@@ -175,7 +183,7 @@ export class Templator {
 
                                         for (const item of list) {
                                             let itemKey: string;
-                                            if (args && args.length > 0 && item && typeof item === 'object') {
+                                            if (args && args.length > 0 && args !== '__proto__' && args !== 'constructor' && args !== 'prototype' && item && typeof item === 'object') {
                                                 if (Object.prototype.hasOwnProperty.call(item, args)) {
                                                     itemKey = String(item[args]);
                                                 } else if ('key' in item && typeof item.key === 'string' && item.key.includes(args + ":")) {
@@ -238,10 +246,20 @@ export class Templator {
                 }
             }
         }
-        collectors?.forEach(collector =>
-            Object.defineProperty(this.viewProps, collector.dataName,
-                {value: [...this.data.get(collector.dataName)?.entries() ?? []].map(this.listToNamedTuple)},
-            ));
+        if (collectors) {
+            // Performance optimization: Single-pass Array.from over Map entries with listToNamedTuple
+            // avoids intermediate array spreading [...Map.entries()] and callback closure allocations.
+            for (let i = 0; i < collectors.length; i++) {
+                const collector = collectors[i];
+                const collectorMap = this.data.get(collector.dataName);
+                const namedTuples = collectorMap
+                    ? Array.from(collectorMap, this.listToNamedTuple)
+                    : [];
+                Object.defineProperty(this.viewProps, collector.dataName, {
+                    value: namedTuples,
+                });
+            }
+        }
     }
 
     listToNamedTuple(input: [string, formatData[]]) {
