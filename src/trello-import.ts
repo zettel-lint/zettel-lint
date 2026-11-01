@@ -88,6 +88,11 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+function escapeYamlSingleQuote(val: string | undefined | null): string {
+  if (!val) return "";
+  return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
+}
+
 function sortableDate(d: Date | string) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
@@ -98,6 +103,11 @@ function sortableDate(d: Date | string) : string {
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
+/**
+ * Returns content for a single-quoted YAML scalar, without surrounding quotes.
+ * Doubles apostrophes and replaces each run of CR/LF characters with one space.
+ * Null, undefined, and empty strings yield an empty string.
+ */
 function escapeYamlString(value: string | undefined | null): string {
   if (!value) return '';
   return String(value).replace(/'/g, "''").replace(/[\r\n]+/g, ' ');
@@ -214,14 +224,17 @@ export default class TrelloImport implements BaseImporter {
    * Writes or overwrites a Markdown note with frontmatter, description, checklists,
    * and attachment links. File attachments are downloaded under outputFolder/attachments.
    * Failed attachment downloads or writes are omitted without failing the note.
+   * The activity date is normalized to UTC for the filename and created/modified fields.
    *
    * @param outputFolder - Destination directory, with or without a trailing separator.
    *   This method does not create it or its attachments subdirectory.
    * @param checklists - Checklists keyed by ID for the card's idChecklists.
-   * @param lists - Lists keyed by ID; the card's idList must be present.
+   * @param lists - Lists keyed by ID; missing entries use an empty list name.
    * @returns True when the note is written; false if checklist rendering or note writing fails.
    * @throws Errors preparing the filename, attachments, or frontmatter propagate,
-   *   including an invalid activity Date or a missing list entry.
+   *   including a missing list entry. An invalid activity date rejects with RangeError
+   *   before any attachment downloads or file writes.
+   *   including an invalid activity Date.
    */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
@@ -229,24 +242,25 @@ export default class TrelloImport implements BaseImporter {
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
+    const activityDate = new Date(card.dateLastActivity).toISOString();
     const outputFilename :string = path.join(outputFolder,
-      sortableDate(card.dateLastActivity) +
+      sortableDate(activityDate) +
       "-" + this.sanitiseName(card) + ".md");
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
     const listName = lists[card.idList]?.name || "";
     const header = "---" +
-      "\ncreated: " + card.dateLastActivity +
-      "\nmodified: " + card.dateLastActivity +
-      "\ntitle: '" + escapeYamlString(card.name) + "'" +
+      "\ncreated: " + activityDate +
+      "\nmodified: " + activityDate +
+      "\ntitle: '" + escapeYamlSingleQuote(card.name) + "'" +
       "\nsource: Trello" + 
-      "\ntags: [" + (card.labels || []).map(l => "'" + (l?.name || "").replace(/[^A-Za-z0-9]/g, "_") + "'").join(", ") + "]" +
+      "\ntags: [" + (card.labels || []).map(l => "'" + escapeYamlSingleQuote((l?.name || "").replace(/[^A-Za-z0-9]/g, "_")) + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
       "\nboard: '" + escapeYamlString(boardName) + "'" +
-      "\nlist: '" + escapeYamlString(listName) + "'" +
+      "\nlist: '" + escapeYamlString(lists[card.idList].name) + "'" +
       "\npublished: " + listName.includes("Published") +
       "\ntrello-url: '" + escapeYamlString(card.shortUrl) + "'" +
       "\n---" +
