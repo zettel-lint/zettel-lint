@@ -147,6 +147,16 @@ function sortableDate(d: Date | string) : string {
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
+/**
+ * Returns content for a single-quoted YAML scalar, without surrounding quotes.
+ * Doubles apostrophes and replaces each run of CR/LF characters with one space.
+ * Null, undefined, and empty strings yield an empty string.
+ */
+function escapeYamlString(value: string | undefined | null): string {
+  if (!value) return '';
+  return String(value).replace(/'/g, "''").replace(/[\r\n]+/g, ' ');
+}
+
 export type TrelloOptions = ImportOptions & {
   boardIdOrName: string;
   apiKey: string;
@@ -280,11 +290,13 @@ export default class TrelloImport implements BaseImporter {
    * Writes or overwrites a Markdown note with frontmatter, description, checklists,
    * and attachment links. File attachments are downloaded under outputFolder/attachments.
    * Failed attachment downloads or writes are omitted without failing the note.
+   * The activity date is normalized to UTC for the filename and created/modified fields.
    *
    * @param outputFolder - Destination directory, with or without a trailing separator.
    *   This method does not create it or its attachments subdirectory.
    * @param checklists - Checklists keyed by ID for the card's idChecklists.
    * @param lists - Lists keyed by ID; missing entries use an empty list name.
+   * @param comments - Optional comments associated with the card.
    * @returns True when the note is written; false if checklist rendering or note writing fails.
    * @throws Errors preparing the filename, attachments, or frontmatter propagate,
    *   including an invalid activity Date.
@@ -296,26 +308,27 @@ export default class TrelloImport implements BaseImporter {
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; },
       comments? : TrelloCommentInfo[]) : Promise<boolean> {
+    const activityDate = new Date(card.dateLastActivity).toISOString();
     const outputFilename :string = path.join(outputFolder,
-      sortableDate(card.dateLastActivity) +
+      sortableDate(activityDate) +
       "-" + this.sanitiseName(card) + ".md");
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
     const listName = lists[card.idList]?.name || "";
     const header = "---" +
-      "\ncreated: " + card.dateLastActivity +
-      "\nmodified: " + card.dateLastActivity +
+      "\ncreated: " + activityDate +
+      "\nmodified: " + activityDate +
       "\ntitle: '" + escapeYamlSingleQuote(card.name) + "'" +
       "\nsource: Trello" + 
       "\ntags: [" + (card.labels || []).map(l => "'" + escapeYamlSingleQuote((l?.name || "").replace(/[^A-Za-z0-9]/g, "_")) + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: '" + escapeYamlSingleQuote(boardName) + "'" +
-      "\nlist: '" + escapeYamlSingleQuote(listName) + "'" +
+      "\nboard: '" + escapeYamlString(boardName) + "'" +
+      "\nlist: '" + escapeYamlString(listName) + "'" +
       "\npublished: " + listName.includes("Published") +
-      "\ntrello-url: '" + escapeYamlSingleQuote(card.shortUrl) + "'" +
+      "\ntrello-url: '" + escapeYamlString(card.shortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";

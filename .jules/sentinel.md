@@ -5,6 +5,11 @@
 **Learning:** Direct string concatenation with file names provided in external imports bypasses directory boundary checks.
 **Prevention:** Always sanitize external file names using `path.basename()` and combine paths securely using `path.join()`.
 
+## 2025-05-21 - YAML Frontmatter Injection via Raw Trello Note Fields
+**Vulnerability:** Untrusted fields (`card.name`, `boardName`, list name, `card.shortUrl`) were concatenated directly inside single quotes in YAML frontmatter string templates, allowing single quotes and newlines in card or board titles to inject YAML attributes or cause YAML syntax errors.
+**Learning:** Single-quoted scalar values in manual YAML generation must escape single quotes as `''` and sanitize line breaks.
+**Prevention:** Use an escaping helper function like `escapeYamlString` whenever manually formatting YAML scalars from external source data.
+
 ## 2025-05-20 - Prototype Pollution and Built-in Property Collision in Property Collectors
 **Vulnerability:** Inline property collection (`[key:: value]`) and YAML frontmatter parsing stored user-defined keys on standard `{}` objects. When processing keys like `toString`, `valueOf`, `__proto__`, or `constructor`, lookup of inherited prototype methods caused runtime exceptions (`TypeError: result[key] is not iterable`) or prototype pollution risks.
 **Learning:** Storing dynamic untrusted keys in plain JS object maps `{}` leads to built-in method collision or prototype pollution when property keys match `Object.prototype` methods or special keys.
