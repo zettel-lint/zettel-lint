@@ -69,7 +69,9 @@ export function collectBacklinks(references: formatData[]) {
 }
 
 export function invertDictionary(references: formatData[]) {
-  const tagList: { [tag: string]: string[]; } = {};
+  // Security: Use Object.create(null) to avoid Object.prototype method collision
+  // (e.g., 'toString', 'valueOf') which causes runtime TypeError when tagList[tag].push() is invoked.
+  const tagList: { [tag: string]: string[]; } = Object.create(null);
 
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
@@ -79,6 +81,10 @@ export function invertDictionary(references: formatData[]) {
       const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
+        // Filter out dangerous prototype property names to prevent prototype pollution
+        if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype') {
+          continue;
+        }
         if (!tagList[tag]) {
           tagList[tag] = [];
         }
