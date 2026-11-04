@@ -24,6 +24,7 @@ export interface ZlIndexCommandOptions {
   taskDisplay: "none" | "by-file" | "by-priority";
   jsonDebugOutput: boolean;
   ignoreNumericTags: boolean;
+  ignoreQuoted?: boolean;
   wiki: boolean;
   verbose: boolean;
 }
@@ -89,6 +90,7 @@ export default function indexerCommand(): Command<[], ZlIndexCommandOptions> {
     }, "by-file")
     .option("--json-debug-output", "Output JSON intermediate representations", false)
     .option("--ignore-numeric-tags", "Ignore tags that start with a number or are numeric", false)
+    .option("--ignore-quoted", "Ignore tasks, links, and tags inside code blocks, quotes, or blockquotes", false)
     .option("--no-wiki", "use [[wiki style]] links", false)
     .option("-v, --verbose", "Additional output", false)
     .action(async (cmdObj) => await runIndexer(cmdObj as ZlIndexCommandOptions));
