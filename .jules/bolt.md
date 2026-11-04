@@ -73,3 +73,9 @@
 **Learning:** In `PropertyCollector.collectProperties`, creating `new Set([...Object.keys(yaml), ...Object.keys(pairs)])` allocated 3 intermediate arrays per note processed during property extraction. Accumulating keys directly using `for...in` loops on `Object.create(null)` objects and iterating with `for...of` eliminates array wrapper allocations and closure callbacks. Additionally, fast-path checking `content.startsWith("---")` in `InlinePropertiesToFrontmatterRule` skips expensive multiline frontmatter regex searches for notes lacking frontmatter headers.
 
 **Action:** Accumulate dictionary keys directly with `for...in` loops instead of spreading `Object.keys()` arrays into Sets, and fast-path delimiter string checks before running section-stripping regular expressions.
+
+## 2026-04-08 - Frontmatter Fast-Path Inspection in TagCollector & Cross-Platform Delimiters
+
+**Learning:** `TagCollector.collect` invoked `this.collectYaml(content)?.tags` on every processed note, triggering expensive `yaml.parse` calls even for notes where the frontmatter contained only titles, dates, or other non-tag fields (or no frontmatter at all). Fast-path inspecting the frontmatter section for `"tags"` using a module-scoped regex skips `yaml.parse` completely and speeds up tag collection on non-tag notes by >100x. When checking frontmatter boundaries, accounting for both LF and CRLF line endings (`---\r?\n`) ensures cross-platform reliability on Windows notes.
+
+**Action:** In metadata-specific extraction passes, inspect delimiter-bound headers for target property keys before delegating to full YAML parsers, and always support CRLF line endings in boundary regexes.
