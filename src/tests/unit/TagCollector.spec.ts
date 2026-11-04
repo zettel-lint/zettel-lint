@@ -78,3 +78,19 @@ test('empty file has no tags', () => {
     expect(sut.collector("file.md", "Content with #12345678 and #tag1", { ignoreNumericTags: false }))
       .toEqual(["#12345678", "#tag1"]);
   });
+
+  test('handles frontmatter without tags property correctly', () => {
+    var sut = new TagCollector();
+    expect(sut.collect("---\ntitle: No Tags Here\ndate: 2026-04-08\n---\nBody with #inline tag."))
+      .toEqual(["#inline"]);
+  });
+
+  test('supports CRLF frontmatter tags and frontmatter without trailing newline', () => {
+    var sut = new TagCollector();
+    expect(sut.collect("---\r\ntags: [crlf, windows]\r\n---\r\nBody text"))
+      .toEqual(expect.arrayContaining(["#crlf", "#windows"]));
+    expect(sut.collect("---\ntags: [notrailing]\n---"))
+      .toEqual(["#notrailing"]);
+    expect(sut.collect("---\r\ntitle: Windows No Tags\r\n---\r\nBody with #crlftag"))
+      .toEqual(["#crlftag"]);
+  });
