@@ -25,7 +25,16 @@ export class PropertyCollector extends RegexCollector {
   collectProperties(content: string, regexes: Array<RegExp> = []): {properties: YamlHeaders, hasInline: boolean} {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
-    const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
+
+    // Performance optimization: Accumulate keys directly from Object.create(null) sources
+    // to avoid intermediate Object.keys arrays and array spread [...a, ...b] allocations.
+    const allKeys = new Set<string>();
+    for (const key in yaml) {
+      allKeys.add(key);
+    }
+    for (const key in pairs) {
+      allKeys.add(key);
+    }
     const result: YamlHeaders = Object.create(null);
 
     // Performance optimization: Avoid mapping/allocating new RegExp instances when regexes array is empty.
@@ -34,9 +43,9 @@ export class PropertyCollector extends RegexCollector {
       : [];
 
     let hasInline = false;
-    // Performance optimization: Reuse array references directly when only one source exists
-    // instead of creating redundant intermediate Sets and Array spreads for every key.
-    allKeys.forEach(key => {
+    // Performance optimization: Direct for...of Set iteration avoids callback closure allocations
+    // and reuses array references directly when only one property source exists.
+    for (const key of allKeys) {
       const yamlValues = yaml[key];
       const pairValues = pairs[key];
       const hasYaml = yamlValues !== undefined && yamlValues.length > 0;
@@ -59,7 +68,7 @@ export class PropertyCollector extends RegexCollector {
           result[key] = pairValues;
         }
       }
-    });
+    }
 
     return { properties: result, hasInline };
   }
