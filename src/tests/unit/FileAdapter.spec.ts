@@ -106,6 +106,34 @@ describe("FileAdapter contract and integration", () => {
     expect(memory.createdDirs).toEqual(new Set());
   });
 
+  it("indexes *.txt files but excludes done*.txt files", async () => {
+    const memory = new MemoryFileAdapter();
+    memory.files.set(toFilePath("note.md"), "# Note\n- [ ] Task in note");
+    memory.files.set(toFilePath("todo.txt"), "- [ ] Task in todo txt\nx 2026-04-04 Completed task");
+    memory.files.set(toFilePath("tasks/subproject.txt"), "* [ ] Subproject task");
+    memory.files.set(toFilePath("done.txt"), "x 2026-04-01 Archived task");
+    memory.files.set(toFilePath("tasks/done-archive.txt"), "x 2026-04-02 Old task");
+    memory.files.set(
+      toFilePath("template.mustache"),
+      "Notes:\n{{#notes}}\n- {{filename}}\n{{/notes}}\nTasks:\n{{#Tasks}}\n* {{{key}}}\n{{/Tasks}}",
+    );
+
+    const options: ZlIndexOptions = {
+      ...indexOptions(),
+      taskDisplay: "by-priority",
+    };
+
+    const references = await indexer(options, memory);
+    const filenames = references.map((r) => r.filename).sort();
+    expect(filenames).toEqual(["note.md", "subproject.txt", "todo.txt"]);
+
+    const referencesContent = memory.files.get(toFilePath("references.md"));
+    expect(referencesContent).toContain("Task in todo txt");
+    expect(referencesContent).toContain("Subproject task");
+    expect(referencesContent).not.toContain("Archived task");
+    expect(referencesContent).not.toContain("Old task");
+  });
+
   it("runs fixNotes with an in-memory adapter", async () => {
     const memory = new MemoryFileAdapter();
     memory.files.set(toFilePath("note.md"), "# My Note\n[author:: Alice]");
