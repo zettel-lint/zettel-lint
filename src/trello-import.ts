@@ -261,9 +261,11 @@ export default class TrelloImport implements BaseImporter {
         filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
       }
-      // Sanitise fileName to prevent path traversal
-      const safeFileName = path.basename(attachment.fileName);
-      if (safeFileName === "." || safeFileName === "..") {
+      // Sanitise fileName to prevent cross-platform path traversal and dangerous names
+      const normalizedFileName = attachment.fileName.replace(/\\/g, "/");
+      const safeFileName = path.posix.basename(normalizedFileName);
+      if (!safeFileName || safeFileName === "." || safeFileName === ".." ||
+          safeFileName === "__proto__" || safeFileName === "constructor" || safeFileName === "prototype") {
         filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
       }
