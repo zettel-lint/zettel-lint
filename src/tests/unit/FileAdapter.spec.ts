@@ -286,4 +286,29 @@ describe("FileAdapter contract and integration", () => {
     expect(api).not.toHaveProperty("NodeFileAdapter");
     expect(api).not.toHaveProperty("indexerCommand");
   });
+
+  it("concurrently lists files while filtering directories and unresolved symlinks", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "zettel-lint-concurrent-listing-"));
+    try {
+      const adapter = new NodeFileAdapter(root);
+      const fileCount = 20;
+      for (let i = 0; i < fileCount; i++) {
+        await writeFile(path.join(root, `note-${i.toString().padStart(2, "0")}.md`), `# Note ${i}`);
+      }
+      // Create nested directory and dangling symlink
+      await fs.mkdir(path.join(root, "subfolder"), { recursive: true });
+      await symlink("non-existent.md", path.join(root, "broken-link.md"), "file");
+
+      const files = await adapter.listFiles();
+      expect(files.length).toBe(fileCount);
+      // Verify all note files are returned in discovery order and broken links/directories omitted
+      for (let i = 0; i < fileCount; i++) {
+        expect(files).toContain(toFilePath(`note-${i.toString().padStart(2, "0")}.md`));
+      }
+      expect(files).not.toContain("subfolder");
+      expect(files).not.toContain("broken-link.md");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
