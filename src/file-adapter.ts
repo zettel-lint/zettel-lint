@@ -51,32 +51,33 @@ export class NodeFileAdapter implements FileAdapter {
       }
     }
 
-    // Performance optimization: Resolve symlink containment and check isFile() concurrently
-    // using Promise.all while preserving candidate discovery order (~3.8x faster on large repositories).
-    const resolved = await Promise.all(
-      candidatePaths.map(async (filepath) => {
-        const relativePath = toFilePath(filepath);
-        let absolutePath: string;
-        try {
-          absolutePath = await this.resolveContained(relativePath);
-        } catch (error) {
-          if (error instanceof UnresolvedSymlinkError) {
-            return null;
-          }
-          throw error;
-        }
-        if ((await fs.stat(absolutePath)).isFile()) {
-          return relativePath;
-        }
-        return null;
-      }),
-    );
-
+    // Bound concurrent containment and file checks while preserving discovery order.
+    const fileConcurrency = 16;
     const files: FilePath[] = [];
-    for (let i = 0; i < resolved.length; i++) {
-      const item = resolved[i];
-      if (item !== null) {
-        files.push(item);
+    for (let offset = 0; offset < candidatePaths.length; offset += fileConcurrency) {
+      const resolved = await Promise.all(
+        candidatePaths.slice(offset, offset + fileConcurrency).map(async (filepath) => {
+          const relativePath = toFilePath(filepath);
+          let absolutePath: string;
+          try {
+            absolutePath = await this.resolveContained(relativePath);
+          } catch (error) {
+            if (error instanceof UnresolvedSymlinkError) {
+              return null;
+            }
+            throw error;
+          }
+          if ((await fs.stat(absolutePath)).isFile()) {
+            return relativePath;
+          }
+          return null;
+        }),
+      );
+
+      for (const item of resolved) {
+        if (item !== null) {
+          files.push(item);
+        }
       }
     }
     return files;

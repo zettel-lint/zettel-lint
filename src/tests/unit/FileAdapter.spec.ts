@@ -311,4 +311,47 @@ describe("FileAdapter contract and integration", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("bounds candidate checks in batches and preserves discovery order", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "zettel-lint-list-batches-"));
+    const paths = Array.from({ length: 35 }, (_, i) => toFilePath(`note-${i}.md`));
+    const pending: Array<() => Promise<void>> = [];
+    let completed = 0;
+    let listing: Promise<FilePath[]> | undefined;
+    try {
+      await Promise.all(paths.map((file) => writeFile(path.join(root, file), "note")));
+      const realpathSpy = vi.spyOn(fs, "realpath");
+      vi.spyOn(fs, "stat").mockImplementation((target: Parameters<typeof fs.stat>[0]) =>
+        new Promise((resolve, reject) => {
+          pending.push(async () => {
+            try {
+              const result = await stat(target);
+              completed++;
+              resolve(result);
+            } catch (error) {
+              reject(error);
+            }
+          });
+        }),
+      );
+
+      listing = new NodeFileAdapter(root).listFiles(paths.map(toSearchPattern));
+      for (let offset = 0; offset < paths.length; offset += 16) {
+        const batchEnd = Math.min(offset + 16, paths.length);
+        await vi.waitFor(() => expect(pending).toHaveLength(batchEnd));
+        expect(realpathSpy.mock.calls.filter((args: unknown[]) => args[0] === root)).toHaveLength(batchEnd);
+        // Finish all but one check in reverse order; the next batch must still wait.
+        await Promise.all(pending.slice(offset + 1, batchEnd).reverse().map((finish) => finish()));
+        expect(completed).toBe(batchEnd - 1);
+        expect(pending).toHaveLength(batchEnd);
+        await pending[offset]();
+      }
+      expect(await listing).toEqual(paths);
+    } finally {
+      vi.restoreAllMocks();
+      await Promise.all(pending.map((finish) => finish()));
+      await listing?.catch(() => {});
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
