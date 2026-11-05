@@ -318,6 +318,45 @@ describe('TrelloImport', () => {
       expect(result).toEqual(['[External Link](https://example.com/page)']);
     });
 
+    test('handles a non-upload with a fileName as a link', async () => {
+      const attachment = createAttachmentInfo({
+        isUpload: false,
+        fileName: 'page.html',
+        name: 'External Link',
+        url: 'https://example.com/page',
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual(['[External Link](https://example.com/page)']);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    test('uses fileName to classify older attachments without isUpload', async () => {
+      const attachments = [
+        createAttachmentInfo({ isUpload: undefined, fileName: '', name: 'Link' }),
+        createAttachmentInfo({ isUpload: undefined, fileName: 'file.png', name: 'File' }),
+      ];
+
+      const result = await importer.saveAttachments('/output/', options, attachments);
+
+      expect(result).toEqual([
+        '[Link](https://example.com/attachment.png)',
+        '![File](/output/file.png)',
+      ]);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+    });
+
+    test('rejects unsafe URLs for non-uploads with a fileName', async () => {
+      const attachment = createAttachmentInfo({ isUpload: false, fileName: 'page.html', url: 'javascript:alert(1)' });
+
+      expect(await importer.saveAttachments('/output/', options, [attachment])).toEqual([]);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
     test.each([
       ['http:', ''],
       ['https:', ''],
@@ -1185,6 +1224,7 @@ describe('TrelloImport', () => {
         desc: 'See [Target](https://trello.com/c/target123/1-target-note) and https://trello.com/c/target123 and https://trello.com/c/external123.',
         attachments: [
           createAttachmentInfo({ name: 'Linked Card', url: 'https://trello.com/c/target123/1-target-note', fileName: '' }),
+          createAttachmentInfo({ name: 'Named Linked Card', url: 'https://trello.com/c/target123/other-slug', isUpload: false, fileName: 'card.html' }),
           createAttachmentInfo({ name: 'External Link', url: 'https://example.com/doc', fileName: '' }),
         ],
       });
@@ -1203,7 +1243,10 @@ describe('TrelloImport', () => {
       const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string;
       expect(content).toContain(`See [Target](./${targetFilename}) and [./${targetFilename}](./${targetFilename}) and https://trello.com/c/external123.`);
       expect(content).toContain(`* [Linked Card](./${targetFilename})`);
+      expect(content).toContain(`* [Named Linked Card](./${targetFilename})`);
       expect(content).toContain('* [External Link](https://example.com/doc)');
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).toHaveBeenCalledTimes(2);
     });
 
     test('processes board with all entity types', async () => {

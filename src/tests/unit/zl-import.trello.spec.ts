@@ -123,7 +123,7 @@ describe('TrelloImport.saveAttachments security', () => {
         date: new Date(),
         edgeColor: "#000000",
         idMember: "",
-        isUpload: false,
+        isUpload: true,
         mimeType: "application/x-sh",
         previews: [],
         pos: 0
@@ -137,7 +137,7 @@ describe('TrelloImport.saveAttachments security', () => {
         date: new Date(),
         edgeColor: "#000000",
         idMember: "",
-        isUpload: false,
+        isUpload: true,
         mimeType: "image/png",
         previews: [],
         pos: 1
@@ -151,7 +151,7 @@ describe('TrelloImport.saveAttachments security', () => {
         date: new Date(),
         edgeColor: "#000000",
         idMember: "",
-        isUpload: false,
+        isUpload: true,
         mimeType: "text/plain",
         previews: [],
         pos: 2
@@ -165,7 +165,7 @@ describe('TrelloImport.saveAttachments security', () => {
         date: new Date(),
         edgeColor: "#000000",
         idMember: "",
-        isUpload: false,
+        isUpload: true,
         mimeType: "text/plain",
         previews: [],
         pos: 3

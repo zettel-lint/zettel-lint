@@ -249,8 +249,9 @@ export default class TrelloImport implements BaseImporter {
     var filenames: string[] = [];
 
     for await (var attachment of attachments) {
+      const isLink = attachment.isUpload === false || attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "";
       const trelloTarget = cardLinkMap ? (cardLinkMap[attachment.url] ?? cardLinkMap[attachment.url?.split("/").slice(0, 5).join("/")]) : undefined;
-      if (trelloTarget && (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "")) {
+      if (trelloTarget && isLink) {
         filenames.push("[" + attachment.name + "](" + trelloTarget + ")");
         continue;
       }
@@ -262,7 +263,7 @@ export default class TrelloImport implements BaseImporter {
         }
         continue;
       }
-      if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
+      if (isLink) {
         // It's a URL
         filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
