@@ -56,6 +56,7 @@ class TrelloCardInfo {
   readonly isTemplate: boolean = false;
   readonly name: string = "";
   readonly shortUrl: string = "";
+  readonly url?: string = "";
 }
 
 class TrelloLabelInfo {
@@ -309,11 +310,11 @@ export default class TrelloImport implements BaseImporter {
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; },
-      comments? : TrelloCommentInfo[]) : Promise<boolean> {
+      comments? : TrelloCommentInfo[],
+      cardLinkMap? : { [url: string]: string }) : Promise<boolean> {
     const activityDate = new Date(card.dateLastActivity).toISOString();
     const outputFilename :string = path.join(outputFolder,
-      sortableDate(activityDate) +
-      "-" + this.sanitiseName(card) + ".md");
+      this.getCardFilename(card));
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
@@ -335,10 +336,11 @@ export default class TrelloImport implements BaseImporter {
       "\n\n## " + card.name +
       "\n\n";
     
+    const desc = this.rewriteTrelloLinks(card.desc, cardLinkMap);
     try {
       await fs.writeFile(outputFilename,
         header + 
-        card.desc + 
+        desc +
         (card.idChecklists.length > 0 ? `\n\n---\n\n## Checklists\n\n${card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n")}` : "") +
         (comments && comments.length > 0 ? `\n\n---\n\n## Comments\n\n${this.writeComments(comments)}` : "") +
         (filenames.length > 0 ? `\n\n---\n\n## Attachments\n\n* ${filenames.join("\n* ")}` : "")
@@ -348,6 +350,29 @@ export default class TrelloImport implements BaseImporter {
       console.error(`Could not write file ${outputFilename} because ${error}`);
     }
     return false;
+  }
+
+  public getCardFilename(card: TrelloCardInfo): string {
+    const activityDate = new Date(card.dateLastActivity).toISOString();
+    return sortableDate(activityDate) + "-" + this.sanitiseName(card) + ".md";
+  }
+
+  /**
+   * Re-writes trello.com card links into markdown file links using a link mapping.
+   */
+  public rewriteTrelloLinks(text: string, cardLinkMap?: { [url: string]: string }): string {
+    if (!text || !cardLinkMap) return text;
+    return text
+      .replace(/\[([^\]]+)\]\((https?:\/\/trello\.com\/c\/[^\s\)]+)\)/g, (match, linkText, url) => {
+        const norm = url.split("/").slice(0, 5).join("/");
+        const target = cardLinkMap[url] ?? cardLinkMap[norm];
+        return target ? `[${linkText}](${target})` : match;
+      })
+      .replace(/(?<!\()https?:\/\/trello\.com\/c\/[a-zA-Z0-9]+(?:\/[^\s\)\'\"<>]*)?/g, (url) => {
+        const norm = url.split("/").slice(0, 5).join("/");
+        const target = cardLinkMap[url] ?? cardLinkMap[norm];
+        return target ? `[${target}](${target})` : url;
+      });
   }
 
   private sanitiseName(card: TrelloCardInfo) {
@@ -398,8 +423,16 @@ export default class TrelloImport implements BaseImporter {
       for (const cardId in cardComments) {
         cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
       }
+      const cardLinkMap: { [url: string]: string } = Object.create(null);
+      for (const card of notes.cards) {
+        if (!card.closed && !card.isTemplate && !lists[card.idList]?.closed) {
+          const targetRelPath = "./" + this.getCardFilename(card);
+          if (card.shortUrl) cardLinkMap[card.shortUrl] = targetRelPath;
+          if (card.url) cardLinkMap[card.url] = targetRelPath;
+        }
+      }
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [])) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [], cardLinkMap)) {
           totalNotes++;
         }
       }

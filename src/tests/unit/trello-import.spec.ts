@@ -1172,6 +1172,34 @@ describe('TrelloImport', () => {
       expect(content).toContain("tags: ['Label_With_Spaces_']");
     });
 
+    test('rewrites trello card links in descriptions to relative markdown file references', async () => {
+      const card1 = createTrelloCardInfo({
+        id: 'c1',
+        name: 'Target Note',
+        shortUrl: 'https://trello.com/c/target123',
+        url: 'https://trello.com/c/target123/1-target-note',
+      });
+      const card2 = createTrelloCardInfo({
+        id: 'c2',
+        name: 'Source Note',
+        desc: 'See [Target](https://trello.com/c/target123/1-target-note) and https://trello.com/c/target123 and https://trello.com/c/external123.',
+      });
+      const list = createTrelloListInfo();
+      const board = createTrelloBoardInfo({
+        cards: [card1, card2],
+        lists: [list],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('*.json', '/output/', options);
+
+      expect(result.success).toBe(true);
+      const targetFilename = importer.getCardFilename(card1);
+      const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string;
+      expect(content).toContain(`See [Target](./${targetFilename}) and [./${targetFilename}](./${targetFilename}) and https://trello.com/c/external123.`);
+    });
+
     test('processes board with all entity types', async () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
