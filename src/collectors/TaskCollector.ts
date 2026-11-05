@@ -48,26 +48,30 @@ export class TaskCollector extends RegexCollector {
 	}
 
 	protected formatGroupByFilename(references: formatData[]): string {
-		return (
-			"" +
-			references
-				.filter((r) => r.data.length > 0)
-				.map(
-					(r) =>
-						"\n\n### " +
-						r.title +
-						" [" +
-						r.filename +
-						"](./" +
-						r.filename +
-						")\n\n" +
-						"<details>\n\n* " +
-						r.data.join("\n* ") +
-						"\n\n</details>",
-				)
-				.join("\n")
-		);
+		// Performance optimization: Replace .filter().map().join() chaining with
+		// indexed loop string building to eliminate intermediate array allocations.
+		let result = "";
+		for (let i = 0; i < references.length; i++) {
+			const r = references[i];
+			if (r.data.length > 0) {
+				if (result.length > 0) {
+					result += "\n";
+				}
+				result +=
+					"\n\n### " +
+					r.title +
+					" [" +
+					r.filename +
+					"](./" +
+					r.filename +
+					")\n\n<details>\n\n* " +
+					r.data.join("\n* ") +
+					"\n\n</details>";
+			}
+		}
+		return result;
 	}
+
 	readonly dataName = "Tasks";
 	// Regex:
 	// Find lines starting "[ ]", "1 [ ]", "- [ ]" or "* [ ]" or "(A)" for checklist or todo.txt tasks
