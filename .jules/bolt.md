@@ -73,3 +73,9 @@
 **Learning:** In `PropertyCollector.collectProperties`, creating `new Set([...Object.keys(yaml), ...Object.keys(pairs)])` allocated 3 intermediate arrays per note processed during property extraction. Accumulating keys directly using `for...in` loops on `Object.create(null)` objects and iterating with `for...of` eliminates array wrapper allocations and closure callbacks. Additionally, fast-path checking `content.startsWith("---")` in `InlinePropertiesToFrontmatterRule` skips expensive multiline frontmatter regex searches for notes lacking frontmatter headers.
 
 **Action:** Accumulate dictionary keys directly with `for...in` loops instead of spreading `Object.keys()` arrays into Sets, and fast-path delimiter string checks before running section-stripping regular expressions.
+
+## 2026-11-04 - Closure Allocation Elimination in ContextCollector.format
+
+**Learning:** `ContextCollector.format` used `Object.keys(tagList).forEach(...)`, allocating closure callbacks and an iterator per invocation. Replacing `.forEach` with an indexed `for` loop over the keys array eliminates function closure allocations during reference formatting passes, reducing garbage collector overhead.
+
+**Action:** Prefer indexed `for` loops over `Array.prototype.forEach` in collector formatters and report generators to prevent closure callback churn.
