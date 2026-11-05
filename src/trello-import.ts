@@ -245,10 +245,15 @@ export default class TrelloImport implements BaseImporter {
     }).join("\n\n");
   }
 
-  async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
+  async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[], cardLinkMap?: { [url: string]: string }) : Promise<string[]> {
     var filenames: string[] = [];
 
     for await (var attachment of attachments) {
+      const trelloTarget = cardLinkMap ? (cardLinkMap[attachment.url] ?? cardLinkMap[attachment.url?.split("/").slice(0, 5).join("/")]) : undefined;
+      if (trelloTarget && (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "")) {
+        filenames.push("[" + attachment.name + "](" + trelloTarget + ")");
+        continue;
+      }
       // Validate attachment URL protocol to prevent malicious URI scheme injection (e.g., javascript:) and non-HTTP fetches
       const markdownUrl = toMarkdownHttpUrl(attachment.url);
       if (!markdownUrl) {
@@ -316,7 +321,7 @@ export default class TrelloImport implements BaseImporter {
     const outputFilename :string = path.join(outputFolder,
       this.getCardFilename(card));
 
-    const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
+    const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || [], cardLinkMap);
 
     const listName = lists[card.idList]?.name || "";
     const header = "---" +

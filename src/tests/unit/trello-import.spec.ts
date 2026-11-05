@@ -1183,6 +1183,10 @@ describe('TrelloImport', () => {
         id: 'c2',
         name: 'Source Note',
         desc: 'See [Target](https://trello.com/c/target123/1-target-note) and https://trello.com/c/target123 and https://trello.com/c/external123.',
+        attachments: [
+          createAttachmentInfo({ name: 'Linked Card', url: 'https://trello.com/c/target123/1-target-note', fileName: '' }),
+          createAttachmentInfo({ name: 'External Link', url: 'https://example.com/doc', fileName: '' }),
+        ],
       });
       const list = createTrelloListInfo();
       const board = createTrelloBoardInfo({
@@ -1198,6 +1202,8 @@ describe('TrelloImport', () => {
       const targetFilename = importer.getCardFilename(card1);
       const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string;
       expect(content).toContain(`See [Target](./${targetFilename}) and [./${targetFilename}](./${targetFilename}) and https://trello.com/c/external123.`);
+      expect(content).toContain(`* [Linked Card](./${targetFilename})`);
+      expect(content).toContain('* [External Link](https://example.com/doc)');
     });
 
     test('processes board with all entity types', async () => {
