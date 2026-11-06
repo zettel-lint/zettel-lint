@@ -38,9 +38,14 @@ export default function importerCommand() : Command<[], ZlImportOptions>{
 }
 
 function printHeader(program: ZlImportOptions): void {
-  const safeProgram = { ...program };  
-  if (safeProgram.trelloApiKey) safeProgram.trelloApiKey = '[REDACTED]';  
-  if (safeProgram.trelloToken) safeProgram.trelloToken = '[REDACTED]';  
+  const safeProgram: Record<string, any> = {};
+  for (const [key, value] of Object.entries(program)) {
+    if (/key|token|secret|password|credential|auth/i.test(key) && typeof value === 'string' && value.length > 0) {
+      safeProgram[key] = '[REDACTED]';
+    } else {
+      safeProgram[key] = value;
+    }
+  }
   console.log(JSON.stringify(safeProgram, null, 2));
   if (program.verbose) {
     clear();
