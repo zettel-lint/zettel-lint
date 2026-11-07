@@ -27,16 +27,18 @@ export abstract class Collector {
    * 4. Double-quoted strings ("...") and single-quoted strings ('...')
    */
   protected stripQuoted(content: string): string {
+    // Preserve whitespace boundaries so removing quotes cannot create new matches.
+    const mask = (quoted: string): string => quoted.replace(/[^\r\n]/g, " ");
     // Fenced code blocks: ```...``` or ~~~...~~~
-    let stripped = content.replace(/(?:```|~~~)[\s\S]*?(?:```|~~~)/g, "");
+    let stripped = content.replace(/(?:```|~~~)[\s\S]*?(?:```|~~~)/g, mask);
     // Inline code: `...`
-    stripped = stripped.replace(/`[^`\n]+`/g, "");
+    stripped = stripped.replace(/`[^`\n]+`/g, mask);
     // Blockquotes: lines starting with optional whitespace then >
-    stripped = stripped.replace(/^[ \t]*>.*$/gm, "");
+    stripped = stripped.replace(/^[ \t]*>.*$/gm, mask);
     // Double-quoted strings: "..."
-    stripped = stripped.replace(/"[^"\n]*"/g, "");
+    stripped = stripped.replace(/"[^"\n]*"/g, mask);
     // Single-quoted strings: '...' (with boundary checks to preserve contractions like don't, it's)
-    stripped = stripped.replace(/(?:^|[\s([{<])'[^'\n]+?'(?=[\s,.;:!?)]|$)/g, " ");
+    stripped = stripped.replace(/(?:^|[\s([{<])'[^'\n]+?'(?=[\s,.;:!?)]|$)/g, mask);
     return stripped;
   }
   protected shouldCollect(filename: string): boolean { return true; }
