@@ -386,6 +386,43 @@ describe('TrelloImport', () => {
       expect(result).toEqual([]);
     });
 
+    test.each(['http failure', 'network error', 'non-Error rejection'])('redacts attachment logs for %s', async (failure: string) => {
+      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const url = 'https://private-user:private-password@example.com/file?api%5Fkey=private-key&access_token=private-token&X-Amz-Signature=private-signature&download=1';
+      if (failure === 'http failure') {
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 403, statusText: 'Forbidden' });
+      } else {
+        const message = `Download failed for ${url}: 403 Forbidden`;
+        vi.mocked(fetch).mockRejectedValueOnce(failure === 'network error' ? new Error(message) : message);
+      }
+
+      const result = await importer.saveAttachments('/output/', { ...options, verbose: true }, [createAttachmentInfo({ url })]);
+
+      expect(fetch).toHaveBeenCalledWith(url);
+      expect(result).toEqual([]);
+      expect(fs.writeFile).not.toHaveBeenCalled();
+      for (const spy of [log, error]) {
+        const message = spy.mock.calls.flat().join(' ');
+        expect(message).not.toMatch(/private-(?:user|password|key|token|signature)/);
+        expect(message).toContain('api%5Fkey=[REDACTED]&access_token=[REDACTED]&X-Amz-Signature=[REDACTED]&download=1');
+      }
+      expect(error.mock.calls[0][0]).toContain('403 Forbidden');
+      log.mockRestore();
+      error.mockRestore();
+    });
+
+    test('redacts credentials in invalid URL warnings', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const url = 'not-a-url?access%5Ftoken=private-token&sig=private-signature';
+
+      await importer.saveAttachments('/output/', { ...options, verbose: true }, [createAttachmentInfo({ url })]);
+
+      expect(warn).toHaveBeenCalledWith('Skipping attachment with unsafe or invalid URL: not-a-url?access%5Ftoken=[REDACTED]&sig=[REDACTED]');
+      expect(fetch).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
+
     test('continues on error and logs to console', async () => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
@@ -951,6 +988,13 @@ describe('TrelloImport', () => {
           } : {}),
         });
       }
+    });
+
+    test.each(['key', 'token', 'secret', 'auth', 'password', 'api_key', 'API%5fKEY', 'access%5Ftoken', '%74oken', 'X-Goog-Signature'])('redacts decoded query name %s and preserves error details', async (name: string) => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error(`Request https://example.com/?safe=1&${name}=private-value): 401 Unauthorized`));
+
+      await expect(TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' }))
+        .rejects.toThrow(`Request https://example.com/?safe=1&${name}=[REDACTED]): 401 Unauthorized`);
     });
 
     test('downloads board by valid ID', async () => {

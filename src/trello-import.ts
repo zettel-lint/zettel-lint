@@ -148,7 +148,13 @@ function sortableDate(d: Date | string) : string {
 }
 
 function sanitizeErrorUrl(msg: string): string {
-  return msg.replace(/([?&](?:key|token|secret|auth|password)=)[^&]+/gi, "$1[REDACTED]");
+  // Match query values without consuming surrounding prose or Markdown delimiters.
+  return msg.replace(/([a-z][a-z0-9+.-]*:\/\/)[^/\s@]+@/gi, "$1[REDACTED]@")
+    .replace(/([?&])([^=&#\s"'<>()[\]]+)=([^&#\s"'<>()[\]]*)/g, (match, separator, name) => {
+      const decodedName = new URLSearchParams(`${name}=`).keys().next().value || "";
+      const sensitive = /^(?:key|api_key|token|access_token|secret|auth|password|signature|sig|credential|awsaccesskeyid|x-amz-.+|x-goog-.+)$/i;
+      return sensitive.test(decodedName) ? `${separator}${name}=[REDACTED]` : match;
+    });
 }
 
 /**
@@ -261,7 +267,7 @@ export default class TrelloImport implements BaseImporter {
       const markdownUrl = toMarkdownHttpUrl(attachment.url);
       if (!markdownUrl) {
         if (options.verbose) {
-          console.warn(`Skipping attachment with unsafe or invalid URL: ${attachment.url}`);
+          console.warn(sanitizeErrorUrl(`Skipping attachment with unsafe or invalid URL: ${attachment.url}`));
         }
         continue;
       }
@@ -280,7 +286,7 @@ export default class TrelloImport implements BaseImporter {
       }
       const outputFilename = path.join(outputFolder, safeFileName);
       if (options.verbose) {
-       console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
+       console.log(sanitizeErrorUrl(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`));
       }
       try {
         const response = await fetch(attachment.url);
@@ -292,7 +298,7 @@ export default class TrelloImport implements BaseImporter {
         filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error("Could not write file " + outputFilename + " because " + sanitizeErrorUrl(msg));
+        console.error(sanitizeErrorUrl("Could not write file " + outputFilename + " because " + msg));
       }
     }
     return filenames;
