@@ -60,6 +60,7 @@ export class TaskCollector extends RegexCollector {
 		// array allocations and callback closures per note formatted. (~40% faster)
 		let result = "";
 		for (let i = 0; i < references.length; i++) {
+			if (!(i in references)) continue;
 			const r = references[i];
 			if (r.data.length > 0) {
 				if (result.length > 0) {

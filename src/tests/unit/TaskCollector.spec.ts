@@ -92,3 +92,18 @@ test('empty file has no tasks', () => {
       "\n* (B) Low pri +note1 => [Note 1][1]"
     );
   });
+
+  test('skips sparse reference holes when grouping by filename', () => {
+    const sut = new TaskCollector();
+    const formatMethod = (sut as unknown as { formatGroupByFilename: (refs: unknown[]) => string }).formatGroupByFilename.bind(sut);
+    const references = new Array(7);
+    references[1] = { title: "First", filename: "first.md", data: ["[ ] Task A"] };
+    references[3] = { title: "Empty", filename: "empty.md", data: [] };
+    references[5] = { title: "Last", filename: "last.md", data: ["[ ] Task B"] };
+
+    expect(formatMethod(new Array(3))).toBe("");
+    expect(formatMethod(references)).toBe(
+      "\n\n### First [first.md](./first.md)\n\n<details>\n\n* [ ] Task A\n\n</details>\n" +
+      "\n\n### Last [last.md](./last.md)\n\n<details>\n\n* [ ] Task B\n\n</details>"
+    );
+  });
