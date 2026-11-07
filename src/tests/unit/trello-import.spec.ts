@@ -436,6 +436,39 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
+    test.each([
+      new Date('2024-01-15T10:00:00Z'),
+      '2024-01-15T10:00:00Z',
+      '2024-01-15T12:00:00+02:00',
+    ])('writes canonical activity dates for %s', async (dateLastActivity: Date | string) => {
+      const card = createTrelloCardInfo({ dateLastActivity });
+      const lists = { list1: createTrelloListInfo() };
+
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
+
+      const [filename, content] = vi.mocked(fs.writeFile).mock.calls[0];
+      const frontmatter = parse((content as string).split('---')[1]);
+      expect(frontmatter.created).toBe('2024-01-15T10:00:00.000Z');
+      expect(frontmatter.modified).toBe('2024-01-15T10:00:00.000Z');
+      expect(filename).toBe('/output/20240115100000-Test-Card.md');
+    });
+
+    test.each([
+      new Date('invalid'),
+      'invalid',
+      '',
+      '2024-01-15T10:00:00Z\ninjected: true',
+      '2024-01-15T10:00:00Z\r\ninjected: true',
+    ])('rejects invalid activity date %s before writing files', async (dateLastActivity: Date | string) => {
+      const card = createTrelloCardInfo({ dateLastActivity, attachments: [createAttachmentInfo()] });
+      const lists = { list1: createTrelloListInfo() };
+
+      await expect(importer.writeCard('/output/', options, 'Board', card, {}, lists)).rejects.toThrow(RangeError);
+
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
     test.each(['/output', '/output/'])('writes card and attachments inside %s', async (outputFolder: string) => {
       const card = createTrelloCardInfo({ attachments: [createAttachmentInfo()] });
       const lists = { list1: createTrelloListInfo() };
@@ -611,6 +644,24 @@ describe('TrelloImport', () => {
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
     });
 
+    test('escapes single quotes and newlines in frontmatter fields to prevent YAML injection', async () => {
+      const card = createTrelloCardInfo({ name: "Don't Panic\nInjected Key: value" });
+      const lists = { list1: createTrelloListInfo({ name: "List's Name\nEvil: true" }) };
+
+      await importer.writeCard('/output/', options, "User's Board\nInjected: true", card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      const frontmatter = content.split('---')[1];
+      const parsed = parse(frontmatter);
+
+      expect(parsed.title).toBe("Don't Panic Injected Key: value");
+      expect(parsed.board).toBe("User's Board Injected: true");
+      expect(parsed.list).toBe("List's Name Evil: true");
+      expect(parsed['Injected Key']).toBeUndefined();
+      expect(parsed['Injected']).toBeUndefined();
+      expect(parsed['Evil']).toBeUndefined();
+    });
+    
     test('escapes single quotes and newlines in card name, board name, and list name to prevent YAML injection', async () => {
       const card = createTrelloCardInfo({ name: "Card's Name\nmalicious: true" });
       const lists = { list1: createTrelloListInfo({ name: "List's Name\nother: false" }) };
