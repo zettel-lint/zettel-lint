@@ -74,6 +74,14 @@ export class PropertyCollector extends RegexCollector {
   }
 
   private collectPairs(content: string): YamlHeaders {
+    // Performance optimization: Fast-path return when content contains no '::' delimiter,
+    // avoiding regex execution when no inline properties can match.
+    if (content.indexOf("::") === -1) {
+      const emptyResult: YamlHeaders = Object.create(null);
+      emptyResult.tags = [];
+      return emptyResult;
+    }
+
     this.regex.lastIndex = 0; // Reset regex state
     // Performance optimization: Accumulate values into direct Sets during regex execution
     // to avoid allocating new Sets and array spreads [...new Set([...existing, ...values])] on every match.
