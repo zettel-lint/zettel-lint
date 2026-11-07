@@ -19,6 +19,7 @@ export class TaskCollector extends RegexCollector {
 
     references.forEach(ref => {
       const tags = ref.data;
+      if (!tags) return;
       tags.forEach(tag => {
         tasks.push(tag + this.projectFromFilename(ref.filename) + " => " + formatLink(ref));
       });

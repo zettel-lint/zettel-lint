@@ -26,7 +26,7 @@ export class IdToWikiLinksRule extends BaseRule {
 
 		files.forEach((f) => {
 			const id = idFromFilename(f);
-			if (id && id.trim() !== "") {
+			if (/^\d+$/.test(id)) {
 				let relPath = relative(rootPath, f).replace(/\\/g, "/");
 				if (relPath.endsWith(".md")) {
 					relPath = relPath.slice(0, -3);
@@ -63,25 +63,26 @@ export class IdToWikiLinksRule extends BaseRule {
 				const line = lines[i];
 				// Match line like: key: [id1, id2]
 				const keyBracketMatch = line.match(
-					/^(\s*[\w.-]+\s*:)\s*\[([^\]]+)\]\s*$/,
+					/^(\s*[\w.-]+\s*:)\s*\[(.*)\]\s*$/,
 				);
 				if (keyBracketMatch) {
 					const keyPrefix = keyBracketMatch[1];
+					const indent = line.match(/^\s*/)![0] + "  ";
 					const rawItems = keyBracketMatch[2]
 						.split(",")
-						.map((s) => s.trim().replace(/^['"]|['"]$/g, ""));
+						.map((s) => s.trim());
 
 					let hasResolvableId = false;
 					const blockItems: string[] = [];
 
 					for (const item of rawItems) {
-						const cleanId = item.replace(/^\[|\]$/g, "");
-						const mapped = this.links[`[${cleanId}]`];
+						const cleanId = item.replace(/^['"]|['"]$/g, "").replace(/^\[|\]$/g, "");
+						const mapped = /^\d+$/.test(cleanId) ? this.links[`[${cleanId}]`] : undefined;
 						if (mapped) {
 							hasResolvableId = true;
-							blockItems.push(`  - "${mapped}"`);
+							blockItems.push(`${indent}- "${mapped}"`);
 						} else {
-							blockItems.push(`  - ${item}`);
+							blockItems.push(`${indent}- ${item}`);
 						}
 					}
 
@@ -91,7 +92,9 @@ export class IdToWikiLinksRule extends BaseRule {
 						continue;
 					}
 				}
-				newLines.push(line);
+				const sequenceMatch = line.match(/^(\s*-\s*)(['"]?)\[(\d+)\]\2(\s*(?:#.*)?)$/);
+				const mapped = sequenceMatch && this.links[`[${sequenceMatch[3]}]`];
+				newLines.push(mapped ? `${sequenceMatch![1]}"${mapped}"${sequenceMatch![4]}` : line);
 			}
 
 			updatedFrontmatter = newLines.join(eol);

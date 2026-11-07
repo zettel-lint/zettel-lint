@@ -1587,6 +1587,20 @@ title: References
     });
 
 
+    test('should support the distinct alias', () => {
+      const notes = [
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#tag1', '#tag1'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#tag1', '#tag2'] } }
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      const result = sut.render("{{?Tags?DiStInCt()//}}* {{key}}\n{{/?Tags}}");
+      expect(result).toContain("* #tag1");
+      expect(result).toContain("* #tag2");
+      const countTag1 = (result.match(/\* #tag1/g) || []).length;
+      expect(countTag1).toBe(1);
+    });
+
+
     test('should deduplicate nested value arrays inside collector objects', () => {
       const notes = [
         { id: 'a', wikiname: 'a', filename: './a.md', title: 'Note A', fullpath: '', matchData: { Links: ['[target]'] } },

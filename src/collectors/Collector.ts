@@ -31,11 +31,11 @@ export abstract class Collector {
   private readonly yamlSep = "---\n";
   protected collectYaml(content: string) : YamlHeaders {
     if (!content.startsWith(this.yamlSep)){
-      return {tags: undefined};
+      return Object.assign(Object.create(null), { tags: undefined });
     }
     const header = content.substring(this.yamlSep.length, content.indexOf(this.yamlSep, this.yamlSep.length));
     const yamlData = parse(header);
-    const result: YamlHeaders = { };
+    const result: YamlHeaders = Object.create(null);
 
     if (!yamlData || typeof yamlData !== 'object') {
       return result;

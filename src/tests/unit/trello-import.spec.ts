@@ -574,6 +574,31 @@ describe('TrelloImport', () => {
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
     });
 
+
+    test('renders only each card comments in chronological order', async () => {
+      const comment = (id: string, date: string, text: string, type = 'commentCard') => ({
+        type, date, data: { card: { id }, text }, memberCreator: { fullName: 'Author' }
+      });
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo()],
+        actions: [
+          comment('card1', '2024-02-02T00:00:00Z', 'Later comment'),
+          comment('other', '2024-01-01T00:00:00Z', 'Other card'),
+          comment('card1', '2024-01-01T00:00:00Z', 'Earlier comment'),
+          comment('card1', '2024-01-01T00:00:00Z', 'Not a comment', 'updateCard')
+        ]
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+      await importer.importAsync('board.json', '/output/', options);
+      const output = String(vi.mocked(fs.writeFile).mock.calls[0][1]);
+      expect(output).toContain('## Comments');
+      expect(output).toContain('Author');
+      expect(output.indexOf('Earlier comment')).toBeLessThan(output.indexOf('Later comment'));
+      expect(output).not.toContain('Other card');
+      expect(output).not.toContain('Not a comment');
+    });
+
     test('returns error when no files match glob pattern', async () => {
       vi.mocked(glob).mockResolvedValue([]);
 

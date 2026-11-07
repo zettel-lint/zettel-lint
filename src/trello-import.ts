@@ -70,6 +70,12 @@ class TrelloListInfo {
   readonly closed: boolean = false;
 }
 
+interface TrelloComment {
+  date: string;
+  data: { text: string; card: { id: string } };
+  memberCreator?: { fullName?: string; username?: string };
+}
+
 class TrelloBoardInfo {
   readonly id: string = "";
   readonly name: string = "";
@@ -211,7 +217,7 @@ export default class TrelloImport implements BaseImporter {
   }
 
   /**
-   * Writes or overwrites a Markdown note with frontmatter, description, checklists,
+   * Writes or overwrites a Markdown note with frontmatter, description, comments, checklists,
    * and attachment links. File attachments are downloaded under outputFolder/attachments.
    * Failed attachment downloads or writes are omitted without failing the note.
    *
@@ -228,7 +234,8 @@ export default class TrelloImport implements BaseImporter {
       boardName: string,
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
-      lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
+      lists : { [id: string]: TrelloListInfo; },
+      comments: TrelloComment[] = []) : Promise<boolean> {
     const outputFilename :string = path.join(outputFolder,
       sortableDate(card.dateLastActivity) +
       "-" + this.sanitiseName(card) + ".md");
@@ -256,7 +263,11 @@ export default class TrelloImport implements BaseImporter {
     try {
       await fs.writeFile(outputFilename,
         header + 
-        card.desc + 
+        card.desc +
+        (comments.length > 0 ? "\n\n---\n\n## Comments\n\n" + [...comments]
+          .sort((a, b) => Date.parse(a.date) - Date.parse(b.date))
+          .map(comment => `### ${comment.date} ${comment.memberCreator?.fullName || comment.memberCreator?.username || ""}\n\n${comment.data.text}`)
+          .join("\n\n") : "") +
 
         (card.idChecklists.length > 0 ? "\n\n---\n\n## Checklists\n\n" + card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") : "") +
         (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
@@ -301,7 +312,9 @@ export default class TrelloImport implements BaseImporter {
         labels[label.id] = label;
       })
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
+        const comments: TrelloComment[] = (notes.actions || []).filter(action =>
+          action.type === "commentCard" && action.data?.card?.id === note.id);
+        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, comments)) {
           totalNotes++;
         }
       }

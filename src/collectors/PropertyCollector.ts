@@ -26,7 +26,7 @@ export class PropertyCollector extends RegexCollector {
     const pairs = this.collectPairs(content);
     const yaml = this.collectYaml(content);
     const allKeys = new Set([...Object.keys(yaml), ...Object.keys(pairs)]);
-    const result: YamlHeaders = { };
+    const result: YamlHeaders = Object.create(null);
     // Only grab pairs that match a regex, if any are provided
     // Normalise supplied regexes to avoid stateful /g behaviour.
     const safeRegexes = regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r));
@@ -51,7 +51,7 @@ export class PropertyCollector extends RegexCollector {
 
   private collectPairs(content: string): YamlHeaders {
     this.regex.lastIndex = 0; // Reset regex state
-    const result: YamlHeaders = { tags: [] };
+    const result: YamlHeaders = Object.assign(Object.create(null), { tags: [] });
     let match: RegExpExecArray | null;
 
     while ((match = this.regex.exec(content)) !== null) {

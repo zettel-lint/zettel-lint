@@ -77,4 +77,24 @@ Link [00000000] and unresolved [99999999].
 		expect(generatedMap["[00000000]"]).toBe("[[00000000-dummy-file]]");
 		expect(generatedMap["[00000001]"]).toBe("[[sub/00000001-another-file]]");
 	});
+
+	it("rejects nonnumeric filenames and supplied mappings", () => {
+		expect(IdToWikiLinksRule.buildLinkMap(["notes/active-note.md"], "notes")).toEqual({});
+		const input = "---\nstatus: [active]\nreferences: [active, 00000001]\n---\n[active]";
+		const custom = new IdToWikiLinksRule({ ...linkMap, "[active]": "[[active-note]]" });
+		expect(custom.fix(input, "")).toContain("status: [active]");
+		expect(custom.fix(input, "")).toContain("  - active");
+		expect(custom.fix(input, "")).not.toContain("[[active-note]]");
+		custom.setLinkMap({ "[active]": "[[active-note]]" });
+		expect(custom.fix(input, "")).toBe(input);
+	});
+
+	it("preserves nested flow and sequence references as YAML children", () => {
+		const input = '---\nmetadata:\n  references: ["[00000001]", "active"]\n  other:\n    - "[20230901]" # note\n    - "[99999999]"\n---\n';
+		const output = rule.fix(input, "");
+		expect(output).toContain('  references:\n    - "[[sub/00000001-another-file]]"\n    - "active"');
+		expect(output).toContain('    - "[[20230901-note]]" # note');
+		expect(output).toContain('    - "[99999999]"');
+		expect(rule.fix(output, "")).toBe(output);
+	});
 });

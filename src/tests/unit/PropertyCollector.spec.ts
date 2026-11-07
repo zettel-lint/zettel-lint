@@ -78,3 +78,17 @@ test('filters correctly when regex has global flag', () => {
     sut.collectProperties("---\n---\n\n[tag:: v] [tag-extra:: v2]", [/^tag$/g])
   ).toEqual({ hasInline: true, properties: { tag: ['v'] } });
 });
+test('preserves prototype-like YAML and inline keys through rebuilding', () => {
+  const sut = new PropertyCollector();
+  for (const content of [
+    '---\n__proto__: yaml\nconstructor: yaml\ntoString: yaml\n---\n[__proto__:: inline] [constructor:: inline] [toString:: inline]',
+    '[__proto__:: inline] [constructor:: inline] [toString:: inline]'
+  ]) {
+    const properties = sut.collectProperties(content).properties;
+    for (const key of ['__proto__', 'constructor', 'toString']) {
+      expect(Object.prototype.hasOwnProperty.call(properties, key)).toBe(true);
+      expect(properties[key]).toContain('inline');
+    }
+    expect(sut.writeHeader(properties)).toContain('__proto__:');
+  }
+});
