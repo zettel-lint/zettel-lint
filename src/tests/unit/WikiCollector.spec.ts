@@ -47,3 +47,16 @@ test('empty file has no links', () => {
 `;
     expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["[[Valid-Link]]"]);
   });
+
+  test('ignoring quoted text does not join fragments into wiki links', () => {
+    const sut = new WikiCollector();
+    const content = '[`code`[Inline-Link]] [[Double"quote"Link]] [[Single \'quote\' Link]]';
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual([]);
+  });
+
+  test('ignoring fenced code preserves surrounding line boundaries', () => {
+    const sut = new WikiCollector();
+    const content = '[[Before]]\n```\n[[Hidden]]\n```\n[[After]]';
+    expect(sut.collector("test.md", content, { ignoreQuoted: true }))
+      .toEqual(["[[Before]]", "[[After]]"]);
+  });
