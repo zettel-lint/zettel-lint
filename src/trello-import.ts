@@ -147,6 +147,16 @@ function sortableDate(d: Date | string) : string {
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
+function sanitizeErrorUrl(msg: string): string {
+  // Match query values without consuming surrounding prose or Markdown delimiters.
+  return msg.replace(/([a-z][a-z0-9+.-]*:\/\/)[^/\s@]+@/gi, "$1[REDACTED]@")
+    .replace(/([?&])([^=&#\s"'<>()[\]]+)=([^&#\s"'<>()[\]]*)/g, (match, separator, name) => {
+      const decodedName = new URLSearchParams(`${name}=`).keys().next().value || "";
+      const sensitive = /^(?:key|api_key|token|access_token|secret|auth|password|signature|sig|credential|awsaccesskeyid|x-amz-.+|x-goog-.+)$/i;
+      return sensitive.test(decodedName) ? `${separator}${name}=[REDACTED]` : match;
+    });
+}
+
 /**
  * Returns content for a single-quoted YAML scalar, without surrounding quotes.
  * Doubles apostrophes and replaces each run of CR/LF characters with one space.
@@ -165,11 +175,16 @@ export type TrelloOptions = ImportOptions & {
 
 export default class TrelloImport implements BaseImporter {
   private static async fetchJsonOrThrow(url: string, context: string): Promise<any> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${context}: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${context}: ${response.status} ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error: any) {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(sanitizeErrorUrl(msg));
     }
-    return response.json();
   }
 
   /**
@@ -252,7 +267,7 @@ export default class TrelloImport implements BaseImporter {
       const markdownUrl = toMarkdownHttpUrl(attachment.url);
       if (!markdownUrl) {
         if (options.verbose) {
-          console.warn(`Skipping attachment with unsafe or invalid URL: ${attachment.url}`);
+          console.warn(sanitizeErrorUrl(`Skipping attachment with unsafe or invalid URL: ${attachment.url}`));
         }
         continue;
       }
@@ -271,7 +286,7 @@ export default class TrelloImport implements BaseImporter {
       }
       const outputFilename = path.join(outputFolder, safeFileName);
       if (options.verbose) {
-       console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
+       console.log(sanitizeErrorUrl(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`));
       }
       try {
         const response = await fetch(attachment.url);
@@ -282,7 +297,8 @@ export default class TrelloImport implements BaseImporter {
         await fs.writeFile(outputFilename, Buffer.from(data));
         filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
-        console.error("Could not write file " + outputFilename + " because " + error);
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(sanitizeErrorUrl("Could not write file " + outputFilename + " because " + msg));
       }
     }
     return filenames;
