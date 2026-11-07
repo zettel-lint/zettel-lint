@@ -72,3 +72,16 @@ test('empty file has no tasks', () => {
       '[ ] Checklist without due date +doc1 => [Doc 1][doc1]',
     ]);
   });
+
+  test('priority formatting ignores dates in filenames and reference links', () => {
+    const sut = new TaskCollector();
+    sut.collector('', '', { taskDisplay: 'by-priority' });
+    const output = sut.formatter([
+      { id: 'due:2018-01-01', filename: 'due:2020-01-01.md', title: 'due:2019-01-01',
+        fullpath: '', wikiname: '', matchData: { Tasks: ['(A) Alpha undated'] } },
+      { id: 'dated', filename: 'dated.md', title: 'Dated', fullpath: '', wikiname: '',
+        matchData: { Tasks: ['(A) Zulu due:2026-02-01'] } },
+    ]);
+    expect(output.indexOf('* (A) Zulu')).toBeLessThan(output.indexOf('* (A) Alpha'));
+    expect(output).toContain('(A) Alpha undated +due:2020-01-01 => [due:2019-01-01][due:2018-01-01]');
+  });
