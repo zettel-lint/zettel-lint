@@ -42,8 +42,28 @@ export class TaskCollector extends RegexCollector {
 		return ` +${filename.substring(0, filename.lastIndexOf("."))}`;
 	}
 
+	// Priority order: (A)-(Z) -> [ ] checklist -> unprioritized/other
+	// Within the same priority, sort by due:YYYY-MM-DD (earliest first, no due date last)
+	protected static compareTasks(a: string, b: string): number {
+		const getPriorityRank = (t: string): string => {
+			const m = /^\(([A-Z])\)/.exec(t);
+			if (m) return `0_${m[1]}`;
+			if (t.startsWith("[ ]")) return "1";
+			return "2";
+		};
+		const rankA = getPriorityRank(a);
+		const rankB = getPriorityRank(b);
+		if (rankA !== rankB) return rankA.localeCompare(rankB);
+
+		const dueA = /due:(\d{4}-\d{2}-\d{2})/.exec(a)?.[1] ?? "9999-99-99";
+		const dueB = /due:(\d{4}-\d{2}-\d{2})/.exec(b)?.[1] ?? "9999-99-99";
+		if (dueA !== dueB) return dueA.localeCompare(dueB);
+
+		return a.localeCompare(b);
+	}
+
 	protected formatSortByPriority(references: formatData[]): string {
-		const allTasks = this.getTasks(references).sort();
+		const allTasks = this.getTasks(references).sort(TaskCollector.compareTasks);
 		return `${allTasks.map((r) => `\n* ${r}`).join("\n")}`;
 	}
 
