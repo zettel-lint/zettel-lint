@@ -115,6 +115,7 @@ Fix markdown files based on a set of rules. Will update existing files or output
 Options:
 
 * `-p, --path <path>` - Root path for search (default: ".")
+* `-c, --config <path>` - Path to configuration file (JSON/YAML) or "-" for stdin
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
 * `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: the `--path` directory)
 * `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`)

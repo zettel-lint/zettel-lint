@@ -55,12 +55,43 @@ export async function fixNotes(
   );
   const prefix = program.path ? `${program.path}/` : "";
 
+  const ruleConfigMap = new Map((program.ruleConfigs ?? []).map((rc) => [rc.name, rc]));
+
+  function matchesGlob(filepath: string, pattern: string): boolean {
+    const normalized = filepath.replace(/\\/g, "/");
+    const escaped = pattern
+      .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+      .replace(/\*\*/g, ".*")
+      .replace(/(?<!\.)\*/g, "[^/]*")
+      .replace(/\?/g, "[^/]");
+    return new RegExp(`(^|/)${escaped}$`).test(normalized) || new RegExp(`^${escaped}$`).test(normalized);
+  }
+
+  function shouldRunRule(ruleName: string, filepath: string): boolean {
+    const config = ruleConfigMap.get(ruleName);
+    if (!config) return true;
+
+    if (config.include && config.include.length > 0) {
+      const included = config.include.some((pat) => matchesGlob(filepath, pat));
+      if (!included) return false;
+    }
+
+    if (config.exclude && config.exclude.length > 0) {
+      const excluded = config.exclude.some((pat) => matchesGlob(filepath, pat));
+      if (excluded) return false;
+    }
+
+    return true;
+  }
+
   await Promise.all(files.map(async (filename) => {
     try {
       let newContents = await adapter.readFile(filename);
       const originalContents = newContents;
       activeRules.forEach((rule) => {
-        newContents = rule.fix(newContents, filename);
+        if (shouldRunRule(rule.name, filename)) {
+          newContents = rule.fix(newContents, filename);
+        }
       });
       if (newContents !== originalContents) {
         const relativePath = filename.slice(prefix.length);
