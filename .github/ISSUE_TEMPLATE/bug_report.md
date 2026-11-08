@@ -20,7 +20,7 @@ A clear and concise description of what you expected to happen.
 
 **Environment:**
 - OS: Linux, macOS, or Windows
-- Node.js version: 20.x
+- Node.js version: Please provide the output of `node --version`.
 - zettel-lint version: Please provide your installed version.
 
 **Additional context**
