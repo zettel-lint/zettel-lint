@@ -132,6 +132,11 @@ function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
   }
 }
 
+function escapeMarkdownLinkText(val: string | undefined | null): string {
+  if (!val) return "";
+  return String(val).replace(/[\r\n]+/g, " ").replace(/([\\\[\]])/g, "\\$1");
+}
+
 function escapeYamlSingleQuote(val: string | undefined | null): string {
   if (!val) return "";
   return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
@@ -256,9 +261,11 @@ export default class TrelloImport implements BaseImporter {
         }
         continue;
       }
+      // Sanitise attachment name to prevent Markdown link injection and structure breakout
+      const safeName = escapeMarkdownLinkText(attachment.name);
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
       // Sanitise fileName to prevent cross-platform path traversal and dangerous names
@@ -266,7 +273,7 @@ export default class TrelloImport implements BaseImporter {
       const safeFileName = path.posix.basename(normalizedFileName);
       if (!safeFileName || safeFileName === "." || safeFileName === ".." ||
           safeFileName === "__proto__" || safeFileName === "constructor" || safeFileName === "prototype") {
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
       const outputFilename = path.join(outputFolder, safeFileName);
@@ -276,11 +283,11 @@ export default class TrelloImport implements BaseImporter {
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch attachment [${safeName}](${attachment.url}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push(`![${attachment.name}](${outputFilename})`);
+        filenames.push(`![${safeName}](${outputFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }

@@ -29,3 +29,8 @@
 **Vulnerability:** `saveAttachments` relied on `path.basename()` to sanitize untrusted `attachment.fileName`. On POSIX systems, `path.basename("..\\..\\evil.sh")` treats backslashes as regular filename characters and does not strip Windows directory separators, allowing paths with Windows separators to traverse directories or create filenames with path components.
 **Learning:** Node's default `path.basename()` is platform-dependent and does not recognize `\` as a separator on POSIX platforms.
 **Prevention:** Normalize backslashes to forward slashes (`fileName.replace(/\\/g, "/")`) and use `path.posix.basename()`, or validate against dangerous filenames (`__proto__`, `constructor`, `prototype`).
+
+## 2026-11-08 - Markdown Link Injection in Trello Attachment Names
+**Vulnerability:** `saveAttachments` directly interpolated untrusted `attachment.name` from imported Trello cards into Markdown link syntax (`[${attachment.name}](${markdownUrl})` and `![${attachment.name}](${outputFilename})`). An attacker could provide attachment names containing unescaped closing brackets `]` and newlines to break out of the link label, hijacking link targets to malicious URLs or injecting arbitrary Markdown structure.
+**Learning:** Sanitizing URL destinations and filenames is insufficient if the link text or image alt text contains unescaped Markdown link delimiters (`[`, `]`, `\`) or structural line breaks.
+**Prevention:** Always escape Markdown bracket delimiters and collapse newlines in user-controlled link text and alt text before constructing Markdown links.

@@ -339,6 +339,30 @@ describe('TrelloImport', () => {
       expect(fs.writeFile).not.toHaveBeenCalled();
     });
 
+    test('escapes Markdown syntax and newlines in attachment names for URL attachments', async () => {
+      const attachment = createAttachmentInfo({
+        fileName: '',
+        name: 'Evil Link](https://evil.com) [\nclick',
+        url: 'https://example.com/safe',
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual(['[Evil Link\\](https://evil.com) \\[ click](https://example.com/safe)']);
+    });
+
+    test('escapes Markdown syntax and newlines in attachment names for file attachments', async () => {
+      const attachment = createAttachmentInfo({
+        fileName: 'image.png',
+        name: 'Malicious Image](https://evil.com)\r\n[injected',
+        url: 'https://example.com/image.png',
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual(['![Malicious Image\\](https://evil.com) \\[injected](/output/image.png)']);
+    });
+
     test.each(['', '..', 'attachment.png'])('rejects unsafe or invalid URLs with fileName "%s"', async (fileName: string) => {
       const attachments = ['javascript:alert(1)', 'data:text/html,test', 'ftp://example.com/file', 'not a URL', '']
         .map(url => createAttachmentInfo({ fileName, url }));
