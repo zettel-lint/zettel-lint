@@ -1,6 +1,6 @@
 ---
-created: 2026-10-17T19:17:35.498Z
-modified: 2026-10-17T19:17:35.499Z
+created: 2025-08-28T23:48:16.471Z
+modified: 2025-08-28T23:48:16.472Z
 title: References
 ---
 
@@ -21,7 +21,7 @@ title: References
   * [00000001], [00000000],
   * No backlinks
 * [Readme][README] = `README.md`:
-  * [00000001], [00000000], [00000001], [[wiki-links]], [[wiki]], [00000000],
+  * [00000001], [00000000], [[wiki-links]], [[wiki]], [00000000],
   * No backlinks
 * [Contributing to the project][CONTRIBUTING] = `CONTRIBUTING.md`:
   * [[WikiLinks]], [[like-this]],
@@ -31,7 +31,7 @@ title: References
   * No backlinks
 * [00000001-another-file][00000001] = `00000001-another-file.md`:
   * No links
-  * [links], [README], [README],
+  * [links], [README],
 * [00000000-dummy-file][00000000] = `00000000-dummy-file.md`:
   * No links
   * [links], [README], [README],

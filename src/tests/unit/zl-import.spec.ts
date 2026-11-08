@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import importerCommand from "../../zl-import";
+import importerCommand from "../../cli/zl-import";
 import { ErrorResponse } from "../../base-importer";
 
 test('adds import to cli', () => {

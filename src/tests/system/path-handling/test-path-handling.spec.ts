@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import { join, sep } from 'node:path';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import fixerCommand from '../../../zl-fix';
+import fixerCommand from '../../../cli/zl-fix';
 
 describe('path handling integration tests', () => {
   let tempDir: string;

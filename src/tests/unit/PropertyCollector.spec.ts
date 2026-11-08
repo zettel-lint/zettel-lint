@@ -78,17 +78,20 @@ test('filters correctly when regex has global flag', () => {
     sut.collectProperties("---\n---\n\n[tag:: v] [tag-extra:: v2]", [/^tag$/g])
   ).toEqual({ hasInline: true, properties: { tag: ['v'] } });
 });
-test('preserves prototype-like YAML and inline keys through rebuilding', () => {
+
+test('handles built-in object properties safely without throwing or prototype collision', () => {
   const sut = new PropertyCollector();
-  for (const content of [
-    '---\n__proto__: yaml\nconstructor: yaml\ntoString: yaml\n---\n[__proto__:: inline] [constructor:: inline] [toString:: inline]',
-    '[__proto__:: inline] [constructor:: inline] [toString:: inline]'
-  ]) {
-    const properties = sut.collectProperties(content).properties;
-    for (const key of ['__proto__', 'constructor', 'toString']) {
-      expect(Object.prototype.hasOwnProperty.call(properties, key)).toBe(true);
-      expect(properties[key]).toContain('inline');
-    }
-    expect(sut.writeHeader(properties)).toContain('__proto__:');
-  }
+  const res = sut.collectProperties("[toString:: test] [valueOf:: val]");
+  expect(res.hasInline).toBe(true);
+  expect(res.properties.toString).toEqual(['test']);
+  expect(res.properties.valueOf).toEqual(['val']);
+});
+
+test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prototype pollution', () => {
+  const sut = new PropertyCollector();
+  const res = sut.collectProperties("---\n__proto__:\n  polluted: true\nconstructor: bad\n---\n\n[__proto__:: bad] [constructor:: bad] [prototype:: bad]");
+  expect(res.properties['__proto__']).toBeUndefined();
+  expect(res.properties.constructor).toBeUndefined();
+  expect(res.properties.prototype).toBeUndefined();
+  expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
 });

@@ -1586,18 +1586,14 @@ title: References
       expect(countTag1).toBe(1);
     });
 
-
-    test('should support the distinct alias', () => {
+    test('should support ?distinct() as a set alias', () => {
       const notes = [
-        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#tag1', '#tag1'] } },
-        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#tag1', '#tag2'] } }
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#work', '#work', '#urgent'] } },
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#work'] } },
       ];
       const sut = new Templator(notes, [new TagCollector()]);
-      const result = sut.render("{{?Tags?DiStInCt()//}}* {{key}}\n{{/?Tags}}");
-      expect(result).toContain("* #tag1");
-      expect(result).toContain("* #tag2");
-      const countTag1 = (result.match(/\* #tag1/g) || []).length;
-      expect(countTag1).toBe(1);
+      const result = sut.render("{{?Tags?distinct()//}}{{key}}:{{#value}}{{id}},{{/value}};{{/?Tags}}");
+      expect(result).toBe('#work:a,b,;#urgent:a,;');
     });
 
 
@@ -1642,5 +1638,39 @@ title: References
       const sut = new Templator(notes);
       const result = sut.render("{{?notes?set(title)//}}[{{title}}]{{/?notes}}");
       expect(result).toBe("[SameTitle][OtherTitle]");
+    });
+  });
+
+  describe('Templator security checks on prototype property access', () => {
+    test('should block accessing sensitive prototype tags in query_filter', () => {
+      const sut = new Templator();
+      expect(sut.render("{{?__proto__//}}content{{/?__proto__}}")).toBe("{{`invalid tag: __proto__`}}");
+      expect(sut.render("{{?constructor//}}content{{/?constructor}}")).toBe("{{`invalid tag: constructor`}}");
+      expect(sut.render("{{?prototype//}}content{{/?prototype}}")).toBe("{{`invalid tag: prototype`}}");
+      expect(sut.render("{{?toString//}}content{{/?toString}}")).toBe("{{`invalid tag: toString`}}");
+      expect(sut.render("{{?valueOf//}}content{{/?valueOf}}")).toBe("{{`invalid tag: valueOf`}}");
+      expect(sut.render("{{?hasOwnProperty//}}content{{/?hasOwnProperty}}")).toBe("{{`invalid tag: hasOwnProperty`}}");
+    });
+
+    test('should ignore sensitive prototype keys in sort args', () => {
+      const notes = [
+        { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#b'] } },
+        { id: 'a', wikiname: 'a', filename: './a.md', title: 'A', fullpath: '', matchData: { Tags: ['#a'] } }
+      ];
+      const sut = new Templator(notes, [new TagCollector()]);
+      // Sorting by __proto__ should be safely ignored and default comparison applied
+      const result = sut.render("{{?Tags?sort(__proto__)//}}{{key}},{{/?Tags}}");
+      expect(result).toBe("#a,#b,");
+    });
+
+    test('should ignore sensitive prototype keys in set args', () => {
+      const notes = [
+        { id: 'n1', wikiname: 'n1', filename: './n1.md', title: 'Title1', fullpath: '', matchData: {} },
+        { id: 'n2', wikiname: 'n2', filename: './n2.md', title: 'Title2', fullpath: '', matchData: {} }
+      ];
+      const sut = new Templator(notes);
+      // set(__proto__) should safely fall back to default item key without throwing or prototype pollution
+      const result = sut.render("{{?notes?set(__proto__)//}}[{{id}}]{{/?notes}}");
+      expect(result).toBe("[n1][n2]");
     });
   });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import indexerCommand from "../../zl-index";
+import indexerCommand from "../../cli/zl-index";
 
 describe('indexerCommand', () => {
     test('adds index to cli', () => {
