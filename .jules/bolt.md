@@ -82,6 +82,13 @@
 
 ## 2026-04-09 - Direct Key Sorting & String Accumulation in PropertyCollector.format
 
-**Learning:** `PropertyCollector.format` previously chained `Object.entries(tagList).sort(([a], [b]) => a.localeCompare(b)).map(([tag, values]) => ...).join('')`. This allocated intermediate 2-element tuple arrays `[key, values]` for every dictionary entry, executed comparison closures with array destructuring overhead during sort, and allocated intermediate string arrays and closures via `.map()`. Replacing this with `Object.keys(tagList).sort()` and an indexed `for` loop accumulating directly to string runs ~2x faster and eliminates all intermediate tuple/array allocations.
+<!-- coderabbit-ai-generated:v1 -->
 
-**Action:** Avoid `Object.entries().sort().map().join()` when formatting keyed data; sort string keys directly with `Object.keys().sort()` and concatenate the formatted string in an indexed `for` loop.
+<!-- coderabbit-ai-generated-section:v1:02cf41b20281a537db0e11f614398762dafc7b772ce1cb117f6f11b134621ef1 -->
+
+**Learning:** `PropertyCollector.format` previously chained `Object.entries(tagList).sort(([a], [b]) => a.localeCompare(b)).map(([tag, values]) => ...).join('')`. This allocated intermediate 2-element tuple arrays `[key, values]` for every dictionary entry, executed comparison closures with array destructuring overhead during sort, and allocated intermediate string arrays and closures via `.map()`. Replacing this with `Object.keys(tagList).sort((a, b) => a.localeCompare(b))` and an indexed `for` loop accumulating directly to string removes the entry tuples and mapped-string array, while `Object.keys(tagList)` still creates a key array.
+
+**Action:** Avoid `Object.entries().sort().map().join()` when formatting keyed data; sort string keys directly with `Object.keys(tagList).sort((a, b) => a.localeCompare(b))` and concatenate the formatted string in an indexed `for` loop.
+
+
+<!-- /coderabbit-ai-generated:v1 -->

@@ -8,11 +8,11 @@ export class PropertyCollector extends RegexCollector {
 
   protected format(references: formatData[]): string {
     const tagList = invertDictionary(references);
-    const keys = Object.keys(tagList).sort();
+    const keys = Object.keys(tagList).sort((a, b) => a.localeCompare(b));
 
     let result = "";
     // Performance optimization: Replace Object.entries, .sort tuples, and .map().join() pipeline
-    // with Object.keys.sort() and indexed loop accumulating directly to string (~50% faster, 0 tuple allocations)
+    // with locale-aware key sorting and an indexed loop accumulating directly to string.
     for (let i = 0; i < keys.length; i++) {
       const tag = keys[i];
       result += "* " + tag + " : " + tagList[tag].join() + "\n";

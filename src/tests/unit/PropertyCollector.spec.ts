@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { PropertyCollector } from '../../collectors/PropertyCollector'
-import { formatData } from '../../types.js';
+import { fileWikiLinks, formatData } from '../../types.js';
 
 test('empty file has no properties', () => {
     var sut = new PropertyCollector();
@@ -112,4 +112,19 @@ test('formats references sorted alphabetically by property key', () => {
   // format is protected, access via index signature
   const formatted = (sut as unknown as { format: (refs: formatData[]) => string }).format([ref1, ref2]);
   expect(formatted).toBe('* author : [Document 1][doc1],[Document 2][doc2]\n* category : [Document 1][doc1]\n');
+});
+
+
+test('formats mixed-case property keys in locale-aware order in the Properties section', () => {
+  const sut = new PropertyCollector();
+  const ref = new fileWikiLinks();
+  ref.id = 'doc1';
+  ref.title = 'Document 1';
+  ref.matchData.Properties = ['Zebra', 'apple'];
+
+  expect(sut.formatter([ref])).toBe(
+    '## Properties\n\n<details>\n<summary>Show Properties</summary>\n\n' +
+    '* apple : [Document 1][doc1]\n* Zebra : [Document 1][doc1]\n' +
+    '\n\n</details>'
+  );
 });
