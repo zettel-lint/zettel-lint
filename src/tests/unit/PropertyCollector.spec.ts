@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { PropertyCollector } from '../../collectors/PropertyCollector'
+import { formatData } from '../../types.js';
 
 test('empty file has no properties', () => {
     var sut = new PropertyCollector();
@@ -94,4 +95,21 @@ test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prot
   expect(res.properties.constructor).toBeUndefined();
   expect(res.properties.prototype).toBeUndefined();
   expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+});
+
+test('formats references sorted alphabetically by property key', () => {
+  const sut = new PropertyCollector();
+  const ref1 = new formatData();
+  ref1.id = 'doc1';
+  ref1.title = 'Document 1';
+  ref1.data = ['category', 'author'];
+
+  const ref2 = new formatData();
+  ref2.id = 'doc2';
+  ref2.title = 'Document 2';
+  ref2.data = ['author'];
+
+  // format is protected, access via index signature
+  const formatted = (sut as unknown as { format: (refs: formatData[]) => string }).format([ref1, ref2]);
+  expect(formatted).toBe('* author : [Document 1][doc1],[Document 2][doc2]\n* category : [Document 1][doc1]\n');
 });
