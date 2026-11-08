@@ -133,8 +133,10 @@ function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
 }
 
 function escapeMarkdownLinkText(val: string | undefined | null): string {
-  if (!val) return "";
-  return String(val).replace(/[\r\n]+/g, " ").replace(/([\\\[\]])/g, "\\$1");
+  if (!val) return "Attachment";
+  return String(val).replace(/[\r\n]+/g, " ")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/([\\\[\]*_`~!])/g, "\\$1");
 }
 
 function escapeYamlSingleQuote(val: string | undefined | null): string {
@@ -283,11 +285,14 @@ export default class TrelloImport implements BaseImporter {
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${safeName}](${attachment.url}): ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch attachment [${safeName}](${markdownUrl}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push(`![${safeName}](${outputFilename})`);
+        const markdownFilename = outputFilename.split("/").map(segment =>
+          encodeURIComponent(segment).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+        ).join("/");
+        filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }
