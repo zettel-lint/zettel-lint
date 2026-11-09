@@ -136,7 +136,7 @@ The package root exports the host-neutral indexing and fixing functions and the 
 
 ### notes (alias: update)
 
-**This has been DEPRECATED and will be removed in a future release. Please use `zl fix` instead.**
+**This has been DEPRECATED and will be removed in a future release. Users relying on numeric-link conversion should continue using `zl notes` until `zl fix` supports it; all other users should use `zl fix`.**
 
 Lint and fix notes markdown files. Will update existing files.
 

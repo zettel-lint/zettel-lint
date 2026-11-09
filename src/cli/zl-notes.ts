@@ -22,7 +22,10 @@ export default function notesCommand() {
     .option('--no-wiki', "use [[wiki style]] links")
     .option('-v, --verbose', "Additional output")
     .allowExcessArguments(true)
-    .action((cmdObj) => { lintNotes(cmdObj) })
+    .action((cmdObj) => {
+      console.warn("Warning: 'zl notes' is deprecated and will be removed in a future release. Users relying on numeric-link conversion should continue using 'zl notes' until 'zl fix' supports it; all other users should use 'zl fix'.");
+      lintNotes(cmdObj);
+    })
   return notes;
 }
 
