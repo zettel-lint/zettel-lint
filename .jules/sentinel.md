@@ -29,3 +29,8 @@
 **Vulnerability:** `saveAttachments` relied on `path.basename()` to sanitize untrusted `attachment.fileName`. On POSIX systems, `path.basename("..\\..\\evil.sh")` treats backslashes as regular filename characters and does not strip Windows directory separators, allowing paths with Windows separators to traverse directories or create filenames with path components.
 **Learning:** Node's default `path.basename()` is platform-dependent and does not recognize `\` as a separator on POSIX platforms.
 **Prevention:** Normalize backslashes to forward slashes (`fileName.replace(/\\/g, "/")`) and use `path.posix.basename()`, or validate against dangerous filenames (`__proto__`, `constructor`, `prototype`).
+
+## 2026-11-08 - Unsafe URI Scheme Injection in Importer Card Metadata
+**Vulnerability:** `writeCard` directly escaped and placed untrusted `card.shortUrl` from external imports into YAML frontmatter (`trello-url: '<url>'`) without URL scheme validation, allowing non-HTTP schemes like `javascript:`, `data:`, or `file:` to be persisted into notes and downstream links.
+**Learning:** While attachment URLs were previously protocol-validated, top-level card metadata URLs were only escaped for YAML and lacked scheme validation.
+**Prevention:** Validate all external URLs against permitted protocols (`http:` and `https:`) using URL parsing helpers before writing them to frontmatter or markdown.
