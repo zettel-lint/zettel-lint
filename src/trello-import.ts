@@ -138,7 +138,8 @@ function escapeMarkdownLinkText(text: string | undefined | null): string {
     .replace(/[\r\n]+/g, " ")
     .replace(/\\/g, "\\\\")
     .replace(/\[/g, "\\[")
-    .replace(/\]/g, "\\]");
+    .replace(/\]/g, "\\]")
+    .replace(/</g, "\\<");
 }
 
 function escapeYamlSingleQuote(val: string | undefined | null): string {
