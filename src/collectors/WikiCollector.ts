@@ -52,12 +52,12 @@ export class WikiCollector extends RegexCollector {
     for (let i = 0; i < references.length; i++) {
       const r = references[i];
       const linksStr = r.data && r.data.length > 0 ? r.data.join(",") : "No links";
-      const backlinks = backList["[" + (r.id ?? "") + "]"];
+      const backlinks = backList[`[${r.id ?? ""}]`];
       const backlinksStr = backlinks ? backlinks.join(",") : "No backlinks";
       if (i > 0) {
         result += "\n";
       }
-      result += "* " + formatLink(r) + " = `" + r.filename + "`:\n  * " + linksStr + "\n  * " + backlinksStr;
+      result += `* ${formatLink(r)} = \`${r.filename}\`:\n  * ${linksStr}\n  * ${backlinksStr}`;
     }
     return result;
   }
