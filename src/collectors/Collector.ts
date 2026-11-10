@@ -57,6 +57,9 @@ export abstract class Collector {
     }
     // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
     let endIndex = content.indexOf(sep, sepLen);
+    while (endIndex !== -1 && content[endIndex - 1] !== "\n") {
+      endIndex = content.indexOf(sep, endIndex + sepLen);
+    }
     if (endIndex === -1) {
       const closingSep = isCrLf ? "\r\n---" : "\n---";
       if (content.endsWith(closingSep)) {

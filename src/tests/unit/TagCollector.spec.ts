@@ -94,3 +94,22 @@ test('empty file has no tags', () => {
     expect(sut.collect("---\r\ntitle: Windows No Tags\r\n---\r\nBody with #crlftag"))
       .toEqual(["#crlftag"]);
   });
+
+  test.each(["\n", "\r\n"])('does not close frontmatter inside a value (%j)', (newline: string) => {
+    const content = ["---", "title: prefix---", "tags: [after]", "---", "Body"].join(newline);
+    expect(new TagCollector().collect(content)).toEqual(["#after"]);
+  });
+
+  test.each(["\n", "\r\n"])('propagates malformed YAML without tags (%j)', (newline: string) => {
+    const content = ["---", "title: [unclosed", "---"].join(newline);
+    expect(() => new TagCollector().collect(content)).toThrow();
+  });
+
+  test.each(["\n", "\r\n"])('recognises escaped YAML tag keys (%j)', (newline: string) => {
+    const content = ["---", '"ta\\u0067s": [escaped]', "---"].join(newline);
+    expect(new TagCollector().collect(content)).toEqual(["#escaped"]);
+  });
+
+  test('ignores unclosed malformed frontmatter', () => {
+    expect(new TagCollector().collect("---\ntitle: [unclosed")).toEqual([]);
+  });

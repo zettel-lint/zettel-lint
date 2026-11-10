@@ -33,16 +33,15 @@ export class TagCollector extends RegexCollector {
   collect(content: string): string[] {
     const inlineMatches = super.collect(content);
 
-    // Performance optimization: Avoid invoking the full YAML parser (yaml.parse)
-    // when the frontmatter does not contain a "tags" field or when frontmatter is absent.
-    // In large repositories, many notes contain frontmatter with only title/date/status.
-    // Skipping yaml.parse() speeds up tag collection on those notes by >100x.
-    // Handles cross-platform line endings (LF/CRLF) and trailing delimiter boundaries safely.
+    // Parse closed frontmatter so malformed YAML errors reach the caller.
     let rawYamlTags: string[] | undefined;
     if (content.startsWith("---")) {
       const fmMatch = FRONTMATTER_REGEX.exec(content);
-      if (fmMatch && fmMatch[1].includes("tags")) {
-        rawYamlTags = this.collectYaml(content)?.tags;
+      if (fmMatch) {
+        const yaml = this.collectYaml(content);
+        if (fmMatch[1].includes("tags") || fmMatch[1].includes("\\")) {
+          rawYamlTags = yaml.tags;
+        }
       }
     }
 
