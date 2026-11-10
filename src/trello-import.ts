@@ -435,6 +435,7 @@ export default class TrelloImport implements BaseImporter {
           const targetRelPath = "./" + this.getCardFilename(card);
           if (card.shortUrl) cardLinkMap[card.shortUrl] = targetRelPath;
           if (card.url) cardLinkMap[card.url] = targetRelPath;
+          if (card.url) cardLinkMap[card.url.split("/").slice(0, 5).join("/")] = targetRelPath;
         }
       }
       for await(const note of notes.cards) {
