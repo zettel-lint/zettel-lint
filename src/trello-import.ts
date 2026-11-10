@@ -374,7 +374,7 @@ export default class TrelloImport implements BaseImporter {
         const target = cardLinkMap[url] ?? cardLinkMap[norm];
         return target ? `[${linkText}](${target})` : match;
       })
-      .replace(/(?<!\()https?:\/\/trello\.com\/c\/[a-zA-Z0-9]+(?:\/[^\s\)\'\"<>]*)?/g, (url) => {
+      .replace(/(?<!\()https?:\/\/trello\.com\/c\/[a-zA-Z0-9]+(?:\/[^\s\)\'\"<>]*[^\s\)\'\"<>.,;:!?])?/g, (url) => {
         const norm = url.split("/").slice(0, 5).join("/");
         const target = cardLinkMap[url] ?? cardLinkMap[norm];
         return target ? `[${target}](${target})` : url;
