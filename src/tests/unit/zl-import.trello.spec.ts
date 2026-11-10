@@ -202,6 +202,80 @@ describe('TrelloImport.saveAttachments security', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  test('escapes markdown delimiters and newlines in attachment name to prevent markdown link and image injection', async () => {
+    const importer = new TrelloImport();
+    const attachments = [
+      {
+        id: "att-link-inject",
+        name: "Injected](https://evil.com/phish) [Click",
+        url: "https://example.com/file.pdf",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "application/pdf",
+        previews: [],
+        pos: 0
+      },
+      {
+        id: "att-newline-inject",
+        name: "Malicious\n* Injected item\n* Item 2",
+        url: "https://example.com/doc.pdf",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "application/pdf",
+        previews: [],
+        pos: 1
+      },
+      {
+        id: "att-img-inject",
+        name: "Photo](https://evil.com/tracker.png) ![Clean",
+        url: "https://example.com/photo.png",
+        fileName: "photo.png",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: true,
+        mimeType: "image/png",
+        previews: [],
+        pos: 2
+      }
+    ];
+
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        arrayBuffer: async () => new ArrayBuffer(4),
+      } as Response);
+
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const os = await import("os");
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-name-test-"));
+
+      const result = await importer.saveAttachments(tmpDir, options, attachments);
+
+      // Verify brackets and newlines are sanitized so markdown link structure cannot be broken
+      expect(result).toContain("[Injected\\](https://evil.com/phish) \\[Click](https://example.com/file.pdf)");
+      expect(result).toContain("[Malicious * Injected item * Item 2](https://example.com/doc.pdf)");
+      expect(result).toContain(`![Photo\\](https://evil.com/tracker.png) !\\[Clean](${path.join(tmpDir, "photo.png")})`);
+
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe('TrelloImport prototype collision resilience', () => {

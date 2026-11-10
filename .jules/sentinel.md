@@ -29,3 +29,8 @@
 **Vulnerability:** `saveAttachments` relied on `path.basename()` to sanitize untrusted `attachment.fileName`. On POSIX systems, `path.basename("..\\..\\evil.sh")` treats backslashes as regular filename characters and does not strip Windows directory separators, allowing paths with Windows separators to traverse directories or create filenames with path components.
 **Learning:** Node's default `path.basename()` is platform-dependent and does not recognize `\` as a separator on POSIX platforms.
 **Prevention:** Normalize backslashes to forward slashes (`fileName.replace(/\\/g, "/")`) and use `path.posix.basename()`, or validate against dangerous filenames (`__proto__`, `constructor`, `prototype`).
+
+## 2026-11-10 - Markdown Link and Image Injection in Attachment Names
+**Vulnerability:** `saveAttachments` concatenated untrusted `attachment.name` directly into Markdown link labels (`[${name}](${url})`) and image labels (`![${name}](${filename})`), allowing closing brackets (`]`) and unescaped newlines to inject secondary malicious links, external image trackers, or break list rendering.
+**Learning:** Sanitizing URLs and file paths is insufficient if the link text or image alt text is not also escaped against Markdown structural characters.
+**Prevention:** Normalize line breaks to spaces and escape Markdown syntax characters (`\`, `[`, `]`) via an `escapeMarkdownLinkText` helper before embedding external names into Markdown links or image tags.
