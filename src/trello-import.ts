@@ -317,10 +317,12 @@ export default class TrelloImport implements BaseImporter {
       checklists : { [id: string]: TrelloChecklistInfo; },
       lists : { [id: string]: TrelloListInfo; },
       comments? : TrelloCommentInfo[],
-      cardLinkMap? : { [url: string]: string }) : Promise<boolean> {
+      cardLinkMap? : { [url: string]: string },
+      filename = this.getCardFilename(card),
+      onWritten?: (content: string) => void) : Promise<boolean> {
     const activityDate = new Date(card.dateLastActivity).toISOString();
     const outputFilename :string = path.join(outputFolder,
-      this.getCardFilename(card));
+      filename);
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || [], cardLinkMap);
 
@@ -344,14 +346,14 @@ export default class TrelloImport implements BaseImporter {
     
     const desc = this.rewriteTrelloLinks(card.desc, cardLinkMap);
     try {
-      await fs.writeFile(outputFilename,
-        header + 
+      const content = header +
         desc +
         (card.idChecklists.length > 0 ? `\n\n---\n\n## Checklists\n\n${card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n")}` : "") +
         (comments && comments.length > 0 ? `\n\n---\n\n## Comments\n\n${this.writeComments(comments)}` : "") +
-        (filenames.length > 0 ? `\n\n---\n\n## Attachments\n\n* ${filenames.join("\n* ")}` : "")
-        , { });
-        return true;     
+        (filenames.length > 0 ? `\n\n---\n\n## Attachments\n\n* ${filenames.join("\n* ")}` : "");
+      await fs.writeFile(outputFilename, content, { });
+      onWritten?.(content);
+      return true;
     } catch (error) {
       console.error(`Could not write file ${outputFilename} because ${error}`);
     }
@@ -374,7 +376,7 @@ export default class TrelloImport implements BaseImporter {
         const target = cardLinkMap[url] ?? cardLinkMap[norm];
         return target ? `[${linkText}](${target})` : match;
       })
-      .replace(/(?<!\()https?:\/\/trello\.com\/c\/[a-zA-Z0-9]+(?:\/[^\s\)\'\"<>]*[^\s\)\'\"<>.,;:!?])?/g, (url) => {
+      .replace(/(?<!\]\()https?:\/\/trello\.com\/c\/[a-zA-Z0-9]+(?:\/[^\s\)\'\"<>]*[^\s\)\'\"<>.,;:!?])?/g, (url) => {
         const norm = url.split("/").slice(0, 5).join("/");
         const target = cardLinkMap[url] ?? cardLinkMap[norm];
         return target ? `[${target}](${target})` : url;
@@ -401,6 +403,7 @@ export default class TrelloImport implements BaseImporter {
     } else  {
       console.warn(`${files.length} files found matching ${globpattern}, importing all of them.`);
     }
+    const usedFilenames = new Set<string>();
     for await (const file of files) {
       const notes = await this.extractNotes(file);
       totalCards += notes.cards.length;
@@ -429,18 +432,41 @@ export default class TrelloImport implements BaseImporter {
       for (const cardId in cardComments) {
         cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
       }
+      const cards = notes.cards.filter(card => !card.closed && !card.isTemplate && !lists[card.idList]?.closed)
+        .map(card => {
+          const base = this.getCardFilename(card);
+          let filename = base;
+          let suffix = 2;
+          while (usedFilenames.has(filename)) {
+            filename = base.slice(0, -3) + `-${suffix++}.md`;
+          }
+          usedFilenames.add(filename);
+          return { card, filename };
+        });
       const cardLinkMap: { [url: string]: string } = Object.create(null);
-      for (const card of notes.cards) {
-        if (!card.closed && !card.isTemplate && !lists[card.idList]?.closed) {
-          const targetRelPath = "./" + this.getCardFilename(card);
+      const writtenNotes = new Map<string, string>();
+      for (const { card, filename } of cards) {
+        const written = await this.writeCard(outputFolder, options, notes.name, card, checklists, lists,
+          cardComments[card.id] || [], undefined, filename,
+          content => writtenNotes.set(filename, content));
+        if (written) {
+          totalNotes++;
+          const targetRelPath = "./" + filename;
           if (card.shortUrl) cardLinkMap[card.shortUrl] = targetRelPath;
           if (card.url) cardLinkMap[card.url] = targetRelPath;
           if (card.url) cardLinkMap[card.url.split("/").slice(0, 5).join("/")] = targetRelPath;
         }
       }
-      for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [], cardLinkMap)) {
-          totalNotes++;
+      for (const [filename, content] of writtenNotes) {
+        // Keep provenance in frontmatter unchanged; rewrite the rendered body only.
+        const bodyStart = content.indexOf("\n---\n") + "\n---\n".length;
+        const rewritten = content.slice(0, bodyStart) + this.rewriteTrelloLinks(content.slice(bodyStart), cardLinkMap);
+        if (rewritten !== content) {
+          try {
+            await fs.writeFile(path.join(outputFolder, filename), rewritten);
+          } catch (error) {
+            console.error(`Could not update links in ${filename} because ${error}`);
+          }
         }
       }
     };    
