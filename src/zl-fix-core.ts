@@ -1,5 +1,6 @@
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from "./rules/InlinePropertiesToFrontmatterRule.js";
+import { IdToWikiLinksRule } from "./rules/IdToWikiLinksRule.js";
 import { escapeGlobPath, FileAdapter, FilePath, joinFilePath, joinSearchPattern, parentFilePath } from "./file-system.js";
 import { ZlFixOptions } from "./core-options.js";
 
@@ -31,17 +32,15 @@ export async function fixNotes(
     }
   }
 
-  const importedRules: BaseRule[] = [
-    new TrailingNewlineRule(),
-    new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+  const knownRuleNames = [
+    new TrailingNewlineRule().name,
+    new InlinePropertiesToFrontmatter(program.move, propertyRegex).name,
+    IdToWikiLinksRule.ruleName,
   ];
-  const rulesByName = new Map(importedRules.map((rule) => [rule.name, rule]));
-  const activeRules = [...new Set(program.rules)]
-    .map((name) => rulesByName.get(name))
-    .filter((rule): rule is BaseRule => rule !== undefined);
-  if (activeRules.length === 0) {
+  const selectedRuleNames = [...new Set(program.rules)];
+  if (!selectedRuleNames.some((name) => knownRuleNames.includes(name))) {
     throw new FixConfigurationError(
-      `No rules specified. Known rules are: ${[...rulesByName.keys()].join(", ")}`,
+      `No rules specified. Known rules are: ${knownRuleNames.join(", ")}`,
     );
   }
 
@@ -53,6 +52,15 @@ export async function fixNotes(
       ...(program.ignoreDirs ?? []),
     ],
   );
+  const importedRules: BaseRule[] = [
+    new TrailingNewlineRule(),
+    new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+    new IdToWikiLinksRule(files, program.path),
+  ];
+  const rulesByName = new Map(importedRules.map((rule) => [rule.name, rule]));
+  const activeRules = selectedRuleNames
+    .map((name) => rulesByName.get(name))
+    .filter((rule): rule is BaseRule => rule !== undefined);
   const prefix = program.path ? `${program.path}/` : "";
 
   await Promise.all(files.map(async (filename) => {
