@@ -95,3 +95,37 @@ test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prot
   expect(res.properties.prototype).toBeUndefined();
   expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
 });
+
+test('formats references sorted alphabetically by property tag', () => {
+  class TestPropertyCollector extends PropertyCollector {
+    // biome-ignore lint/suspicious/noExplicitAny: test mocks arbitrary reference shapes
+    public formatPublic(references: any[]): string {
+      return this.format(references);
+    }
+  }
+
+  const sut = new TestPropertyCollector();
+  const refs = [
+    {
+      id: '1',
+      title: 'Book A',
+      filename: 'a.md',
+      fullpath: 'a.md',
+      name: 'Properties',
+      data: ['status:read', 'author:Tolkien'],
+      bag: []
+    },
+    {
+      id: '2',
+      title: 'Book B',
+      filename: 'b.md',
+      fullpath: 'b.md',
+      name: 'Properties',
+      data: ['author:Asimov'],
+      bag: []
+    }
+  ];
+
+  const formatted = sut.formatPublic(refs);
+  expect(formatted).toBe('* author:Asimov : [Book B][2]\n* author:Tolkien : [Book A][1]\n* status:read : [Book A][1]\n');
+});
