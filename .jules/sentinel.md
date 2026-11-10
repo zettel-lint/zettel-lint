@@ -24,3 +24,8 @@
 **Vulnerability:** Mustache view context resolution evaluated un-sanitized tag query names against inherited `Object.prototype` methods (e.g. `toString`, `valueOf`). Because Mustache executes zero-argument functions found in the context object, querying built-in prototype methods invoked `Object.prototype` methods or returned function references.
 **Learning:** Checking for explicit keys (`__proto__`, `constructor`, `prototype`) is insufficient if `tag in Object.prototype` can match other inherited methods.
 **Prevention:** Always validate untrusted template tag queries with `tag in Object.prototype` or `Object.prototype.hasOwnProperty.call(view, tag)`.
+
+## 2026-11-04 - Cross-Platform Backslash Path Traversal in Attachment Filenames
+**Vulnerability:** `saveAttachments` relied on `path.basename()` to sanitize untrusted `attachment.fileName`. On POSIX systems, `path.basename("..\\..\\evil.sh")` treats backslashes as regular filename characters and does not strip Windows directory separators, allowing paths with Windows separators to traverse directories or create filenames with path components.
+**Learning:** Node's default `path.basename()` is platform-dependent and does not recognize `\` as a separator on POSIX platforms.
+**Prevention:** Normalize backslashes to forward slashes (`fileName.replace(/\\/g, "/")`) and use `path.posix.basename()`, or validate against dangerous filenames (`__proto__`, `constructor`, `prototype`).

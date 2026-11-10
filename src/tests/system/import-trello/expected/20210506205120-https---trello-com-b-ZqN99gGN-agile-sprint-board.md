@@ -6,9 +6,3 @@ title: 'https://trello.com/b/ZqN99gGN/agile-sprint-board'
 ---
 
 ## Checklists
-
----
-
-## Attachments
-
-* 
