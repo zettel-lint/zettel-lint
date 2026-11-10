@@ -185,9 +185,9 @@ describe('TrelloImport.saveAttachments security', () => {
         } as Response;
       };
 
-      const fs = await import("fs/promises");
-      const path = await import("path");
-      const os = await import("os");
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
       const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-att-test-"));
 
       const result = await importer.saveAttachments(tmpDir, options, attachments);
@@ -259,9 +259,9 @@ describe('TrelloImport.saveAttachments security', () => {
         arrayBuffer: async () => new ArrayBuffer(4),
       } as Response);
 
-      const fs = await import("fs/promises");
-      const path = await import("path");
-      const os = await import("os");
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
       const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-name-test-"));
 
       const result = await importer.saveAttachments(tmpDir, options, attachments);
@@ -286,9 +286,9 @@ describe('TrelloImport prototype collision resilience', () => {
   };
 
   test('handles card comments and lists with prototype collision IDs without crashing', async () => {
-    const fs = await import("fs/promises");
-    const path = await import("path");
-    const os = await import("os");
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const os = await import("node:os");
 
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-proto-test-"));
     const jsonPath = path.join(tmpDir, "trello-export.json");

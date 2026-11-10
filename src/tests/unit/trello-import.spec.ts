@@ -1,12 +1,12 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
 import { glob } from 'glob';
 import { parse } from 'yaml';
 import path from 'node:path';
 
 // Mock dependencies
-vi.mock('fs', () => ({
+vi.mock('node:fs', () => ({
   promises: {
     readFile: vi.fn(),
     writeFile: vi.fn(),
@@ -1227,8 +1227,8 @@ describe('TrelloImport', () => {
 
   describe('expected fixtures formatting (issue #497)', () => {
     test('expected markdown fixtures have LF line endings and no trailing placeholder bullets', async () => {
-      const fsActual = await vi.importActual('fs') as typeof import('fs');
-      const pathActual = await vi.importActual('path') as typeof import('path');
+      const fsActual = await vi.importActual('node:fs') as typeof import('node:fs');
+      const pathActual = await vi.importActual('node:path') as typeof import('node:path');
       const expectedDir = pathActual.join(__dirname, '../system/import-trello/expected');
       const files = await fsActual.promises.readdir(expectedDir);
 

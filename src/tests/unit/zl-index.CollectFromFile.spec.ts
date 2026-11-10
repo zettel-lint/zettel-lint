@@ -4,8 +4,8 @@ import { ZlIndexOptions } from "../../core-options.js";
 import { NodeFileAdapter } from "../../file-adapter.js";
 import { toFilePath } from "../../file-system.js";
 
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const adapter = new NodeFileAdapter(`${__dirname}/input`);
