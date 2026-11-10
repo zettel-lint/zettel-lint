@@ -51,13 +51,11 @@ export function collectBacklinks(references: formatData[]) {
     if (tags) {
       const targetId = ref.id ?? ref.filename ?? "";
       for (let j = 0; j < tags.length; j++) {
-        let tag = tags[j];
-        // Performance optimization: Fast string slicing over multiple replace calls
-        if (tag.startsWith("[") && tag.endsWith("]")) {
-          tag = tag.slice(1, -1);
-        } else {
-          tag = tag.replace("[", "").replace("]", "");
-        }
+        const rawTag = tags[j];
+        // Performance optimization: O(1) string slicing without string replace/regex overhead
+        const start = rawTag.startsWith("[") ? 1 : 0;
+        const end = rawTag.endsWith("]") ? rawTag.length - 1 : rawTag.length;
+        const tag = start < end ? rawTag.substring(start, end) : (start === 0 && end === rawTag.length ? rawTag : "");
         let list = tagList.get(tag);
         if (!list) {
           list = [];
@@ -70,8 +68,9 @@ export function collectBacklinks(references: formatData[]) {
   return tagList;
 }
 
-export function invertDictionary(references: formatData[]) {
-  const tagList: { [tag: string]: string[]; } = {};
+export function invertDictionary(references: formatData[]): { [tag: string]: string[] } {
+  // Security: Use Object.create(null) to avoid prototype pollution and collision with Object.prototype methods
+  const tagList: { [tag: string]: string[] } = Object.create(null);
 
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
@@ -81,6 +80,10 @@ export function invertDictionary(references: formatData[]) {
       const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
+        // Security: Prevent prototype pollution from dangerous keys
+        if (tag === "__proto__" || tag === "constructor" || tag === "prototype") {
+          continue;
+        }
         if (!tagList[tag]) {
           tagList[tag] = [];
         }

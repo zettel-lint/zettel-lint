@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import fixerCommand from '../../cli/zl-fix'
+import fixerCommand, { fixNotes } from '../../cli/zl-fix'
+import { FixConfigurationError } from '../../zl-fix-core'
+import { NodeFileAdapter, toFilePath } from '../../file-adapter'
 
 // NOTE: Testing library/framework: Vitest
 
@@ -178,5 +180,23 @@ describe('fixerCommand (extended)', () => {
     const parsed = fresh().parse(['node','zl','--path','.','--rules','id-to-wiki-links','--','positional.txt']);
     expect(parsed.args).toEqual(['positional.txt']);
     expect(parsed.opts().rules).toEqual(['id-to-wiki-links']);
+  });
+
+  test('fixNotes throws FixConfigurationError on invalid propertyFilter regex', async () => {
+    const adapter = new NodeFileAdapter('.');
+    const emptyFilePath = toFilePath('');
+    await expect(
+      fixNotes(
+        {
+          path: emptyFilePath,
+          rules: ['inline-properties-to-frontmatter'],
+          propertyFilter: ['['],
+          verbose: false,
+          outputDir: emptyFilePath,
+          move: false,
+        },
+        adapter,
+      )
+    ).rejects.toThrow(FixConfigurationError);
   });
 });

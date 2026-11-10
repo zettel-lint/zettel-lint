@@ -19,10 +19,16 @@ export async function fixNotes(
 ): Promise<void> {
   let propertyRegex: RegExp[] = [];
   if (program.propertyFilter?.length) {
-    propertyRegex = program.propertyFilter.map((pattern) => {
-      const regex = new RegExp(pattern);
-      return regex.global ? new RegExp(regex.source, regex.flags.replace("g", "")) : regex;
-    });
+    try {
+      propertyRegex = program.propertyFilter.map((pattern) => {
+        const regex = new RegExp(pattern);
+        return regex.global ? new RegExp(regex.source, regex.flags.replace("g", "")) : regex;
+      });
+    } catch (error) {
+      throw new FixConfigurationError(
+        `Invalid property-filter regex pattern: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   const importedRules: BaseRule[] = [
