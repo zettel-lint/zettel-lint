@@ -8,17 +8,10 @@ export class PropertyCollector extends RegexCollector {
 
   protected format(references: formatData[]): string {
     const tagList = invertDictionary(references);
-    const keys = Object.keys(tagList).sort((a, b) => a.localeCompare(b));
-
-    let result = "";
-    // Performance optimization: Avoid Object.entries tuple allocations, .map closure callbacks,
-    // and intermediate array creation by using Object.keys and an indexed loop (~15-20% faster).
-    for (let i = 0; i < keys.length; i++) {
-      const tag = keys[i];
-      result += `* ${tag} : ${tagList[tag].join()}\n`;
-    }
-
-    return result;
+    return Object.entries(tagList)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([tag, values]) => `* ${tag} : ${values.join()}\n`)
+      .join('');
   }
 
   collect(content: string): string[] {

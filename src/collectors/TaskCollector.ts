@@ -44,28 +44,23 @@ export class TaskCollector extends RegexCollector {
 
 	protected formatSortByPriority(references: formatData[]): string {
 		const allTasks = this.getTasks(references).sort();
-		// Performance optimization: Direct string concatenation in indexed loop avoids .map() intermediate array allocation
+		// Performance optimization: Direct string accumulation avoids intermediate array allocation from .map()
 		let result = "";
 		for (let i = 0; i < allTasks.length; i++) {
-			if (i > 0) {
-				result += "\n";
-			}
+			if (i > 0) result += "\n";
 			result += `\n* ${allTasks[i]}`;
 		}
 		return result;
 	}
 
 	protected formatGroupByFilename(references: formatData[]): string {
-		// Performance optimization: Single-pass indexed loop avoids intermediate .filter() and .map()
-		// array allocations and callback closures per note formatted. (~40% faster)
+		// Performance optimization: Indexed for loop accumulates directly into string,
+		// eliminating intermediate array allocations from .filter() and .map() pipelines and closure overhead.
 		let result = "";
 		for (let i = 0; i < references.length; i++) {
-			if (!(i in references)) continue;
 			const r = references[i];
 			if (r.data.length > 0) {
-				if (result.length > 0) {
-					result += "\n";
-				}
+				if (result.length > 0) result += "\n";
 				result +=
 					"\n\n### " +
 					r.title +
@@ -73,7 +68,8 @@ export class TaskCollector extends RegexCollector {
 					r.filename +
 					"](./" +
 					r.filename +
-					")\n\n<details>\n\n* " +
+					")\n\n" +
+					"<details>\n\n* " +
 					r.data.join("\n* ") +
 					"\n\n</details>";
 			}

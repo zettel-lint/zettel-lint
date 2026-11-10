@@ -79,9 +79,3 @@
 **Learning:** In `TaskCollector.formatGroupByFilename`, chaining `references.filter(...).map(...).join("\n")` allocated multiple intermediate arrays and per-element closure functions across all parsed notes during task report generation. Similarly, `formatSortByPriority` mapped every sorted task to a template string before `.join("\n")`. Replacing these chained array pipelines with indexed `for` loops that directly append matching formatted sections to an accumulator string speeds up task formatting by ~1.5x and completely eliminates intermediate array allocations and closure garbage collection overhead.
 
 **Action:** Replace `.filter().map().join()` pipelines in batch formatting functions with single-pass indexed `for` loops accumulating directly to output strings.
-
-## 2026-04-08 - Single-Pass Loop Formatting in TaskCollector
-
-**Learning:** In `TaskCollector.formatGroupByFilename`, chaining `references.filter(...).map(...).join('\n')` allocated two intermediate arrays and closure callbacks for every note in the collection pass. Replacing the chained array pipeline with a single indexed `for` loop directly appending to a result string reduces execution time by ~40% and eliminates intermediate array allocations and GC overhead. In addition, concatenating formatted priority strings directly in `formatSortByPriority` avoids intermediate array transformations from `.map()`.
-
-**Action:** Replace `references.filter(...).map(...).join(...)` pipelines in collector formatters with single-pass indexed `for` loops accumulating directly into strings.
