@@ -6,19 +6,18 @@ export class WikiCollector extends RegexCollector {
     const result = new Map<string, formatData[]>();
     if (!files) return result;
 
-    // Performance optimization: Use indexed loops and direct array collection
-    // to avoid intermediate .filter(), .map(), and [...result.values()].flat() array allocations.
-    const allData: formatData[] = [];
     for (let i = 0; i < files.length; i++) {
       const ref = files[i];
       if (ref.id != null) {
         const data = this.extractData(ref);
         result.set(ref.id, [data]);
-        allData.push(data);
       }
     }
 
-    const bag = collectBacklinks(allData);
+    function* retainedData(): IterableIterator<formatData> {
+      for (const entries of result.values()) yield* entries;
+    }
+    const bag = collectBacklinks(retainedData());
     bag.forEach((backlinkList, targetKey) => {
       const targetDatas = result.get(targetKey);
       if (targetDatas) {
