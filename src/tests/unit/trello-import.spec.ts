@@ -318,6 +318,45 @@ describe('TrelloImport', () => {
       expect(result).toEqual(['[External Link](https://example.com/page)']);
     });
 
+    test('handles a non-upload with a fileName as a link', async () => {
+      const attachment = createAttachmentInfo({
+        isUpload: false,
+        fileName: 'page.html',
+        name: 'External Link',
+        url: 'https://example.com/page',
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual(['[External Link](https://example.com/page)']);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    test('uses fileName to classify older attachments without isUpload', async () => {
+      const attachments = [
+        createAttachmentInfo({ isUpload: undefined, fileName: '', name: 'Link' }),
+        createAttachmentInfo({ isUpload: undefined, fileName: 'file.png', name: 'File' }),
+      ];
+
+      const result = await importer.saveAttachments('/output/', options, attachments);
+
+      expect(result).toEqual([
+        '[Link](https://example.com/attachment.png)',
+        '![File](/output/file.png)',
+      ]);
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+    });
+
+    test('rejects unsafe URLs for non-uploads with a fileName', async () => {
+      const attachment = createAttachmentInfo({ isUpload: false, fileName: 'page.html', url: 'javascript:alert(1)' });
+
+      expect(await importer.saveAttachments('/output/', options, [attachment])).toEqual([]);
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
     test.each([
       ['http:', ''],
       ['https:', ''],
@@ -546,7 +585,7 @@ describe('TrelloImport', () => {
 
       expect(result).toBe(true);
       // Index 0 is the attachment file, index 1 is the card markdown file
-      const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string;
+      const content = vi.mocked(fs.writeFile).mock.calls.at(-1)![1] as string;
       expect(content).toContain('## Attachments');
     });
 
@@ -683,10 +722,53 @@ describe('TrelloImport', () => {
     });
   });
 
+  test('maps parenthesised plain URLs while protecting titled Markdown destinations', () => {
+    const url = 'https://trello.com/c/abc123';
+    expect(importer.rewriteTrelloLinks(`(${url}) [Title](${url} "tooltip")`, { [url]: './target.md' }))
+      .toBe('([./target.md](./target.md)) [Title](https://trello.com/c/abc123 "tooltip")');
+  });
+
   describe('importAsync', () => {
     beforeEach(() => {
       vi.mocked(fs.writeFile).mockResolvedValue(undefined);
       vi.mocked(fetch).mockResolvedValue({ok: true, arrayBuffer: () => Promise.resolve(Buffer.from('test')) });
+    });
+
+    test('reserves unique filenames across boards and maps links to the assigned notes', async () => {
+      const first = createTrelloCardInfo({ id: 'one', shortUrl: 'https://trello.com/c/one', desc: 'https://trello.com/c/two' });
+      const second = createTrelloCardInfo({ id: 'two', shortUrl: 'https://trello.com/c/two', desc: 'https://trello.com/c/one' });
+      vi.mocked(glob).mockResolvedValue(['board.json', 'other.json']);
+      vi.mocked(fs.readFile)
+        .mockResolvedValueOnce(JSON.stringify(createTrelloBoardInfo({ cards: [first, second] })))
+        .mockResolvedValueOnce(JSON.stringify(createTrelloBoardInfo({ cards: [createTrelloCardInfo()] })));
+      const result = await importer.importAsync('*.json', '/output/', options);
+      const files = new Map(vi.mocked(fs.writeFile).mock.calls.map(([filename, content]: [unknown, unknown]) => [String(filename), String(content)]));
+      expect(files.size).toBe(3);
+      expect(files.get('/output/20240115100000-Test-Card.md')).toContain('[./20240115100000-Test-Card-2.md](./20240115100000-Test-Card-2.md)');
+      expect(files.get('/output/20240115100000-Test-Card-2.md')).toContain('[./20240115100000-Test-Card.md](./20240115100000-Test-Card.md)');
+      expect(files.get('/output/20240115100000-Test-Card.md')).toContain("trello-url: 'https://trello.com/c/one'");
+      expect(result.message).toContain('3 notes created');
+    });
+
+    test.each([false, true])('keeps failed target URLs external (target first: %s)', async (targetFirst: boolean) => {
+      const source = createTrelloCardInfo({ name: 'Source', desc: 'https://trello.com/c/failed https://trello.com/c/good', attachments: [
+        createAttachmentInfo({ isUpload: false, url: 'https://trello.com/c/failed', name: 'Failed target' }),
+      ] });
+      const failed = createTrelloCardInfo({ name: 'Failed', shortUrl: 'https://trello.com/c/failed' });
+      const good = createTrelloCardInfo({ name: 'Good', shortUrl: 'https://trello.com/c/good' });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(createTrelloBoardInfo({ cards: targetFirst ? [failed, source, good] : [source, failed, good] })));
+      vi.mocked(fs.writeFile).mockImplementation(async (filename: unknown) => {
+        if (String(filename).endsWith('-Failed.md')) throw new Error('write failed');
+      });
+      const result = await importer.importAsync('board.json', '/output/', options);
+      const writes = vi.mocked(fs.writeFile).mock.calls.filter(([filename]: [unknown]) => String(filename).endsWith('-Source.md'));
+      const content = String(writes.at(-1)![1]);
+      expect(content).toContain('https://trello.com/c/failed');
+      expect(content).toContain('[Failed target](https://trello.com/c/failed)');
+      expect(content).not.toContain('./20240115100000-Failed.md');
+      expect(content).toContain('[./20240115100000-Good.md](./20240115100000-Good.md)');
+      expect(result.message).toContain('2 notes created');
     });
 
     test('returns error when no files match glob pattern', async () => {
@@ -1172,6 +1254,44 @@ describe('TrelloImport', () => {
       expect(content).toContain("tags: ['Label_With_Spaces_']");
     });
 
+    test('rewrites trello card links in descriptions to relative markdown file references', async () => {
+      const card1 = createTrelloCardInfo({
+        id: 'c1',
+        name: 'Target Note',
+        shortUrl: 'https://trello.com/c/target123',
+        url: 'https://trello.com/c/target123/1-target-note',
+      });
+      const card2 = createTrelloCardInfo({
+        id: 'c2',
+        name: 'Source Note',
+        desc: 'See [Target](https://trello.com/c/target123/1-target-note) and https://trello.com/c/target123 and https://trello.com/c/external123.',
+        attachments: [
+          createAttachmentInfo({ name: 'Linked Card', url: 'https://trello.com/c/target123/1-target-note', fileName: '' }),
+          createAttachmentInfo({ name: 'Named Linked Card', url: 'https://trello.com/c/target123/other-slug', isUpload: false, fileName: 'card.html' }),
+          createAttachmentInfo({ name: 'External Link', url: 'https://example.com/doc', fileName: '' }),
+        ],
+      });
+      const list = createTrelloListInfo();
+      const board = createTrelloBoardInfo({
+        cards: [card1, card2],
+        lists: [list],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('*.json', '/output/', options);
+
+      expect(result.success).toBe(true);
+      const targetFilename = importer.getCardFilename(card1);
+      const content = vi.mocked(fs.writeFile).mock.calls.at(-1)![1] as string;
+      expect(content).toContain(`See [Target](./${targetFilename}) and [./${targetFilename}](./${targetFilename}) and https://trello.com/c/external123.`);
+      expect(content).toContain(`* [Linked Card](./${targetFilename})`);
+      expect(content).toContain(`* [Named Linked Card](./${targetFilename})`);
+      expect(content).toContain('* [External Link](https://example.com/doc)');
+      expect(fetch).not.toHaveBeenCalled();
+      expect(fs.writeFile).toHaveBeenCalledTimes(3);
+    });
+
     test('processes board with all entity types', async () => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -1199,7 +1319,7 @@ describe('TrelloImport', () => {
       const result = await importer.importAsync('*.json', '/output/', options);
 
       expect(result.success).toBe(true);
-      const content = vi.mocked(fs.writeFile).mock.calls[1][1] as string; // [0] is attachment, [1] is card
+      const content = vi.mocked(fs.writeFile).mock.calls.at(-1)![1] as string; // [0] is attachment, [1] is card
       expect(content).toContain('## Checklists');
       expect(content).toContain('## Attachments');
       consoleWarnSpy.mockRestore();
