@@ -97,19 +97,36 @@ test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prot
   expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
 });
 
-test('formats references sorted alphabetically by property key', () => {
-  const sut = new PropertyCollector();
-  const ref1 = new formatData();
-  ref1.id = 'doc1';
-  ref1.title = 'Document 1';
-  ref1.data = ['category', 'author'];
+test('formats references sorted alphabetically by property tag', () => {
+  class TestPropertyCollector extends PropertyCollector {
+    // biome-ignore lint/suspicious/noExplicitAny: test mocks arbitrary reference shapes
+    public formatPublic(references: any[]): string {
+      return this.format(references);
+    }
+  }
 
-  const ref2 = new formatData();
-  ref2.id = 'doc2';
-  ref2.title = 'Document 2';
-  ref2.data = ['author'];
+  const sut = new TestPropertyCollector();
+  const refs = [
+    {
+      id: '1',
+      title: 'Book A',
+      filename: 'a.md',
+      fullpath: 'a.md',
+      name: 'Properties',
+      data: ['status:read', 'author:Tolkien'],
+      bag: []
+    },
+    {
+      id: '2',
+      title: 'Book B',
+      filename: 'b.md',
+      fullpath: 'b.md',
+      name: 'Properties',
+      data: ['author:Asimov'],
+      bag: []
+    }
+  ];
 
-  // format is protected, access via index signature
-  const formatted = (sut as unknown as { format: (refs: formatData[]) => string }).format([ref1, ref2]);
-  expect(formatted).toBe('* author : [Document 1][doc1],[Document 2][doc2]\n* category : [Document 1][doc1]\n');
+  const formatted = sut.formatPublic(refs);
+  expect(formatted).toBe('* author:Asimov : [Book B][2]\n* author:Tolkien : [Book A][1]\n* status:read : [Book A][1]\n');
 });
