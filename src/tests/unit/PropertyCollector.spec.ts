@@ -87,11 +87,12 @@ test('handles built-in object properties safely without throwing or prototype co
   expect(res.properties.valueOf).toEqual(['val']);
 });
 
-test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prototype pollution', () => {
+test('preserves dangerous property names without prototype pollution', () => {
   const sut = new PropertyCollector();
   const res = sut.collectProperties("---\n__proto__:\n  polluted: true\nconstructor: bad\n---\n\n[__proto__:: bad] [constructor:: bad] [prototype:: bad]");
-  expect(res.properties['__proto__']).toBeUndefined();
-  expect(res.properties.constructor).toBeUndefined();
-  expect(res.properties.prototype).toBeUndefined();
+  expect(res.properties['__proto__']).toEqual(['[object Object]', 'bad']);
+  expect(res.properties.constructor).toEqual(['bad']);
+  expect(res.properties.prototype).toEqual(['bad']);
+  expect(Object.getPrototypeOf(res.properties)).toBeNull();
   expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
 });

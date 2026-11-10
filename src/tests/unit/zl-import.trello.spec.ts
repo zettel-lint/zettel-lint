@@ -1,4 +1,4 @@
-import { expect, test, describe } from "vitest";
+import { expect, test, describe, vi } from "vitest";
 import importerCommand from "../../cli/zl-import.js";
 import TrelloImport, { TrelloOptions } from "../../trello-import.js";
 
@@ -24,16 +24,19 @@ describe('zl-import Trello options', () => {
     expect(opts.trelloToken).toBe("tok123");
   });
 
-  test('throws if board name is given but no token', async () => {
-    // Simulate the parseFiles logic
-    const program = importerCommand().parse([
-      "node", "zl", "--source", "trello", "--path", "trello-export.json", "--trello-api-key", "abc123", "--trello-board", "My Board"
-    ]);
-    // The actual importer logic throws if no token is provided and board name is not an id
-    // Here we just check the options, not the network call
-    expect(program.opts().trelloBoard).toBe("My Board");
-    expect(program.opts().trelloToken).toBeUndefined();
-    // The actual error is thrown at runtime, not parse time
+  test('reports the required token error when downloading a board by name without a token', async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await importerCommand().parseAsync([
+        "node", "zl", "--source", "trello", "--path", "trello-export.json",
+        "--trello-api-key", "abc123", "--trello-board", "My Board",
+      ]);
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining("A Trello token (--trello-token) is required"),
+      );
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   test('parses all Trello options together', () => {

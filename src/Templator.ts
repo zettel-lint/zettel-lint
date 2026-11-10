@@ -9,7 +9,7 @@ export class Templator {
     viewProps: any | undefined;
 
     // get orphaned links - i.e. internal references to files that don't exist
-    private getOrphans() {
+    getOrphans() {
         if (!this.notes || this.notes.length === 0) return [];
 
         // Performance optimization: Single-pass Set creation and note processing (~2x faster)
@@ -118,6 +118,9 @@ export class Templator {
                     const { tag, fns, filter } = match.groups;
 
                     if (tag === '__proto__' || tag === 'constructor' || tag === 'prototype' || tag in Object.prototype) {
+                        return `{{\`invalid tag: ${tag}\`}}`;
+                    }
+                    if (!Array.isArray(view[tag])) {
                         return `{{\`invalid tag: ${tag}\`}}`;
                     }
 

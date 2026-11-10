@@ -17,7 +17,7 @@ describe("invertDictionary security and prototype pollution resilience", () => {
 		}).not.toThrow();
 	});
 
-	it("filters out dangerous prototype pollution keys (__proto__, constructor, prototype)", () => {
+	it("preserves dangerous property names in a null-prototype dictionary", () => {
 		const ref = new formatData();
 		ref.title = "Malicious Note";
 		ref.id = "666";
@@ -27,9 +27,10 @@ describe("invertDictionary security and prototype pollution resilience", () => {
 		const beforeProto = protoObj.polluted;
 		const result = invertDictionary([ref]);
 
-		expect(Object.getOwnPropertyNames(result)).toEqual([]);
-		expect(result.constructor).toBeUndefined();
-		expect(result.prototype).toBeUndefined();
+		expect(Object.getPrototypeOf(result)).toBeNull();
+		expect(result["__proto__"]).toEqual(["[Malicious Note][666]"]);
+		expect(result.constructor).toEqual(["[Malicious Note][666]"]);
+		expect(result.prototype).toEqual(["[Malicious Note][666]"]);
 		expect(protoObj.polluted).toBe(beforeProto);
 	});
 

@@ -80,10 +80,6 @@ export function invertDictionary(references: formatData[]): { [tag: string]: str
       const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
-        // Security: Prevent prototype pollution from dangerous keys
-        if (tag === "__proto__" || tag === "constructor" || tag === "prototype") {
-          continue;
-        }
         if (!tagList[tag]) {
           tagList[tag] = [];
         }

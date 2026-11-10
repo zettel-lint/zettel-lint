@@ -1,6 +1,78 @@
 import { relative } from "node:path";
+import { isScalar, isSeq, parseDocument, stringify } from "yaml";
 import { idFromFilename } from "../file-handling.js";
 import { BaseRule } from "./BaseRule.js";
+
+function yamlScalar(value: unknown): string {
+	if (typeof value === "string") {
+		return JSON.stringify(value);
+	}
+	return stringify(value).trimEnd();
+}
+
+function mapId(value: unknown, links: { [id: string]: string }): unknown {
+	if (typeof value === "string") {
+		const bracketedId = value.match(/^\[(\d+)\]$/)?.[1];
+		const id = bracketedId ?? (/^\d+$/.test(value) ? value : undefined);
+		return id ? (links[`[${id}]`] ?? value) : value;
+	}
+	if (typeof value === "number" && /^\d+$/.test(String(value))) {
+		return links[`[${value}]`] ?? value;
+	}
+	return value;
+}
+
+function mapYamlScalar(
+	node: { value: unknown; source?: string },
+	links: { [id: string]: string },
+): unknown {
+	if (typeof node.value === "number" && node.source && /^\d+$/.test(node.source)) {
+		return links[`[${node.source}]`] ?? node.value;
+	}
+	return mapId(node.value, links);
+}
+
+function replaceBodyLinks(body: string, links: { [id: string]: string }): string {
+	const lines = body.split(/(\r?\n)/);
+	let fence: { character: string; length: number } | undefined;
+
+	for (let i = 0; i < lines.length; i += 2) {
+		const line = lines[i];
+		const fenceMatch = line.match(/^\s{0,3}(`{3,}|~{3,})/);
+		if (fenceMatch) {
+			const marker = fenceMatch[1];
+			if (!fence) {
+				fence = { character: marker[0], length: marker.length };
+				continue;
+			}
+			if (marker[0] === fence.character && marker.length >= fence.length) {
+				fence = undefined;
+				continue;
+			}
+		}
+		if (fence) continue;
+
+		let result = "";
+		let lastIndex = 0;
+		const codeSpan = /(`+).*?\1/g;
+		let codeMatch: RegExpExecArray | null;
+		while ((codeMatch = codeSpan.exec(line)) !== null) {
+			result += replacePlainLinks(line.slice(lastIndex, codeMatch.index), links);
+			result += codeMatch[0];
+			lastIndex = codeMatch.index + codeMatch[0].length;
+		}
+		lines[i] = result + replacePlainLinks(line.slice(lastIndex), links);
+	}
+	return lines.join("");
+}
+
+function replacePlainLinks(text: string, links: { [id: string]: string }): string {
+	return text.replace(/(?<![\[!])\[(\d+)\](?![\[\]\(])/g, (match, id: string, offset: number, source: string) => {
+		const mapped = links[`[${id}]`];
+		const precededByLinkClose = source[offset - 1] === "]";
+		return mapped && !precededByLinkClose ? mapped : match;
+	});
+}
 
 export class IdToWikiLinksRule extends BaseRule {
 	readonly name = "id-to-wiki-links";
@@ -61,52 +133,47 @@ export class IdToWikiLinksRule extends BaseRule {
 
 			for (let i = 0; i < lines.length; i++) {
 				const line = lines[i];
-				// Match line like: key: [id1, id2]
+				// Parse flow arrays instead of splitting on commas, which corrupts quoted values.
 				const keyBracketMatch = line.match(
-					/^(\s*[\w.-]+\s*:)\s*\[(.*)\]\s*$/,
+					/^(\s*[\w.-]+\s*:)\s*(\[[\s\S]*\])(\s*(?:#.*)?)$/,
 				);
 				if (keyBracketMatch) {
 					const keyPrefix = keyBracketMatch[1];
-					const indent = line.match(/^\s*/)![0] + "  ";
-					const rawItems = keyBracketMatch[2]
-						.split(",")
-						.map((s) => s.trim());
-
-					let hasResolvableId = false;
-					const blockItems: string[] = [];
-
-					for (const item of rawItems) {
-						const cleanId = item.replace(/^['"]|['"]$/g, "").replace(/^\[|\]$/g, "");
-						const mapped = /^\d+$/.test(cleanId) ? this.links[`[${cleanId}]`] : undefined;
-						if (mapped) {
-							hasResolvableId = true;
-							blockItems.push(`${indent}- "${mapped}"`);
-						} else {
-							blockItems.push(`${indent}- ${item}`);
+					const document = parseDocument(keyBracketMatch[2]);
+					if (document.errors.length > 0) throw document.errors[0];
+					const sequence = document.contents;
+					if (isSeq(sequence) && sequence.items.every(isScalar)) {
+						const mappedValues = sequence.items.map((item) => mapYamlScalar(item, this.links));
+						const hasChanges = mappedValues.some((value, index) => value !== sequence.items[index].value);
+						if (hasChanges) {
+							const indent = /^(\s*)/.exec(line)?.[1] ?? "";
+							newLines.push(`${keyPrefix}${keyBracketMatch[3]}`);
+							newLines.push(...mappedValues.map((value) => `${indent}  - ${yamlScalar(value)}`));
+							continue;
 						}
 					}
-
-					if (hasResolvableId) {
-						newLines.push(keyPrefix);
-						newLines.push(...blockItems);
-						continue;
+				}
+				const sequenceMatch = line.match(/^(\s*-\s*)(.*?)(\s+#.*)?$/);
+				if (sequenceMatch) {
+					const document = parseDocument(sequenceMatch[2]);
+					if (document.errors.length > 0) throw document.errors[0];
+					const node = document.contents;
+					if (isScalar(node)) {
+						const mapped = mapYamlScalar(node, this.links);
+						if (mapped !== node.value) {
+							newLines.push(`${sequenceMatch[1]}${yamlScalar(mapped)}${sequenceMatch[3] ?? ""}`);
+							continue;
+						}
 					}
 				}
-				const sequenceMatch = line.match(/^(\s*-\s*)(['"]?)\[(\d+)\]\2(\s*(?:#.*)?)$/);
-				const mapped = sequenceMatch && this.links[`[${sequenceMatch[3]}]`];
-				newLines.push(mapped ? `${sequenceMatch![1]}"${mapped}"${sequenceMatch![4]}` : line);
+				newLines.push(line);
 			}
 
 			updatedFrontmatter = newLines.join(eol);
 		}
 
 		// Process body (or whole document if no frontmatter)
-		const linkRegex = /(?<!\[)\[(\d+)\](?!\])/g;
-
-		const updatedBody = body.replace(linkRegex, (match, id) => {
-			const mapped = this.links[`[${id}]`];
-			return mapped ? mapped : match;
-		});
+		const updatedBody = replaceBodyLinks(body, this.links);
 
 		if (frontmatterMatch) {
 			const trailingSep = frontmatterMatch[0].slice(

@@ -49,11 +49,17 @@ export async function fixNotes(
   }
 
   const pathPattern = escapeGlobPath(program.path);
+  const outputIsNested =
+    program.outputDir !== program.path &&
+    (program.path === ""
+      ? program.outputDir !== ""
+      : program.outputDir.startsWith(`${program.path}/`));
   const files = await adapter.listFiles(
     [joinSearchPattern(pathPattern, "**/*.md")],
     [
       joinSearchPattern(pathPattern, "**/node_modules/**"),
       ...(program.ignoreDirs ?? []),
+      ...(outputIsNested ? [joinSearchPattern(escapeGlobPath(program.outputDir), "**")] : []),
     ],
   );
   const prefix = program.path ? `${program.path}/` : "";
@@ -61,26 +67,29 @@ export async function fixNotes(
   const linkMap = IdToWikiLinksRule.buildLinkMap(files, program.path);
   idToWikiLinksRule.setLinkMap(linkMap);
 
-  await Promise.all(files.map(async (filename) => {
-    try {
-      let newContents = await adapter.readFile(filename);
-      const originalContents = newContents;
-      activeRules.forEach((rule) => {
-        newContents = rule.fix(newContents, filename);
-      });
-      if (newContents !== originalContents) {
-        const relativePath = filename.slice(prefix.length);
-        const outputPath = joinFilePath(program.outputDir, relativePath);
-        const outputDirectory = parentFilePath(outputPath);
-        if (outputDirectory && adapter.mkdir) {
-          await adapter.mkdir(outputDirectory);
+  const fileConcurrency = 16;
+  for (let offset = 0; offset < files.length; offset += fileConcurrency) {
+    await Promise.all(files.slice(offset, offset + fileConcurrency).map(async (filename) => {
+      try {
+        let newContents = await adapter.readFile(filename);
+        const originalContents = newContents;
+        activeRules.forEach((rule) => {
+          newContents = rule.fix(newContents, filename);
+        });
+        if (newContents !== originalContents) {
+          const relativePath = filename.slice(prefix.length);
+          const outputPath = joinFilePath(program.outputDir, relativePath);
+          const outputDirectory = parentFilePath(outputPath);
+          if (outputDirectory && adapter.mkdir) {
+            await adapter.mkdir(outputDirectory);
+          }
+          await adapter.writeFile(outputPath, newContents);
         }
-        await adapter.writeFile(outputPath, newContents);
+      } catch (error) {
+        if (!onFileError?.(filename, error)) {
+          throw error;
+        }
       }
-    } catch (error) {
-      if (!onFileError?.(filename, error)) {
-        throw error;
-      }
-    }
-  }));
+    }));
+  }
 }

@@ -83,7 +83,7 @@ Link [00000000] and unresolved [99999999].
 		const input = "---\nstatus: [active]\nreferences: [active, 00000001]\n---\n[active]";
 		const custom = new IdToWikiLinksRule({ ...linkMap, "[active]": "[[active-note]]" });
 		expect(custom.fix(input, "")).toContain("status: [active]");
-		expect(custom.fix(input, "")).toContain("  - active");
+		expect(custom.fix(input, "")).toContain('  - "active"');
 		expect(custom.fix(input, "")).not.toContain("[[active-note]]");
 		custom.setLinkMap({ "[active]": "[[active-note]]" });
 		expect(custom.fix(input, "")).toBe(input);
@@ -96,5 +96,35 @@ Link [00000000] and unresolved [99999999].
 		expect(output).toContain('    - "[[20230901-note]]" # note');
 		expect(output).toContain('    - "[99999999]"');
 		expect(rule.fix(output, "")).toBe(output);
+	});
+
+	it("preserves flow-array scalar values when converting resolvable IDs", () => {
+		const input = '---\nreferences: ["[00000001]", "99999999", "two, values", 42, true, null]\n---\n';
+		const output = rule.fix(input, "");
+		expect(output).toContain(
+			'references:\n  - "[[sub/00000001-another-file]]"\n  - "99999999"\n  - "two, values"\n  - 42\n  - true\n  - null',
+		);
+	});
+
+	it("converts IDs in existing block-style frontmatter sequences", () => {
+		const input = '---\nreferences:\n  - "[00000001]" # first\n  - 99999999\n---\n';
+		expect(rule.fix(input, "")).toBe(
+			'---\nreferences:\n  - "[[sub/00000001-another-file]]" # first\n  - 99999999\n---\n',
+		);
+	});
+
+	it("does not convert IDs in images, Markdown links, or code", () => {
+		const input = [
+			"![00000000](image.png)",
+			"[00000000](https://example.com)",
+			"[00000000][reference]",
+			"`[00000000]`",
+			"```md",
+			"[00000000]",
+			"```",
+			"Plain [00000000].",
+		].join("\n");
+		const expected = input.replace("Plain [00000000]", "Plain [[00000000-dummy-file]]");
+		expect(rule.fix(input, "")).toBe(expected);
 	});
 });

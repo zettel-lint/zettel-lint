@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -18,12 +18,45 @@ class MemoryFileAdapter implements FileAdapter {
 
   async listFiles(include?: SearchPattern[], exclude?: SearchPattern[]): Promise<FilePath[]> {
     const matches = (filepath: string, pattern: string): boolean => {
-      const regex = new RegExp(`^${pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replaceAll("**/", "\u0000").replaceAll("**", ".*").replaceAll("*", "[^/]*").replaceAll("\u0000", "(?:.*/)?")}$`);
+      let regexSource = "^";
+      for (let i = 0; i < pattern.length; i++) {
+        const character = pattern[i];
+        if (character === "\\" && (pattern[i + 1] === "{" || pattern[i + 1] === "}")) {
+          regexSource += `\\${pattern[++i]}`;
+        } else if (character === "*" && pattern[i + 1] === "*") {
+          i++;
+          if (pattern[i + 1] === "/") {
+            i++;
+            regexSource += "(?:.*/)?";
+          } else {
+            regexSource += ".*";
+          }
+        } else if (character === "*") {
+          regexSource += "[^/]*";
+        } else if (character === "?") {
+          regexSource += "[^/]";
+        } else if (character === "[" && pattern[i + 1] === "[") {
+          regexSource += "\\[";
+          i += 2;
+        } else if (character === "[" && pattern[i + 1] === "]" && pattern[i + 2] === "]") {
+          regexSource += "\\]";
+          i += 2;
+        } else if (character === "[" && pattern.indexOf("]", i + 1) !== -1) {
+          const end = pattern.indexOf("]", i + 1);
+          regexSource += `[${pattern.slice(i + 1, end)}]`;
+          i = end;
+        } else {
+          regexSource += /[.+^${}()|[\]\\]/.test(character) ? `\\${character}` : character;
+        }
+      }
+      const regex = new RegExp(`${regexSource}$`);
       return regex.test(filepath);
     };
     return [...this.files.keys()].filter((filepath) =>
       (!include?.length || include.some((pattern) => matches(filepath, pattern))) &&
-      !exclude?.some((pattern) => matches(filepath, pattern)),
+      !exclude?.some((pattern) =>
+        matches(filepath, pattern) ||
+        (!/[*?[\]{}()!+@]/.test(pattern) && filepath.startsWith(`${pattern}/`))),
     );
   }
 
@@ -83,13 +116,18 @@ describe("FileAdapter contract and integration", () => {
     const memory = new MemoryFileAdapter();
     memory.files.set(toFilePath("notes/one.md"), "one");
     memory.files.set(toFilePath("notes/private/two.md"), "two");
+    memory.files.set(toFilePath("notes/private/nested/three.md"), "three");
     memory.files.set(toFilePath("notes/three.txt"), "three");
     const files = await memory.listFiles(
       [toSearchPattern("notes/**/*.md")],
       [toSearchPattern("notes/private/**")],
     );
     expect(files).toEqual([toFilePath("notes/one.md")]);
-    expect(await memory.listFiles()).toHaveLength(3);
+    expect(await memory.listFiles()).toHaveLength(4);
+    expect(await memory.listFiles(undefined, [toSearchPattern("notes/private")])).toEqual([
+      toFilePath("notes/one.md"),
+      toFilePath("notes/three.txt"),
+    ]);
   });
 
   it("runs indexer with an in-memory adapter and writes its output", async () => {
@@ -104,6 +142,21 @@ describe("FileAdapter contract and integration", () => {
     expect(referencesContent).toContain("Note 1");
     expect(referencesContent).toContain("Note 2");
     expect(memory.createdDirs).toEqual(new Set());
+  });
+
+  it("renders note paths relative to an index file outside the scan directory", async () => {
+    const memory = new MemoryFileAdapter();
+    memory.files.set(toFilePath("vault/note.md"), "# Note");
+    memory.files.set(toFilePath("template.mustache"), "{{#notes}}{{{fullpath}}}{{/notes}}");
+
+    const references = await indexer({
+      ...indexOptions(),
+      path: toFilePath("vault"),
+      referenceFile: toFilePath("index/references.md"),
+    }, memory);
+
+    expect(references[0].fullpath).toBe("vault/note.md");
+    expect(memory.files.get(toFilePath("index/references.md"))).toBe("../vault/note.md");
   });
 
   it("runs fixNotes with an in-memory adapter", async () => {
@@ -125,6 +178,65 @@ describe("FileAdapter contract and integration", () => {
     expect(updatedContent).toContain("author:");
     expect(updatedContent).toContain("- Alice");
     expect(updatedContent).not.toContain("[author:: Alice]");
+  });
+
+  it("does not rediscover a nested fix output directory", async () => {
+    const memory = new MemoryFileAdapter();
+    const sourcePath = toFilePath("notes/source.md");
+    const priorOutput = toFilePath("notes/fixed/prior.md");
+    memory.files.set(sourcePath, "# Source");
+    memory.files.set(priorOutput, "# Existing output");
+    const readSpy = vi.spyOn(memory, "readFile");
+
+    await fixNotes({
+      path: toFilePath("notes"),
+      ignoreDirs: undefined,
+      rules: ["trailing-newline"],
+      propertyFilter: undefined,
+      verbose: false,
+      outputDir: toFilePath("notes/fixed"),
+      move: false,
+    }, memory);
+
+    expect(readSpy).toHaveBeenCalledWith(sourcePath);
+    expect(readSpy).not.toHaveBeenCalledWith(priorOutput);
+    expect(memory.files.get(toFilePath("notes/fixed/source.md"))).toBe("# Source\n");
+  });
+
+  it("bounds concurrent file reads while fixing", async () => {
+    class TrackingAdapter extends MemoryFileAdapter {
+      activeReads = 0;
+      maxConcurrentReads = 0;
+
+      override async readFile(filepath: FilePath): Promise<string> {
+        this.activeReads++;
+        this.maxConcurrentReads = Math.max(this.maxConcurrentReads, this.activeReads);
+        await new Promise((resolve) => setTimeout(resolve, 1));
+        try {
+          return await super.readFile(filepath);
+        } finally {
+          this.activeReads--;
+        }
+      }
+    }
+
+    const memory = new TrackingAdapter();
+    for (let i = 0; i < 40; i++) {
+      memory.files.set(toFilePath(`note-${i}.md`), "# Note");
+    }
+
+    await fixNotes({
+      path: toFilePath(""),
+      ignoreDirs: undefined,
+      rules: ["trailing-newline"],
+      propertyFilter: undefined,
+      verbose: false,
+      outputDir: toFilePath(""),
+      move: false,
+    }, memory);
+
+    expect(memory.maxConcurrentReads).toBeLessThanOrEqual(16);
+    expect(memory.maxConcurrentReads).toBeGreaterThan(1);
   });
 
   it("propagates missing-file and write errors to callers", async () => {
@@ -160,11 +272,20 @@ describe("FileAdapter contract and integration", () => {
     try {
       await writeFile(path.join(root, "one.md"), "one");
       await writeFile(path.join(root, "skip.md"), "skip");
+      await writeFile(path.join(root, ".hidden.md"), "hidden");
+      await mkdir(path.join(root, ".hidden-directory"));
+      await writeFile(path.join(root, ".hidden-directory/nested.md"), "nested");
       const adapter = new NodeFileAdapter(root);
       expect(await adapter.listFiles(
         [toSearchPattern("**/*.md")],
         [toSearchPattern("skip.md")],
       )).toEqual([toFilePath("one.md")]);
+      expect((await adapter.listFiles()).sort()).toEqual([
+        toFilePath(".hidden-directory/nested.md"),
+        toFilePath(".hidden.md"),
+        toFilePath("one.md"),
+        toFilePath("skip.md"),
+      ]);
       expect(await adapter.readFile(toFilePath("one.md"))).toBe("one");
       await adapter.writeFile(toFilePath("nested/two.md"), "two");
       expect(await readFile(path.join(root, "nested/two.md"), "utf8")).toBe("two");

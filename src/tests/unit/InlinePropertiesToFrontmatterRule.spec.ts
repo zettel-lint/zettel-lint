@@ -45,6 +45,12 @@ Some content with  here.
     expect(rule.fix(input, 'test.md')).toBe(expected);
   });
 
+  it('should preserve YAML properties from CRLF frontmatter', () => {
+    const input = "---\r\nauthor: Alice\r\n---\r\nBody [tag:: note]";
+    const expected = "---\nauthor:\n  - Alice\ntag:\n  - note\n---\nBody\n";
+    expect(rule.fix(input, "test.md")).toBe(expected);
+  });
+
   it('should handle multiple values for the same property', () => {
     const input = `# My Note
 [tags:: tag1, tag2] and [tags:: tag3] here.`;

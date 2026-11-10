@@ -30,17 +30,24 @@ export class NodeFileAdapter implements FileAdapter {
 
   async listFiles(include?: SearchPattern[], exclude?: SearchPattern[]): Promise<FilePath[]> {
     const patterns = include?.length ? include : [toSearchPattern("**/*")];
+    const includeDotfiles = !include?.length;
     const included = new Set<string>();
     for (const pattern of patterns) {
-      for (const filepath of await glob(toSearchPattern(pattern), { cwd: this.root, nodir: true })) {
+      for (const filepath of await glob(toSearchPattern(pattern), { cwd: this.root, nodir: true, dot: includeDotfiles })) {
         included.add(filepath.split(path.sep).join("/"));
       }
     }
 
     const excluded = new Set<string>();
     for (const pattern of exclude ?? []) {
-      for (const filepath of await glob(toSearchPattern(pattern), { cwd: this.root, nodir: true })) {
-        excluded.add(filepath.split(path.sep).join("/"));
+      const bareDirectoryPattern = !/[*?[\]{}()!+@]/.test(pattern);
+      const excludePatterns = bareDirectoryPattern
+        ? [pattern, toSearchPattern(`${pattern}/**`)]
+        : [pattern];
+      for (const excludePattern of excludePatterns) {
+        for (const filepath of await glob(toSearchPattern(excludePattern), { cwd: this.root, nodir: true })) {
+          excluded.add(filepath.split(path.sep).join("/"));
+        }
       }
     }
 

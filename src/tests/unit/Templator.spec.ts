@@ -374,7 +374,7 @@ title: References
     });
 
     test('should support query_filter with unknown function', () => {
-      const sut = new Templator();
+      const sut = new Templator([], [new DummyCollector()]);
       const template = "{{?Dummy?unknown()/foo/}}{{/?Dummy}}";
       const enhanced = sut.enhance(template);
       expect(enhanced).toContain("{{#query_filter}}{{`Dummy?unknown()/foo/`}}");
@@ -1650,6 +1650,14 @@ title: References
       expect(sut.render("{{?toString//}}content{{/?toString}}")).toBe("{{`invalid tag: toString`}}");
       expect(sut.render("{{?valueOf//}}content{{/?valueOf}}")).toBe("{{`invalid tag: valueOf`}}");
       expect(sut.render("{{?hasOwnProperty//}}content{{/?hasOwnProperty}}")).toBe("{{`invalid tag: hasOwnProperty`}}");
+    });
+
+    test('should reject query targets that are not collections', () => {
+      const sut = new Templator([
+        { id: "n1", wikiname: "n1", filename: "n1.md", title: "Note", fullpath: "", matchData: {} },
+      ]);
+      expect(sut.render("{{?created//}}content{{/?created}}")).toBe("{{`invalid tag: created`}}");
+      expect(sut.render("{{?notes//}}[{{title}}]{{/?notes}}")).toBe("[Note]");
     });
 
     test('should ignore sensitive prototype keys in sort args', () => {

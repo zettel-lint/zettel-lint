@@ -18,6 +18,19 @@ export type FileErrorHandler = (filepath: FilePath, error: unknown) => boolean;
 // avoiding per-file RegExp allocations and unnecessary full-document scans.
 const TITLE_REGEX = /^(?:title:|#) (.*)$/m;
 
+function relativeFilePath(fromDirectory: FilePath, target: string): string {
+  const from = fromDirectory ? fromDirectory.split("/") : [];
+  const to = target.split("/");
+  let common = 0;
+  while (common < from.length && common < to.length && from[common] === to[common]) {
+    common++;
+  }
+  return [
+    ...Array.from({ length: from.length - common }, () => ".."),
+    ...to.slice(common),
+  ].join("/");
+}
+
 export async function collectFromFile(filename: FilePath, program: ZlIndexOptions, adapter: FileAdapter): Promise<fileWikiLinks> {
   const contents = await adapter.readFile(filename);
   const matchData: { [collector: string]: string[] } = {};
@@ -97,9 +110,19 @@ export async function indexer(
   const references = fileResults.filter((result): result is fileWikiLinks => result !== null);
 
   const template = await adapter.readFile(program.templateFile);
-  const templator = new Templator(references, collectors);
-  const formatted = templator.render(template);
   const refDir = parentFilePath(program.referenceFile);
+  const templateInsideScanPath =
+    program.path === "" ||
+    program.templateFile === program.path ||
+    program.templateFile.startsWith(`${program.path}/`);
+  const templateReferences = templateInsideScanPath
+    ? references
+    : references.map((reference) => ({
+        ...reference,
+        fullpath: reference.fullpath ? relativeFilePath(refDir, reference.fullpath) : undefined,
+      }));
+  const templator = new Templator(templateReferences, collectors);
+  const formatted = templator.render(template);
   if (refDir && adapter.mkdir) {
     await adapter.mkdir(refDir);
   }

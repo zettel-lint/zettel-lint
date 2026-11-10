@@ -9,6 +9,7 @@ import { NodeFileAdapter } from "../file-adapter.js";
 import { ConfigurationError, indexer } from "../zl-index-core.js";
 import { ZlIndexOptions } from "../core-options.js";
 import { cliPath, cliPattern, commonPathRoot, isSkippableFileError } from "./cli-paths.js";
+import { Templator } from "../Templator.js";
 
 export { collectFromFile, indexer } from "../zl-index-core.js";
 export type { ZlIndexOptions } from "../core-options.js";
@@ -60,6 +61,18 @@ async function runIndexer(program: ZlIndexCommandOptions): Promise<void> {
     });
     if (program.jsonDebugOutput) {
       references.forEach((reference) => console.log(reference));
+    }
+    if (program.showOrphans) {
+      const orphans = new Templator(references).getOrphans();
+      console.log("Orphan links:");
+      if (orphans.length === 0) {
+        console.log("No orphan links found.");
+      } else {
+        for (const orphan of orphans) {
+          const filename = orphan.value[0]?.bag[0]?.filename ?? orphan.key;
+          console.log(`- ${filename}: ${orphan.value.map((link) => link.id).join(", ")}`);
+        }
+      }
     }
     if (program.verbose) {
       console.log("Updated");

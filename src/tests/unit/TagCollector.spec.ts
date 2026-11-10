@@ -54,6 +54,17 @@ test('empty file has no tags', () => {
       .toEqual(expect.arrayContaining(["#yaml", "#header", "#tags", "#last"]));
   }); 
 
+  test('trims bracketed YAML tag values and retains text from an unclosed list', () => {
+    const sut = new TagCollector();
+    expect(sut.collect('---\ntags: "[a,  b]"\n---\n')).toEqual(["#a", "#b"]);
+    expect(sut.collect('---\ntags: "[abc"\n---\n')).toEqual(["#abc"]);
+  });
+
+  test('collects tags from CRLF frontmatter', () => {
+    const sut = new TagCollector();
+    expect(sut.collect("---\r\ntags: [yaml, header]\r\n---\r\nBody")).toEqual(["#yaml", "#header"]);
+  });
+
   
   test('ignores empty yaml list', () => {
     var sut = new TagCollector();

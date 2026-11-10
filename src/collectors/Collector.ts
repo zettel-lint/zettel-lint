@@ -21,7 +21,8 @@ export abstract class Collector {
   private listOf(value: string): string[] {
     const trimmed = value.trim();
     if (trimmed.startsWith("[")) {
-      return trimmed.slice(1, -1).replaceAll(", ", ",").split(",");
+      const end = trimmed.endsWith("]") ? trimmed.length - 1 : trimmed.length;
+      return trimmed.slice(1, end).split(",").map((item) => item.trim());
     }
     const parts = trimmed.split(" ");
     const result: string[] = [];
@@ -39,18 +40,21 @@ export abstract class Collector {
     return "";
   }
   private readonly yamlSep = "---\n";
+  private readonly yamlOpening = /^---\r?\n/;
   protected collectYaml(content: string) : YamlHeaders {
     const result: YamlHeaders = Object.create(null);
     result.tags = undefined;
-    if (!content.startsWith(this.yamlSep)){
+    const opening = this.yamlOpening.exec(content);
+    if (!opening) {
       return result;
     }
-    // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
-    const endIndex = content.indexOf(this.yamlSep, this.yamlSep.length);
-    if (endIndex === -1) {
+    const closing = /\r?\n---(?:\r?\n|$)/g;
+    closing.lastIndex = opening[0].length;
+    const endMatch = closing.exec(content);
+    if (!endMatch) {
       return result;
     }
-    const header = content.substring(this.yamlSep.length, endIndex);
+    const header = content.substring(opening[0].length, endMatch.index);
     const yamlData = parse(header);
 
     if (!yamlData || typeof yamlData !== 'object') {
@@ -61,7 +65,6 @@ export abstract class Collector {
     for (const key in yamlData) {
       // biome-ignore lint/suspicious/noPrototypeBuiltins: TS target is es2021 so Object.hasOwn cannot be used
       if (!Object.prototype.hasOwnProperty.call(yamlData, key)) continue;
-      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
       const value = yamlData[key];
       if (key === 'tags') {
         if (Array.isArray(value)) {

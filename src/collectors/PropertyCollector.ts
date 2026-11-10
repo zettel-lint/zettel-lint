@@ -84,20 +84,18 @@ export class PropertyCollector extends RegexCollector {
       const [, key, value] = match;
       if (key && value) {
         const trimmedKey = key.trim();
-        if (trimmedKey !== '__proto__' && trimmedKey !== 'constructor' && trimmedKey !== 'prototype') {
-          let set = pairSets[trimmedKey];
-          if (!set) {
-            set = new Set<string>();
-            pairSets[trimmedKey] = set;
+        let set = pairSets[trimmedKey];
+        if (!set) {
+          set = new Set<string>();
+          pairSets[trimmedKey] = set;
+        }
+        if (trimmedKey === 'tags') {
+          const parts = value.split(", ");
+          for (let i = 0; i < parts.length; i++) {
+            set.add(parts[i]);
           }
-          if (trimmedKey === 'tags') {
-            const parts = value.split(", ");
-            for (let i = 0; i < parts.length; i++) {
-              set.add(parts[i]);
-            }
-          } else {
-            set.add(value.trim());
-          }
+        } else {
+          set.add(value.trim());
         }
       }
       match = this.regex.exec(content);

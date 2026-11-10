@@ -378,6 +378,22 @@ describe('TrelloImport', () => {
       expect(result[1]).toContain('File 2');
     });
 
+    test('assigns unique destination names to repeated basenames', async () => {
+      const attachments = [
+        createAttachmentInfo({ fileName: 'first/image.png', name: 'First', url: 'https://example.com/first.png' }),
+        createAttachmentInfo({ fileName: 'second/image.png', name: 'Second', url: 'https://example.com/second.png' }),
+      ];
+
+      const result = await importer.saveAttachments('/output/', options, attachments, new Set<string>());
+
+      expect(fs.writeFile).toHaveBeenNthCalledWith(1, '/output/image.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenNthCalledWith(2, '/output/image-2.png', expect.any(Buffer));
+      expect(result).toEqual([
+        '![First](/output/image.png)',
+        '![Second](/output/image-2.png)',
+      ]);
+    });
+
     test('handles empty attachments array', async () => {
       const result = await importer.saveAttachments('/output/', options, []);
 

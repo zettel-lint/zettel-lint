@@ -83,7 +83,7 @@ async function importer(program: ZlImportOptions): Promise<void> {
         verbose: program.verbose,
         boardIdOrName: program.trelloBoard || "<missing>",
         apiKey: program.trelloApiKey || "<missing>",
-        token: program.trelloToken || "<missing>",
+        token: program.trelloToken,
       };
     if (
       program.source === "trello" &&
