@@ -285,7 +285,9 @@ export default class TrelloImport implements BaseImporter {
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
+          const errorUrl = new URL(attachment.url);
+          errorUrl.search = "";
+          throw new Error(`Failed to fetch attachment [${attachment.name}](${errorUrl}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));

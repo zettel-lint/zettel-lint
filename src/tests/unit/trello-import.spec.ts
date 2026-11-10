@@ -408,6 +408,28 @@ describe('TrelloImport', () => {
       expect(fs.writeFile).not.toHaveBeenCalled();
       expect(result).toEqual([]);
     });
+
+    test.each([
+      ['https://example.com/missing.png?signature=private&key=secret#preview', 'https://example.com/missing.png#preview'],
+      ['https://example.com/missing.png', 'https://example.com/missing.png'],
+    ])('omits query parameters from failed attachment URL %s', async (url: string, expectedUrl: string) => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 403, statusText: 'Forbidden' });
+        const attachment = createAttachmentInfo({ name: 'Missing Image', url });
+
+        const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+        expect(fetch).toHaveBeenCalledWith(url);
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          `Could not write file /output/attachment.png because Failed to fetch attachment [Missing Image](${expectedUrl}): 403 Forbidden`,
+        );
+        expect(fs.writeFile).not.toHaveBeenCalled();
+        expect(result).toEqual([]);
+      } finally {
+        consoleErrorSpy.mockRestore();
+      }
+    });
   });
 
   describe('sanitiseName', () => {
