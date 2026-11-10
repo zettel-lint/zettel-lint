@@ -410,9 +410,32 @@ describe('TrelloImport', () => {
     });
 
     test.each([
-      ['https://example.com/missing.png?signature=private&key=secret#preview', 'https://example.com/missing.png#preview'],
+      ['Request to https://user:password@example.com/file?access_token=private#secret failed: ECONNRESET',
+        'Request to https://example.com/file failed: ECONNRESET'],
+      ['Redirect (https://example.com/one?signature=private#secret), then "https://other.example/two#access_token=private": timeout',
+        'Redirect (https://example.com/one), then "https://other.example/two": timeout'],
+      ['Network error: connection refused', 'Network error: connection refused'],
+    ])('sanitizes embedded URLs while preserving caught error context', async (message: string, expected: string) => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        vi.mocked(fetch).mockRejectedValueOnce(new Error(message));
+
+        const result = await importer.saveAttachments('/output/', options, [createAttachmentInfo()]);
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          `Could not write file /output/attachment.png because ${expected}`,
+        );
+        expect(fs.writeFile).not.toHaveBeenCalled();
+        expect(result).toEqual([]);
+      } finally {
+        consoleErrorSpy.mockRestore();
+      }
+    });
+
+    test.each([
+      ['https://example.com/missing.png?signature=private&key=secret#preview', 'https://example.com/missing.png'],
       ['https://example.com/missing.png', 'https://example.com/missing.png'],
-    ])('omits query parameters from failed attachment URL %s', async (url: string, expectedUrl: string) => {
+    ])('omits query parameters and fragments from failed attachment URL %s', async (url: string, expectedUrl: string) => {
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       try {
         vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 403, statusText: 'Forbidden' });

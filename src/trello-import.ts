@@ -147,8 +147,22 @@ function sortableDate(d: Date | string) : string {
   return dateStr.replace(/[^0-9]/g,"").substring(0,14);
 }
 
-function sanitizeErrorUrl(msg: string): string {
-  return msg.replace(/([?&](?:key|token|secret|auth|password)=)[^&]+/gi, "$1[REDACTED]");
+function sanitizeErrorUrl(msg: string, redactCompleteUrls = false): string {
+  const sanitized = redactCompleteUrls ? msg.replace(/[a-z][a-z\d+.-]*:\/\/[^\s<>"'`]+/gi, (match) => {
+    // Keep surrounding prose and Markdown punctuation outside the URL.
+    const [, value, suffix] = /^(.*?)([),.;!}]+)?$/.exec(match)!;
+    try {
+      const url = new URL(value);
+      url.username = "";
+      url.password = "";
+      url.search = "";
+      url.hash = "";
+      return url.toString() + (suffix || "");
+    } catch {
+      return "[REDACTED URL]" + (suffix || "");
+    }
+  }) : msg;
+  return sanitized.replace(/([?&](?:key|token|secret|auth|password)=)[^&]+/gi, "$1[REDACTED]");
 }
 
 /**
@@ -287,6 +301,7 @@ export default class TrelloImport implements BaseImporter {
         if (!response.ok) {
           const errorUrl = new URL(attachment.url);
           errorUrl.search = "";
+          errorUrl.hash = "";
           throw new Error(`Failed to fetch attachment [${attachment.name}](${errorUrl}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
@@ -294,7 +309,7 @@ export default class TrelloImport implements BaseImporter {
         filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
-        console.error("Could not write file " + outputFilename + " because " + sanitizeErrorUrl(msg));
+        console.error("Could not write file " + outputFilename + " because " + sanitizeErrorUrl(msg, true));
       }
     }
     return filenames;
