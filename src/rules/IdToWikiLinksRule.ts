@@ -143,8 +143,13 @@ export class IdToWikiLinksRule extends BaseRule {
 					if (document.errors.length > 0) throw document.errors[0];
 					const sequence = document.contents;
 					if (isSeq(sequence) && sequence.items.every(isScalar)) {
-						const mappedValues = sequence.items.map((item) => mapYamlScalar(item, this.links));
-						const hasChanges = mappedValues.some((value, index) => value !== sequence.items[index].value);
+						const mappedValues = sequence.items.map((item) =>
+							isScalar(item) ? mapYamlScalar(item, this.links) : item,
+						);
+						const hasChanges = sequence.items.some(
+							(item, index) =>
+								isScalar(item) && mappedValues[index] !== item.value,
+						);
 						if (hasChanges) {
 							const indent = /^(\s*)/.exec(line)?.[1] ?? "";
 							newLines.push(`${keyPrefix}${keyBracketMatch[3]}`);
