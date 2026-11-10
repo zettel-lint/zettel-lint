@@ -1652,6 +1652,29 @@ title: References
       expect(sut.render("{{?hasOwnProperty//}}content{{/?hasOwnProperty}}")).toBe("{{`invalid tag: hasOwnProperty`}}");
     });
 
+    test.each(['', '?sort()', '?set()'])('should reject non-own query tags with %s', (transform: string) => {
+      const sut = new Templator();
+      let reads = 0;
+      const prototype = Object.create(Object.getPrototypeOf(sut.viewProps), {
+        inherited: { get() { reads++; return [{ key: 'inherited value' }]; } }
+      });
+      Object.setPrototypeOf(sut.viewProps, prototype);
+
+      for (const tag of ['inherited', 'missing']) {
+        expect(sut.render(`{{?${tag}${transform}//}}{{key}}{{/?${tag}}}`))
+          .toBe(`{{\`invalid tag: ${tag}\`}}`);
+      }
+      expect(reads).toBe(0);
+      expect(sut.viewProps.queryCount).toBe(0);
+    });
+
+    test.each(['', '?sort()', '?set()'])('should preserve own query tags with %s', (transform: string) => {
+      const sut = new Templator();
+      Object.defineProperty(sut.viewProps, 'custom', { value: [{ key: 'own value' }] });
+
+      expect(sut.render(`{{?custom${transform}//}}{{key}}{{/?custom}}`)).toBe('own value');
+    });
+
     test('should ignore sensitive prototype keys in sort args', () => {
       const notes = [
         { id: 'b', wikiname: 'b', filename: './b.md', title: 'B', fullpath: '', matchData: { Tags: ['#b'] } },

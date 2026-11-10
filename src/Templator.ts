@@ -143,6 +143,10 @@ export class Templator {
                         }
                     }
 
+                    if (!hasOwnProp.call(view, tag)) {
+                        return `{{\`invalid tag: ${tag}\`}}`;
+                    }
+
                     const query_end = text.indexOf("`}}") + 3;
 
                     let ntag = tag;
