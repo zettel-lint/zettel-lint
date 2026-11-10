@@ -3,7 +3,7 @@ import { RegexCollector } from "./RegexCollector.js";
 
 export class ContextCollector extends RegexCollector {
   protected format(references: formatData[]): string {
-    const tagList: { [tag: string]: string[] } = invertDictionary(references);
+    const tagList: { [tag: string]: string[]; } = invertDictionary(references);
     const keys = Object.keys(tagList);
 
     let result = "";
