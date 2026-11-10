@@ -122,6 +122,48 @@ describe('TrelloImport credential redaction in errors', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  test('redacts secret query parameters in verbose attachment logging', async () => {
+    const originalConsoleLog = console.log;
+    let logged = "";
+    console.log = (...args: any[]) => {
+      logged += args.join(" ") + "\n";
+    };
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(0),
+    } as any);
+
+    try {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const os = await import("os");
+      const importer = new TrelloImport();
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-att-log-"));
+      await importer.saveAttachments(tmpDir, {
+        boardIdOrName: "123",
+        apiKey: "key",
+        verbose: true,
+      }, [
+        {
+          id: "att1",
+          url: "https://api.trello.com/file?key=SECRET_KEY&token=SECRET_TOKEN",
+          fileName: "file.png",
+          name: "File",
+          mimeType: "image/png",
+        } as any,
+      ]);
+      expect(logged).not.toContain("SECRET_KEY");
+      expect(logged).not.toContain("SECRET_TOKEN");
+      expect(logged).toContain("[REDACTED]");
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    } finally {
+      console.log = originalConsoleLog;
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe('TrelloImport.saveAttachments security', () => {

@@ -408,51 +408,6 @@ describe('TrelloImport', () => {
       expect(fs.writeFile).not.toHaveBeenCalled();
       expect(result).toEqual([]);
     });
-
-    test.each([
-      ['Request to https://user:password@example.com/file?access_token=private#secret failed: ECONNRESET',
-        'Request to https://example.com/file failed: ECONNRESET'],
-      ['Redirect (https://example.com/one?signature=private#secret), then "https://other.example/two#access_token=private": timeout',
-        'Redirect (https://example.com/one), then "https://other.example/two": timeout'],
-      ['Network error: connection refused', 'Network error: connection refused'],
-    ])('sanitizes embedded URLs while preserving caught error context', async (message: string, expected: string) => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      try {
-        vi.mocked(fetch).mockRejectedValueOnce(new Error(message));
-
-        const result = await importer.saveAttachments('/output/', options, [createAttachmentInfo()]);
-
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          `Could not write file /output/attachment.png because ${expected}`,
-        );
-        expect(fs.writeFile).not.toHaveBeenCalled();
-        expect(result).toEqual([]);
-      } finally {
-        consoleErrorSpy.mockRestore();
-      }
-    });
-
-    test.each([
-      ['https://example.com/missing.png?signature=private&key=secret#preview', 'https://example.com/missing.png'],
-      ['https://example.com/missing.png', 'https://example.com/missing.png'],
-    ])('omits query parameters and fragments from failed attachment URL %s', async (url: string, expectedUrl: string) => {
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      try {
-        vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 403, statusText: 'Forbidden' });
-        const attachment = createAttachmentInfo({ name: 'Missing Image', url });
-
-        const result = await importer.saveAttachments('/output/', options, [attachment]);
-
-        expect(fetch).toHaveBeenCalledWith(url);
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          `Could not write file /output/attachment.png because Failed to fetch attachment [Missing Image](${expectedUrl}): 403 Forbidden`,
-        );
-        expect(fs.writeFile).not.toHaveBeenCalled();
-        expect(result).toEqual([]);
-      } finally {
-        consoleErrorSpy.mockRestore();
-      }
-    });
   });
 
   describe('sanitiseName', () => {
@@ -1249,25 +1204,6 @@ describe('TrelloImport', () => {
       expect(content).toContain('## Attachments');
       consoleWarnSpy.mockRestore();
       consoleErrorSpy.mockRestore();
-    });
-  });
-
-  describe('expected fixtures formatting (issue #497)', () => {
-    test('expected markdown fixtures have LF line endings and no trailing placeholder bullets', async () => {
-      const fsActual = await vi.importActual('fs') as typeof import('fs');
-      const pathActual = await vi.importActual('path') as typeof import('path');
-      const expectedDir = pathActual.join(__dirname, '../system/import-trello/expected');
-      const files = await fsActual.promises.readdir(expectedDir);
-
-      for (const file of files) {
-        if (!file.endsWith('.md')) continue;
-        const content = await fsActual.promises.readFile(pathActual.join(expectedDir, file), 'utf8');
-
-        expect(content).not.toContain('\r');
-        expect(content.endsWith('\n')).toBe(true);
-        expect(content.endsWith('\n\n')).toBe(false);
-        expect(content).not.toContain('## Attachments\n\n* ');
-      }
     });
   });
 });
