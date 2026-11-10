@@ -95,7 +95,18 @@ export abstract class Collector {
     };
   };
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
-    return invertData(files?.map(ref => this.extractData(ref)));
+    if (!files || files.length === 0) return new Map<string, formatData[]>();
+
+    // Performance optimization: Avoid array allocation overhead by only accumulating
+    // formatData items that contain non-empty collector data before passing to invertData.
+    const formatDataList: formatData[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const item = this.extractData(files[i]);
+      if (item.data && item.data.length > 0) {
+        formatDataList.push(item);
+      }
+    }
+    return invertData(formatDataList);
   }
   public formatter(references: fileWikiLinks[]): string {
     return "## " + this.dataName + "\n\n<details>\n<summary>Show " + this.dataName + "</summary>\n\n" +

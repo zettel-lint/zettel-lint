@@ -11,7 +11,9 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
     super();
     this.move = move;
     this.propertyCollector = new PropertyCollector();
-    this.regexes = regexes;
+    // Performance optimization: Pre-sanitize global regex patterns once during initialization
+    // to avoid re-instantiating non-global RegExp objects for every processed file.
+    this.regexes = regexes.map(r => (r.global ? new RegExp(r.source, r.flags.replace('g', '')) : r));
   }
 
   fix(content: string, filePath: string): string {
@@ -50,8 +52,11 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
     // Create YAML frontmatter
     const yamlContent = this.propertyCollector.writeHeader(properties);
 
-    // Remove existing YAML frontmatter if present
-    var contentWithoutYaml = content.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '');
+    // Performance optimization: Fast-path frontmatter check prevents executing regex search
+    // on notes that do not start with a YAML frontmatter delimiter.
+    var contentWithoutYaml = content.startsWith('---')
+      ? content.replace(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/, '')
+      : content;
 
     // Remove inline properties
     if (this.move) {
