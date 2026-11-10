@@ -27,6 +27,8 @@ export interface ZlFixOptions {
   ignoreDirs?: SearchPattern[];
   rules: string[];
   ruleConfigs?: RuleExecutionConfig[];
+  /** Stable input-directory prefix for rule globs; defaults to the adapter path. */
+  ruleGlobPath?: string;
   propertyFilter?: string[];
   verbose: boolean;
   outputDir: FilePath;

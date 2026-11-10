@@ -20,10 +20,14 @@ export interface FixConfigFile {
  * Loads fix configuration from a file path or stdin ("-" or "stdin").
  * Supports both JSON and YAML formats.
  */
-export function loadFixConfig(input: string): FixConfigFile {
+export async function loadFixConfig(input: string): Promise<FixConfigFile> {
   let content: string;
   if (input === "-" || input === "stdin") {
-    content = fs.readFileSync(0, "utf8");
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    content = Buffer.concat(chunks).toString("utf8");
   } else {
     content = fs.readFileSync(input, "utf8");
   }
@@ -44,5 +48,31 @@ export function loadFixConfig(input: string): FixConfigFile {
     throw new Error("Configuration file must contain an object");
   }
 
+  const config = parsed as Record<string, unknown>;
+  if (config.rules !== undefined) {
+    if (!Array.isArray(config.rules)) {
+      throw new Error("rules must be an array");
+    }
+    config.rules.forEach((rule: unknown, index: number) => {
+      const field = `rules[${index}]`;
+      if (typeof rule === "string") {
+        if (!rule.trim()) throw new Error(`${field}.name must be a non-empty string`);
+        return;
+      }
+      if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
+        throw new Error(`${field}.name must be a non-empty string`);
+      }
+      const entry = rule as Record<string, unknown>;
+      if (typeof entry.name !== "string" || !entry.name.trim()) {
+        throw new Error(`${field}.name must be a non-empty string`);
+      }
+      for (const key of ["include", "exclude", "propertyFilter"]) {
+        const value = entry[key];
+        if (value !== undefined && (!Array.isArray(value) || value.some(item => typeof item !== "string"))) {
+          throw new Error(`${field}.${key} must be an array of strings`);
+        }
+      }
+    });
+  }
   return parsed as FixConfigFile;
 }

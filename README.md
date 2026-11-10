@@ -121,7 +121,15 @@ Options:
 * `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`)
 * `-f, --property-filter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
   * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first. 
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:9facddfb4379df83c0fee3a5922fda1e237c697cb58a778f4655ab4a0909640e -->
+
 * `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
+
+Configuration rule `include` and `exclude` globs match input file paths relative to the CLI working directory, independently of `--output-dir` and ignored directories. For example, with `--path notes`, use `notes/*.md`. Patterns can also match a path suffix; `*` matches within one path segment, `**` matches across directories, and `?` matches one non-separator character. Per-rule `move` and `propertyFilter` override top-level configuration defaults; `--move` takes precedence over per-rule `move`.
+
+<!-- /coderabbit-ai-generated:v1 -->
 * `-v, --verbose` - Show additional output
 
 #### Existing Rules

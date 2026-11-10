@@ -17,10 +17,13 @@ export async function fixNotes(
   adapter: FileAdapter,
   onFileError?: FileErrorHandler,
 ): Promise<void> {
+  const ruleConfigMap = new Map((program.ruleConfigs ?? []).map((rc) => [rc.name, rc]));
+  const inlineConfig = ruleConfigMap.get("inline-properties-to-frontmatter");
+  const propertyFilter = inlineConfig?.propertyFilter ?? program.propertyFilter;
   let propertyRegex: RegExp[] = [];
-  if (program.propertyFilter?.length) {
+  if (propertyFilter?.length) {
     try {
-      propertyRegex = program.propertyFilter.map((pattern) => {
+      propertyRegex = propertyFilter.map((pattern) => {
         const regex = new RegExp(pattern);
         return regex.global ? new RegExp(regex.source, regex.flags.replace("g", "")) : regex;
       });
@@ -33,7 +36,7 @@ export async function fixNotes(
 
   const importedRules: BaseRule[] = [
     new TrailingNewlineRule(),
-    new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+    new InlinePropertiesToFrontmatter(inlineConfig?.move ?? program.move, propertyRegex),
   ];
   const rulesByName = new Map(importedRules.map((rule) => [rule.name, rule]));
   const activeRules = [...new Set(program.rules)]
@@ -55,15 +58,24 @@ export async function fixNotes(
   );
   const prefix = program.path ? `${program.path}/` : "";
 
-  const ruleConfigMap = new Map((program.ruleConfigs ?? []).map((rc) => [rc.name, rc]));
-
   function matchesGlob(filepath: string, pattern: string): boolean {
     const normalized = filepath.replace(/\\/g, "/");
-    const escaped = pattern
-      .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-      .replace(/\*\*/g, ".*")
-      .replace(/(?<!\.)\*/g, "[^/]*")
-      .replace(/\?/g, "[^/]");
+    let escaped = "";
+    for (let i = 0; i < pattern.length; i++) {
+      const token = pattern[i];
+      if (token === "*") {
+        if (pattern[i + 1] === "*") {
+          escaped += ".*";
+          i++;
+        } else {
+          escaped += "[^/]*";
+        }
+      } else if (token === "?") {
+        escaped += "[^/]";
+      } else {
+        escaped += token.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+      }
+    }
     return new RegExp(`(^|/)${escaped}$`).test(normalized) || new RegExp(`^${escaped}$`).test(normalized);
   }
 
@@ -88,8 +100,10 @@ export async function fixNotes(
     try {
       let newContents = await adapter.readFile(filename);
       const originalContents = newContents;
+      const rulePath = [program.ruleGlobPath ?? program.path, filename.slice(prefix.length)]
+        .filter(Boolean).join("/");
       activeRules.forEach((rule) => {
-        if (shouldRunRule(rule.name, filename)) {
+        if (shouldRunRule(rule.name, rulePath)) {
           newContents = rule.fix(newContents, filename);
         }
       });

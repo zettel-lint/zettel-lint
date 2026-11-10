@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Command } from "@commander-js/extra-typings";
 import { clear } from "console";
 import chalk from "chalk";
@@ -48,7 +49,7 @@ async function runFixer(program: ZlFixCommandOptions): Promise<void> {
 
   if (program.config) {
     try {
-      const fileConfig = loadFixConfig(program.config);
+      const fileConfig = await loadFixConfig(program.config);
       // Acceptance Criterion 1: If a rule is provided in the file and on the command line, command line takes preference
       if (effectiveRules.length === 0 && fileConfig.rules) {
         effectiveRules = fileConfig.rules.map((r) => (typeof r === "string" ? r : r.name));
@@ -63,7 +64,7 @@ async function runFixer(program: ZlFixCommandOptions): Promise<void> {
             include: r.include,
             exclude: r.exclude,
             propertyFilter: r.propertyFilter,
-            move: r.move,
+            move: program.move ? true : r.move,
           };
         });
       }
@@ -103,6 +104,7 @@ async function runFixer(program: ZlFixCommandOptions): Promise<void> {
       ignoreDirs: effectiveIgnoreDirs?.map((pattern) => cliPattern(pattern, root, program.path)),
       rules: effectiveRules,
       ruleConfigs,
+      ruleGlobPath: path.relative(process.cwd(), path.resolve(program.path)).split(path.sep).join("/"),
       propertyFilter: effectivePropertyFilter,
       verbose: program.verbose,
       outputDir: cliPath(outputDir, root),
