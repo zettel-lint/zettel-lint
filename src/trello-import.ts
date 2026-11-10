@@ -292,7 +292,11 @@ export default class TrelloImport implements BaseImporter {
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push(`![${safeName}](${outputFilename})`);
+        const markdownFilename = outputFilename.split(path.sep)
+          .map(segment => encodeURIComponent(segment).replace(/[!'()*]/g,
+            char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
+          .join("/");
+        filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }

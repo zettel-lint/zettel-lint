@@ -3,6 +3,7 @@ import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
 import { parse } from 'yaml';
+import path from 'node:path';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -261,6 +262,23 @@ describe('TrelloImport', () => {
       expect(fetch).toHaveBeenCalledWith('https://example.com/test.png');
       expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer));
       expect(result).toEqual(['![Test Image](/output/test.png)']);
+    });
+
+    test.each([
+      ['photo #1?.png', 'photo%20%231%3F.png'],
+      ['a%20[b](c)!.png', 'a%2520%5Bb%5D%28c%29%21.png'],
+      ["a'()*;:@&=+$,.png", 'a%27%28%29%2A%3B%3A%40%26%3D%2B%24%2C.png'],
+      ['café\nimage.png', 'caf%C3%A9%0Aimage.png'],
+    ])('encodes the image destination for %s without renaming the file', async (fileName: string, encodedName: string) => {
+      const outputFolder = path.join('output folder', 'attachments#1');
+      const attachment = createAttachmentInfo({ fileName, name: 'Image [1]' });
+
+      const result = await importer.saveAttachments(outputFolder, options, [attachment]);
+
+      const destination = `output%20folder/attachments%231/${encodedName}`;
+      expect(fs.writeFile).toHaveBeenCalledWith(path.join(outputFolder, fileName), expect.any(Buffer));
+      expect(result).toEqual([`![Image \\[1\\]](${destination})`]);
+      expect(decodeURIComponent(destination).split('/').join(path.sep)).toBe(path.join(outputFolder, fileName));
     });
 
     test('sanitizes attachment fileName to prevent path traversal', async () => {
