@@ -3,6 +3,8 @@ import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import { glob } from 'glob';
 import { parse } from 'yaml';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -408,6 +410,24 @@ describe('TrelloImport', () => {
 
       expect(fs.writeFile).toHaveBeenCalledWith('/output folder/image)[click](evil) #?%.png', expect.any(Buffer));
       expect(result).toEqual(['![Test Attachment](/output%20folder/image%29%5Bclick%5D%28evil%29%20%23%3F%25.png)']);
+    });
+
+    test('preserves Windows drive and separators in image destinations', async () => {
+      const attachment = createAttachmentInfo({ fileName: 'image)[click](evil) #?%.png' });
+      const outputFolder = 'C:\\output folder\\attachments';
+      const outputFilename = path.win32.join(outputFolder, attachment.fileName);
+      const joinSpy = vi.spyOn(path, 'join').mockImplementation(path.win32.join);
+
+      try {
+        const result = await importer.saveAttachments(outputFolder, options, [attachment]);
+
+        expect(fs.writeFile).toHaveBeenCalledWith(outputFilename, expect.any(Buffer));
+        const url = 'file:///C:/output%20folder/attachments/image%29%5Bclick%5D%28evil%29%20%23%3F%25.png';
+        expect(result).toEqual([`![Test Attachment](${url})`]);
+        expect(fileURLToPath(url, { windows: true })).toBe(outputFilename);
+      } finally {
+        joinSpy.mockRestore();
+      }
     });
 
     test('uses the sanitized name and URL in fetch failure details', async () => {

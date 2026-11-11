@@ -2,6 +2,7 @@ import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -289,7 +290,10 @@ export default class TrelloImport implements BaseImporter {
         }
         const data = await response.arrayBuffer();
         await fs.writeFile(outputFilename, Buffer.from(data));
-        const markdownFilename = outputFilename.split("/").map(segment =>
+        // Convert Windows drive and UNC paths before encoding Markdown delimiters.
+        const markdownFilename = path.win32.isAbsolute(outputFilename) && !path.posix.isAbsolute(outputFilename)
+          ? pathToFileURL(outputFilename, { windows: true }).href.replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+          : outputFilename.split(path.sep).map(segment =>
           encodeURIComponent(segment).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
         ).join("/");
         filenames.push(`![${safeName}](${markdownFilename})`);
