@@ -259,8 +259,38 @@ describe('TrelloImport', () => {
       const result = await importer.saveAttachments('/output/', options, [attachment]);
 
       expect(fetch).toHaveBeenCalledWith('https://example.com/test.png');
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual(['![Test Image](/output/test.png)']);
+    });
+
+    test('preserves existing files and symlinks, with unique byte-limited UTF-8 destinations', async () => {
+      const realFs = (await vi.importActual('fs') as typeof import('fs')).promises;
+      const { tmpdir } = await import('os');
+      const path = await import('path');
+      const folder = await realFs.mkdtemp(path.join(tmpdir(), 'trello-attachments-'));
+      try {
+        await realFs.writeFile(path.join(folder, 'image.png'), 'original');
+        await realFs.symlink(path.join(folder, 'image.png'), path.join(folder, 'image-1.png'));
+        vi.mocked(fs.writeFile).mockImplementation(realFs.writeFile);
+        const longName = '😀'.repeat(100) + '.png';
+        const attachments = ['image.png', 'image.png', longName, longName].map(fileName => createAttachmentInfo({ fileName }));
+        const links = await importer.saveAttachments(folder, options, attachments);
+        const files = await realFs.readdir(folder);
+        expect(links).toHaveLength(4);
+        expect(new Set(links).size).toBe(4);
+        expect(files).toContain('image-2.png');
+        expect(files).toContain('image-3.png');
+        expect(await realFs.readFile(path.join(folder, 'image.png'), 'utf8')).toBe('original');
+        expect((await realFs.lstat(path.join(folder, 'image-1.png'))).isSymbolicLink()).toBe(true);
+        for (const file of files.filter(name => name.startsWith('😀'))) {
+          expect(Buffer.byteLength(file)).toBeLessThanOrEqual(255);
+          expect(file).not.toContain('�');
+          expect(file.endsWith('.png')).toBe(true);
+          expect(links.some(link => link.endsWith(`(${path.join(folder, file)})`))).toBe(true);
+        }
+      } finally {
+        await realFs.rm(folder, { recursive: true, force: true });
+      }
     });
 
     test('sanitizes attachment fileName to prevent path traversal', async () => {
@@ -273,7 +303,7 @@ describe('TrelloImport', () => {
       const result = await importer.saveAttachments('/output/attachments/', options, [attachment]);
 
       expect(fetch).toHaveBeenCalledWith('https://example.com/evil.sh');
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/evil.sh', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/evil.sh', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual(['![Evil Attachment](/output/attachments/evil.sh)']);
     });
 
@@ -297,7 +327,7 @@ describe('TrelloImport', () => {
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fs.writeFile).toHaveBeenCalledTimes(1);
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/test.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/test.png', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual([
         '[Test Attachment](https://example.com/attachment.png)',
         '![Test Image](/output/attachments/test.png)',
@@ -476,7 +506,7 @@ describe('TrelloImport', () => {
       const result = await importer.writeCard(outputFolder, options, 'Board', card, {}, lists);
 
       expect(result).toBe(true);
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer), { flag: "wx" });
       expect(fs.writeFile).toHaveBeenCalledWith(
         '/output/20240115100000-Test-Card.md',
         expect.stringContaining('![Test Attachment](/output/attachments/attachment.png)'),

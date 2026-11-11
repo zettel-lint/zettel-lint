@@ -73,6 +73,33 @@ describe("LinkDatesRule", () => {
 		},
 	);
 
+	test.each([
+		["\\`2026-02-20", "\\`[[2026-02-20]]"],
+		["\\\\`2026-02-20`", "\\\\`2026-02-20`"],
+		["`2026-02-20\\` 2026-05-15", "`2026-02-20\\` [[2026-05-15]]"],
+		["`` unmatched `2026-02-20` then `", "`` unmatched `2026-02-20` then `"],
+		["2026-02-20 `", "[[2026-02-20]] `"],
+
+	])("handles backtick delimiters in %s", (input: string, expected: string) => {
+		expect(rule.fix(input, "test.md")).toBe(expected);
+	});
+
+	test.each([
+		'<time datetime="2026-02-20">2026-05-15</time>',
+		"<span title='a > 2026-02-20'>2026-05-15</span>",
+		"<!-- 2026-02-20 --> 2026-05-15",
+		"<time datetime=2026-02-20>2026-05-15</time>",
+	])("preserves HTML markup in %s", (input: string) => {
+		expect(rule.fix(input, "test.md")).toBe(input.replace("2026-05-15", "[[2026-05-15]]"));
+	});
+
+	test.each([
+		"notes/2026-02-20", "2026-02-20/report", String.raw`notes\2026-02-20`,
+		String.raw`2026-02-20\report`, "2026-02-20.md", "report.2026-02-20",
+	])("preserves dates in paths and filenames: %s", (input: string) => {
+		expect(rule.fix(`${input} 2026-05-15.`, "test.md")).toBe(`${input} [[2026-05-15]].`);
+	});
+
 	test("preserves unclosed fences through the end of the note", () => {
 		expect(rule.fix("2026-02-20\n```\n2026-05-15", "test.md")).toBe(
 			"[[2026-02-20]]\n```\n2026-05-15",

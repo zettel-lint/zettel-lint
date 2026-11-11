@@ -269,7 +269,27 @@ export default class TrelloImport implements BaseImporter {
         filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
       }
-      const outputFilename = path.join(outputFolder, safeFileName);
+      // Component limits are in bytes, so truncate only at Unicode boundaries.
+      const truncate = (value: string, budget: number): string => {
+        let result = "";
+        let bytes = 0;
+        for (const character of value) {
+          bytes += Buffer.byteLength(character);
+          if (bytes > budget) break;
+          result += character;
+        }
+        return result;
+      };
+      const extension = path.posix.extname(safeFileName);
+      const stem = safeFileName.slice(0, safeFileName.length - extension.length);
+      const destination = (attempt: number): string => {
+        const suffix = attempt === 0 ? "" : `-${attempt}`;
+        const budget = 255 - Buffer.byteLength(suffix);
+        const ext = truncate(extension, budget - 4);
+        const base = truncate(stem, budget - Buffer.byteLength(ext)) || "file";
+        return path.join(outputFolder, base + suffix + ext);
+      };
+      let outputFilename = destination(0);
       if (options.verbose) {
        console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
       }
@@ -279,7 +299,16 @@ export default class TrelloImport implements BaseImporter {
           throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
-        await fs.writeFile(outputFilename, Buffer.from(data));
+        const buffer = Buffer.from(data);
+        for (let attempt = 0; ; attempt++) {
+          outputFilename = destination(attempt);
+          try {
+            await fs.writeFile(outputFilename, buffer, { flag: "wx" });
+            break;
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+          }
+        }
         filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);

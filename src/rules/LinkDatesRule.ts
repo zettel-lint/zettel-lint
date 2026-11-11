@@ -43,12 +43,14 @@ export class LinkDatesRule extends BaseRule {
 		const ticks = /`+/g;
 		let opening = ticks.exec(content);
 		while (opening !== null) {
-			if (excluded[opening.index]) {
+			let backslashes = 0;
+			for (let i = opening.index - 1; i >= 0 && content[i] === "\\"; i--) backslashes++;
+			if (excluded[opening.index] || backslashes % 2 === 1) {
 				opening = ticks.exec(content);
 				continue;
 			}
-			let closing = ticks.exec(content);
 			const afterOpening = ticks.lastIndex;
+			let closing = ticks.exec(content);
 			while (closing !== null) {
 				if (
 					!excluded[closing.index] &&
@@ -100,8 +102,15 @@ export class LinkDatesRule extends BaseRule {
 			protect(urlIndex, urlIndex + url[0].length);
 		}
 
+		// Protect markup (including quoted > characters), but keep element text eligible.
+		for (const markup of content.matchAll(
+			/<!--[\s\S]*?(?:-->|$)|<\/?[a-z][a-z\d:-]*(?=[\s/>])(?:[^>"']|"[^"]*"|'[^']*')*>|<\?[\s\S]*?\?>|<![A-Z][^>]*>/gi,
+		)) {
+			protect(markup.index, markup.index + markup[0].length);
+		}
+
 		return content.replace(
-			/(?<!\[)\b(\d{4}-\d{2}-\d{2})\b(?!\])/g,
+			/(?<![\[\/\\.])\b(\d{4}-\d{2}-\d{2})\b(?![\]\/\\]|\.[\p{L}\p{N}_])/gu,
 			(date, _capture, offset: number) => {
 				if (excluded[offset]) return date;
 				const [year, month, day] = date.split("-").map(Number);
