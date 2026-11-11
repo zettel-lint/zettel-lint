@@ -378,6 +378,27 @@ describe('TrelloImport', () => {
       expect(result[1]).toContain('File 2');
     });
 
+    test('disambiguates colliding attachment filenames to prevent overwrites', async () => {
+      const attachments = [
+        createAttachmentInfo({ fileName: 'report.pdf', name: 'First Report', url: 'https://example.com/r1.pdf' }),
+        createAttachmentInfo({ fileName: 'report.pdf', name: 'Second Report', url: 'https://example.com/r2.pdf' }),
+        createAttachmentInfo({ fileName: 'report.pdf', name: 'Third Report', url: 'https://example.com/r3.pdf' }),
+      ];
+
+      const result = await importer.saveAttachments('/output/', options, attachments);
+
+      expect(fetch).toHaveBeenCalledTimes(3);
+      expect(fs.writeFile).toHaveBeenCalledTimes(3);
+      expect(fs.writeFile).toHaveBeenNthCalledWith(1, '/output/report.pdf', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenNthCalledWith(2, '/output/report-1.pdf', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenNthCalledWith(3, '/output/report-2.pdf', expect.any(Buffer));
+      expect(result).toEqual([
+        '![First Report](/output/report.pdf)',
+        '![Second Report](/output/report-1.pdf)',
+        '![Third Report](/output/report-2.pdf)',
+      ]);
+    });
+
     test('handles empty attachments array', async () => {
       const result = await importer.saveAttachments('/output/', options, []);
 

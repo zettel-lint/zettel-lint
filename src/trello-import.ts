@@ -246,6 +246,7 @@ export default class TrelloImport implements BaseImporter {
 
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
     var filenames: string[] = [];
+    const usedFileNames = new Set<string>();
 
     for await (var attachment of attachments) {
       // Validate attachment URL protocol to prevent malicious URI scheme injection (e.g., javascript:) and non-HTTP fetches
@@ -269,7 +270,16 @@ export default class TrelloImport implements BaseImporter {
         filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
       }
-      const outputFilename = path.join(outputFolder, safeFileName);
+      // Prevent filename collisions from overwriting existing attachments
+      const ext = path.extname(safeFileName);
+      const stem = path.basename(safeFileName, ext);
+      let uniqueFileName = safeFileName;
+      let counter = 1;
+      while (usedFileNames.has(uniqueFileName)) {
+        uniqueFileName = `${stem}-${counter++}${ext}`;
+      }
+      usedFileNames.add(uniqueFileName);
+      const outputFilename = path.join(outputFolder, uniqueFileName);
       if (options.verbose) {
        console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
       }
