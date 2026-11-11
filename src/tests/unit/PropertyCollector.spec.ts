@@ -96,6 +96,12 @@ test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prot
   expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
 });
 
+test('ignores inline keys containing colons to prevent invalid YAML frontmatter structure', () => {
+  const sut = new PropertyCollector();
+  const res = sut.collectProperties("[invalid:key:: test]");
+  expect(res.properties['invalid:key']).toBeUndefined();
+});
+
 test('formats references sorted alphabetically by property tag', () => {
   class TestPropertyCollector extends PropertyCollector {
     // biome-ignore lint/suspicious/noExplicitAny: test mocks arbitrary reference shapes
