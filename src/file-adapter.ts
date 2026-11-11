@@ -44,23 +44,40 @@ export class NodeFileAdapter implements FileAdapter {
       }
     }
 
-    const files: FilePath[] = [];
+    const candidatePaths: string[] = [];
     for (const filepath of included) {
-      if (excluded.has(filepath)) {
-        continue;
+      if (!excluded.has(filepath)) {
+        candidatePaths.push(filepath);
       }
-      const relativePath = toFilePath(filepath);
-      let absolutePath: string;
-      try {
-        absolutePath = await this.resolveContained(relativePath);
-      } catch (error) {
-        if (error instanceof UnresolvedSymlinkError) {
-          continue;
+    }
+
+    // Bound concurrent containment and file checks while preserving discovery order.
+    const fileConcurrency = 16;
+    const files: FilePath[] = [];
+    for (let offset = 0; offset < candidatePaths.length; offset += fileConcurrency) {
+      const resolved = await Promise.all(
+        candidatePaths.slice(offset, offset + fileConcurrency).map(async (filepath) => {
+          const relativePath = toFilePath(filepath);
+          let absolutePath: string;
+          try {
+            absolutePath = await this.resolveContained(relativePath);
+          } catch (error) {
+            if (error instanceof UnresolvedSymlinkError) {
+              return null;
+            }
+            throw error;
+          }
+          if ((await fs.stat(absolutePath)).isFile()) {
+            return relativePath;
+          }
+          return null;
+        }),
+      );
+
+      for (const item of resolved) {
+        if (item !== null) {
+          files.push(item);
         }
-        throw error;
-      }
-      if ((await fs.stat(absolutePath)).isFile()) {
-        files.push(relativePath);
       }
     }
     return files;
