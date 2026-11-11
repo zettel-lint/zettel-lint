@@ -1,6 +1,8 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
+import os from 'node:os';
+import path from 'node:path';
 import { glob } from 'glob';
 import { parse } from 'yaml';
 
@@ -111,6 +113,7 @@ describe('TrelloImport', () => {
   beforeEach(() => {
     importer = new TrelloImport();
     vi.clearAllMocks();
+    vi.mocked(fs.writeFile).mockReset().mockResolvedValue(undefined);
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -259,7 +262,7 @@ describe('TrelloImport', () => {
       const result = await importer.saveAttachments('/output/', options, [attachment]);
 
       expect(fetch).toHaveBeenCalledWith('https://example.com/test.png');
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual(['![Test Image](/output/test.png)']);
     });
 
@@ -273,7 +276,7 @@ describe('TrelloImport', () => {
       const result = await importer.saveAttachments('/output/attachments/', options, [attachment]);
 
       expect(fetch).toHaveBeenCalledWith('https://example.com/evil.sh');
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/evil.sh', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/evil.sh', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual(['![Evil Attachment](/output/attachments/evil.sh)']);
     });
 
@@ -297,7 +300,7 @@ describe('TrelloImport', () => {
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fs.writeFile).toHaveBeenCalledTimes(1);
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/test.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/test.png', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual([
         '[Test Attachment](https://example.com/attachment.png)',
         '![Test Image](/output/attachments/test.png)',
@@ -377,6 +380,81 @@ describe('TrelloImport', () => {
       expect(result[0]).toContain('File 1');
       expect(result[1]).toContain('File 2');
     });
+
+    test('disambiguates colliding attachment filenames to prevent overwrites', async () => {
+      const attachments = [
+        createAttachmentInfo({ fileName: 'report.pdf', name: 'First Report', url: 'https://example.com/r1.pdf' }),
+        createAttachmentInfo({ fileName: 'report.pdf', name: 'Second Report', url: 'https://example.com/r2.pdf' }),
+        createAttachmentInfo({ fileName: 'report.pdf', name: 'Third Report', url: 'https://example.com/r3.pdf' }),
+      ];
+
+      const result = await importer.saveAttachments('/output/', options, attachments);
+
+      expect(fetch).toHaveBeenCalledTimes(3);
+      expect(fs.writeFile).toHaveBeenCalledTimes(3);
+      expect(fs.writeFile).toHaveBeenNthCalledWith(1, '/output/report.pdf', expect.any(Buffer), { flag: "wx" });
+      expect(fs.writeFile).toHaveBeenNthCalledWith(2, '/output/report-1.pdf', expect.any(Buffer), { flag: "wx" });
+      expect(fs.writeFile).toHaveBeenNthCalledWith(3, '/output/report-2.pdf', expect.any(Buffer), { flag: "wx" });
+      expect(result).toEqual([
+        '![First Report](/output/report.pdf)',
+        '![Second Report](/output/report-1.pdf)',
+        '![Third Report](/output/report-2.pdf)',
+      ]);
+    });
+
+    test('retries filesystem collisions exclusively without downloading again', async () => {
+      vi.mocked(fs.writeFile)
+        .mockRejectedValueOnce(Object.assign(new Error('case alias'), { code: 'EEXIST' }))
+        .mockRejectedValueOnce(Object.assign(new Error('existing suffix'), { code: 'EEXIST' }));
+      const result = await importer.saveAttachments('/output/', options, [createAttachmentInfo({ fileName: 'Report.pdf' })]);
+      expect(result[0]).toContain('/output/Report-2.pdf');
+      expect(fetch).toHaveBeenCalledTimes(1);
+      for (const call of vi.mocked(fs.writeFile).mock.calls) expect(call[2]).toEqual({ flag: 'wx' });
+    });
+
+    test('preserves existing files across calls and concurrent imports', async () => {
+      const { promises: realFs } = await vi.importActual('fs') as typeof import('fs');
+      const folder = await realFs.mkdtemp(path.join(os.tmpdir(), 'trello-attachments-'));
+      try {
+        await realFs.writeFile(`${folder}/report.pdf`, 'earlier note');
+        await realFs.writeFile(`${folder}/report-1.pdf`, 'another note');
+        vi.mocked(fs.writeFile).mockImplementation(realFs.writeFile);
+        const attachment = createAttachmentInfo({ fileName: 'report.pdf' });
+        const results = await Promise.all([
+          importer.saveAttachments(folder, options, [attachment]),
+          importer.saveAttachments(folder, options, [attachment]),
+        ]);
+        const later = await importer.saveAttachments(folder, options, [attachment]);
+        expect(new Set([...results.flat(), ...later]).size).toBe(3);
+        expect(await realFs.readFile(`${folder}/report.pdf`, 'utf8')).toBe('earlier note');
+        expect(await realFs.readFile(`${folder}/report-1.pdf`, 'utf8')).toBe('another note');
+        expect((await realFs.readdir(folder)).sort()).toEqual(['report-1.pdf', 'report-2.pdf', 'report-3.pdf', 'report-4.pdf', 'report.pdf']);
+      } finally {
+        await realFs.rm(folder, { recursive: true, force: true });
+      }
+    });
+
+    test.each(['a'.repeat(251) + '.pdf', '😀'.repeat(90) + '.pdf', 'x.' + 'é'.repeat(140)])(
+      'fits long names and double-digit collision suffixes in 255 bytes: %s', async (fileName: string) => {
+        const { promises: realFs } = await vi.importActual('fs') as typeof import('fs');
+        const folder = await realFs.mkdtemp(path.join(os.tmpdir(), 'trello-long-'));
+        try {
+          vi.mocked(fs.writeFile).mockImplementation(realFs.writeFile);
+          const results = await importer.saveAttachments(folder, options,
+            Array.from({ length: 12 }, () => createAttachmentInfo({ fileName })));
+          const names = await realFs.readdir(folder);
+          expect(results).toHaveLength(12);
+          expect(names).toHaveLength(12);
+          for (const name of names) {
+            expect(Buffer.byteLength(name)).toBeLessThanOrEqual(255);
+            expect(name).not.toContain('�');
+            expect(await realFs.readFile(`${folder}/${name}`, 'utf8')).toBe('test data');
+          }
+          if (fileName.endsWith('.pdf')) expect(names.every(name => name.endsWith('.pdf'))).toBe(true);
+        } finally {
+          await realFs.rm(folder, { recursive: true, force: true });
+        }
+      });
 
     test('handles empty attachments array', async () => {
       const result = await importer.saveAttachments('/output/', options, []);
@@ -476,7 +554,7 @@ describe('TrelloImport', () => {
       const result = await importer.writeCard(outputFolder, options, 'Board', card, {}, lists);
 
       expect(result).toBe(true);
-      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output/attachments/attachment.png', expect.any(Buffer), { flag: "wx" });
       expect(fs.writeFile).toHaveBeenCalledWith(
         '/output/20240115100000-Test-Card.md',
         expect.stringContaining('![Test Attachment](/output/attachments/attachment.png)'),
@@ -1204,6 +1282,25 @@ describe('TrelloImport', () => {
       expect(content).toContain('## Attachments');
       consoleWarnSpy.mockRestore();
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('expected fixtures formatting (issue #497)', () => {
+    test('expected markdown fixtures have LF line endings and no trailing placeholder bullets', async () => {
+      const fsActual = await vi.importActual('fs') as typeof import('fs');
+      const pathActual = await vi.importActual('path') as typeof import('path');
+      const expectedDir = pathActual.join(__dirname, '../system/import-trello/expected');
+      const files = await fsActual.promises.readdir(expectedDir);
+
+      for (const file of files) {
+        if (!file.endsWith('.md')) continue;
+        const content = await fsActual.promises.readFile(pathActual.join(expectedDir, file), 'utf8');
+
+        expect(content).not.toContain('\r');
+        expect(content.endsWith('\n')).toBe(true);
+        expect(content.endsWith('\n\n')).toBe(false);
+        expect(content).not.toContain('## Attachments\n\n* ');
+      }
     });
   });
 });
