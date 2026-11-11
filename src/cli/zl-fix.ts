@@ -7,6 +7,7 @@ import { FixConfigurationError, fixNotes } from "../zl-fix-core.js";
 import { ZlFixOptions } from "../core-options.js";
 import { InlinePropertiesToFrontmatter } from "../rules/InlinePropertiesToFrontmatterRule.js";
 import { TrailingNewlineRule } from "../rules/BaseRule.js";
+import { LinkDatesRule } from "../rules/LinkDatesRule.js";
 import { cliPath, cliPattern, commonPathRoot, isSkippableFileError } from "./cli-paths.js";
 
 export { fixNotes } from "../zl-fix-core.js";
@@ -42,6 +43,7 @@ async function runFixer(program: ZlFixCommandOptions): Promise<void> {
   const knownRules = [
     new TrailingNewlineRule().name,
     new InlinePropertiesToFrontmatter(program.move, []).name,
+    new LinkDatesRule().name,
   ];
   printHeader({ ...program, outputDir }, knownRules);
   for (const rule of new Set(program.rules ?? [])) {

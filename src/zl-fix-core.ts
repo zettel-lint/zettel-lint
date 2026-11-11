@@ -1,5 +1,6 @@
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from "./rules/InlinePropertiesToFrontmatterRule.js";
+import { LinkDatesRule } from "./rules/LinkDatesRule.js";
 import { escapeGlobPath, FileAdapter, FilePath, joinFilePath, joinSearchPattern, parentFilePath } from "./file-system.js";
 import { ZlFixOptions } from "./core-options.js";
 
@@ -34,6 +35,7 @@ export async function fixNotes(
   const importedRules: BaseRule[] = [
     new TrailingNewlineRule(),
     new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+    new LinkDatesRule(),
   ];
   const rulesByName = new Map(importedRules.map((rule) => [rule.name, rule]));
   const activeRules = [...new Set(program.rules)]
