@@ -1,6 +1,8 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
+import os from 'node:os';
+import path from 'node:path';
 import { glob } from 'glob';
 import { parse } from 'yaml';
 
@@ -111,6 +113,7 @@ describe('TrelloImport', () => {
   beforeEach(() => {
     importer = new TrelloImport();
     vi.clearAllMocks();
+    vi.mocked(fs.writeFile).mockReset().mockResolvedValue(undefined);
     vi.stubGlobal('fetch', vi.fn());
   });
 
@@ -411,7 +414,7 @@ describe('TrelloImport', () => {
 
     test('preserves existing files across calls and concurrent imports', async () => {
       const { promises: realFs } = await vi.importActual('fs') as typeof import('fs');
-      const folder = await realFs.mkdtemp('/tmp/trello-attachments-');
+      const folder = await realFs.mkdtemp(path.join(os.tmpdir(), 'trello-attachments-'));
       try {
         await realFs.writeFile(`${folder}/report.pdf`, 'earlier note');
         await realFs.writeFile(`${folder}/report-1.pdf`, 'another note');
@@ -434,7 +437,7 @@ describe('TrelloImport', () => {
     test.each(['a'.repeat(251) + '.pdf', '😀'.repeat(90) + '.pdf', 'x.' + 'é'.repeat(140)])(
       'fits long names and double-digit collision suffixes in 255 bytes: %s', async (fileName: string) => {
         const { promises: realFs } = await vi.importActual('fs') as typeof import('fs');
-        const folder = await realFs.mkdtemp('/tmp/trello-long-');
+        const folder = await realFs.mkdtemp(path.join(os.tmpdir(), 'trello-long-'));
         try {
           vi.mocked(fs.writeFile).mockImplementation(realFs.writeFile);
           const results = await importer.saveAttachments(folder, options,
