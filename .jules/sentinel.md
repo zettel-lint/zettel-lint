@@ -29,3 +29,8 @@
 **Vulnerability:** `saveAttachments` relied on `path.basename()` to sanitize untrusted `attachment.fileName`. On POSIX systems, `path.basename("..\\..\\evil.sh")` treats backslashes as regular filename characters and does not strip Windows directory separators, allowing paths with Windows separators to traverse directories or create filenames with path components.
 **Learning:** Node's default `path.basename()` is platform-dependent and does not recognize `\` as a separator on POSIX platforms.
 **Prevention:** Normalize backslashes to forward slashes (`fileName.replace(/\\/g, "/")`) and use `path.posix.basename()`, or validate against dangerous filenames (`__proto__`, `constructor`, `prototype`).
+
+## 2026-11-12 - Attachment Filename Collision and Overwrite in Importers
+**Vulnerability:** `saveAttachments` saved downloaded files directly under `outputFolder` using their base filename. When external board exports contained multiple attachments with the same filename (or sanitized to the same basename), later attachments silently overwrote earlier files, resulting in data corruption or stealth replacement of legitimate files.
+**Learning:** Sanitizing path traversal alone is insufficient if external filenames can collide and overwrite previously written attachments within the destination directory.
+**Prevention:** Track written filenames and disambiguate collisions with a counter before the extension (`stem-1.ext`) to ensure each imported attachment is stored separately.
