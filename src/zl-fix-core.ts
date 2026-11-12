@@ -1,5 +1,6 @@
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from "./rules/InlinePropertiesToFrontmatterRule.js";
+import { FrontmatterTemplateRule } from "./rules/FrontmatterTemplateRule.js";
 import { escapeGlobPath, FileAdapter, FilePath, joinFilePath, joinSearchPattern, parentFilePath } from "./file-system.js";
 import { ZlFixOptions } from "./core-options.js";
 
@@ -32,13 +33,20 @@ export async function fixNotes(
   }
 
   const importedRules: BaseRule[] = [
-    new TrailingNewlineRule(),
+    new FrontmatterTemplateRule(program.frontmatterTemplate),
     new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+    new TrailingNewlineRule(),
   ];
   const rulesByName = new Map(importedRules.map((rule) => [rule.name, rule]));
-  const activeRules = [...new Set(program.rules)]
-    .map((name) => rulesByName.get(name))
-    .filter((rule): rule is BaseRule => rule !== undefined);
+
+  const ruleNames = new Set(program.rules);
+  if (program.frontmatterTemplate) {
+    ruleNames.add("frontmatter-template");
+  }
+
+  // Ensure deterministic execution order: frontmatter-template, then inline-properties, then trailing-newline
+  const activeRules = importedRules.filter((rule) => ruleNames.has(rule.name));
+
   if (activeRules.length === 0) {
     throw new FixConfigurationError(
       `No rules specified. Known rules are: ${[...rulesByName.keys()].join(", ")}`,
