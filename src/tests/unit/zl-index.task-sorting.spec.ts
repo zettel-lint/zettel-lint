@@ -14,7 +14,7 @@ test.each(['by-priority', 'by-file', 'none'] as const)(
     let output = '';
     const adapter: FileAdapter = {
       listFiles: async () => [...contents.keys()].filter(p => p.startsWith('notes/')).map(toFilePath),
-      readFile: async path => contents.get(path)!,
+      readFile: async path => contents.get(path),
       writeFile: async (_path, content) => { output = content; },
     };
     const options: ZlIndexOptions = {
