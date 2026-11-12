@@ -6,6 +6,7 @@ import { NodeFileAdapter } from "../file-adapter.js";
 import { FixConfigurationError, fixNotes } from "../zl-fix-core.js";
 import { ZlFixOptions } from "../core-options.js";
 import { InlinePropertiesToFrontmatter } from "../rules/InlinePropertiesToFrontmatterRule.js";
+import { FrontmatterTemplateRule } from "../rules/FrontmatterTemplateRule.js";
 import { TrailingNewlineRule } from "../rules/BaseRule.js";
 import { cliPath, cliPattern, commonPathRoot, isSkippableFileError } from "./cli-paths.js";
 
@@ -21,6 +22,7 @@ export interface ZlFixCommandOptions {
   verbose: boolean;
   outputDir?: string;
   move: boolean;
+  frontmatterTemplate?: string;
 }
 
 function printHeader(program: ZlFixCommandOptions, knownRules: string[]): void {
@@ -40,6 +42,7 @@ function printHeader(program: ZlFixCommandOptions, knownRules: string[]): void {
 async function runFixer(program: ZlFixCommandOptions): Promise<void> {
   const outputDir = program.outputDir ?? program.path;
   const knownRules = [
+    new FrontmatterTemplateRule().name,
     new TrailingNewlineRule().name,
     new InlinePropertiesToFrontmatter(program.move, []).name,
   ];
@@ -80,6 +83,7 @@ export default function fixerCommand(): Command<[], ZlFixCommandOptions> {
     .option("-r, --rules <rule...>", "Rules to use", [])
     .option("-f, --property-filter <regex...>", "Regex patterns to filter which properties to move. Only applies to inline-properties-to-frontmatter rule.", [])
     .option("-m, --move", "Move inline properties to frontmatter instead of copying", false)
+    .option("-t, --frontmatter-template <template>", "YAML frontmatter template to add to files missing frontmatter")
     .option("-v, --verbose", "Additional output", false)
     .allowExcessArguments(true)
     .action(async (cmdObj) => await runFixer(cmdObj as ZlFixCommandOptions));

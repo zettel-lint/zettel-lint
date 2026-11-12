@@ -358,6 +358,8 @@ export default class TrelloImport implements BaseImporter {
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
+    // Validate shortUrl protocol to prevent malicious URI scheme injection (e.g., javascript:) in frontmatter
+    const validShortUrl = toMarkdownHttpUrl(card.shortUrl) && !String(card.shortUrl).includes("\0") ? card.shortUrl : "";
     const listName = lists[card.idList]?.name || "";
     const header = "---" +
       "\ncreated: " + activityDate +
@@ -371,7 +373,7 @@ export default class TrelloImport implements BaseImporter {
       "\nboard: '" + escapeYamlString(boardName) + "'" +
       "\nlist: '" + escapeYamlString(listName) + "'" +
       "\npublished: " + listName.includes("Published") +
-      "\ntrello-url: '" + escapeYamlString(card.shortUrl) + "'" +
+      "\ntrello-url: '" + escapeYamlString(validShortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";

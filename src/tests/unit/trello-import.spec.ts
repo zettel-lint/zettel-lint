@@ -722,6 +722,21 @@ describe('TrelloImport', () => {
       expect(content).toContain("trello-url: 'https://trello.com/c/abc123'");
     });
 
+    test.each([
+      'javascript:alert(1)',
+      'data:text/html,<script>alert(1)</script>',
+      'file:///etc/passwd',
+      'not-a-valid-url',
+    ])('rejects unsafe shortUrl %s in frontmatter', async (unsafeUrl: string) => {
+      const card = createTrelloCardInfo({ shortUrl: unsafeUrl });
+      const lists = { list1: createTrelloListInfo() };
+
+      await importer.writeCard('/output/', options, 'Board', card, {}, lists);
+
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("trello-url: ''");
+    });
+
     test('escapes single quotes and newlines in frontmatter fields to prevent YAML injection', async () => {
       const card = createTrelloCardInfo({ name: "Don't Panic\nInjected Key: value" });
       const lists = { list1: createTrelloListInfo({ name: "List's Name\nEvil: true" }) };
