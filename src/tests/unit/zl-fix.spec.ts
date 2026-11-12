@@ -354,6 +354,21 @@ describe("fixerCommand (extended)", () => {
 		expect(parsed.opts().rules).toEqual(["frontmatter-template"]);
 	});
 
+	test("reports malformed template YAML before writing any content", async () => {
+		let writes = 0;
+		const adapter: Parameters<typeof fixNotes>[1] = {
+			listFiles: async () => [toFilePath("test.md")],
+			readFile: async () => "# Title\n",
+			writeFile: async () => { writes++; },
+		};
+		await expect(fixNotes({
+			path: toFilePath(""), outputDir: toFilePath(""),
+			rules: [], frontmatterTemplate: "title: [unterminated",
+			verbose: false, move: false,
+		}, adapter)).rejects.toThrow(/flow sequence/i);
+		expect(writes).toBe(0);
+	});
+
 	test("automatically activates frontmatter-template when -t is provided", async () => {
 		let written = "";
     const mockAdapter: Parameters<typeof fixNotes>[1] = {

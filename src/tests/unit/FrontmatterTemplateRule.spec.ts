@@ -34,6 +34,49 @@ describe("FrontmatterTemplateRule", () => {
 		expect(output).toBe(input);
 	});
 
+	it.each([
+		"---\n# Title\n",
+		"----\n# Title\n---\n",
+		"---extra\n# Title\n---\n",
+		"---\n# Title\n----\n",
+	])("adds frontmatter when delimiters are incomplete or inexact: %j", (input: string) => {
+		const output = new FrontmatterTemplateRule().fix(input, "note.md");
+		expect(output).toContain("title:\n  - Title\n");
+		expect(output.endsWith(input)).toBe(true);
+		expect(output).not.toBe(input);
+	});
+
+	it.each([
+		"---\r\ntitle: Existing\r\n---\r\n# Title",
+		"---\ntitle: Existing\n---",
+		"---\n---\n# Title",
+	])("preserves exact delimiter pairs: %j", (input: string) => {
+		expect(new FrontmatterTemplateRule().fix(input, "note.md")).toBe(input);
+	});
+
+	it.each([
+		"```markdown\n# Fake\n```\n",
+		"~~~markdown\n# Fake\n~~~\n",
+		"  ````markdown\n# Fake\n```\n# Still fake\n  `````\n",
+		"~~~\n# Fake\n```\n# Still fake\n~~~ trailing\n~~~\n",
+	])("uses the first heading outside a code fence: %j", (code: string) => {
+		const input = `${code}# Real Title\n# Later Title\n`;
+		const output = new FrontmatterTemplateRule().fix(input, "note.md");
+		expect(output).toContain("title:\n  - Real Title\n");
+		expect(output.endsWith(input)).toBe(true);
+	});
+
+	it("falls back to filename for a heading in an unclosed fence", () => {
+		const output = new FrontmatterTemplateRule().fix("```\n# Fake\n", "note.md");
+		expect(output).toContain("title:\n  - note\n");
+	});
+
+	it("reports malformed template YAML instead of returning modified content", () => {
+		expect(() => new FrontmatterTemplateRule("title: [unterminated").fix(
+			"# Title\n", "note.md",
+		)).toThrow(/flow sequence/i);
+	});
+
 	it("supports custom frontmatter template with {{title}} and {{modified}} placeholders", () => {
 		const customTemplate = `title: "{{title}}"
 modified: "{{modified}}"

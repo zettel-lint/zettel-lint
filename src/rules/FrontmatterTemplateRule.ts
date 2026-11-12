@@ -13,13 +13,30 @@ export class FrontmatterTemplateRule extends BaseRule {
 	}
 
 	fix(content: string, filePath: string): string {
-		// Fast path: if the document already begins with YAML frontmatter delimiter, skip
-		if (content.startsWith("---")) {
+		// Preserve notes with a complete pair of exact frontmatter delimiters.
+		if (/^---\r?\n(?:[\s\S]*?\r?\n)?---(?:\r?\n|$)/.test(content)) {
 			return content;
 		}
 
 		// Extract title from first `# Title` header, or fallback to file basename without extension
-		const titleMatch = content.match(/^#\s+(.+)$/m);
+		let titleMatch: RegExpMatchArray | null = null;
+		let fence: string | undefined;
+		for (const line of content.split(/\r?\n/)) {
+			const delimiter = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+			if (fence) {
+				if (delimiter && delimiter[1][0] === fence[0] &&
+					delimiter[1].length >= fence.length && /^[ \t]*$/.test(delimiter[2])) {
+					fence = undefined;
+				}
+				continue;
+			}
+			if (delimiter && (delimiter[1][0] === "~" || !delimiter[2].includes("`"))) {
+				fence = delimiter[1];
+				continue;
+			}
+			titleMatch = line.match(/^#\s+(.+)$/);
+			if (titleMatch) break;
+		}
 		const lastSlash = Math.max(
 			filePath.lastIndexOf("/"),
 			filePath.lastIndexOf("\\"),
@@ -50,21 +67,16 @@ export class FrontmatterTemplateRule extends BaseRule {
 			templator.viewProps.modified = today;
 			const templated = templator.render(rawTemplate);
 
-			try {
-				const parsed = parseDocument(templated);
-				if (parsed.errors.length > 0) throw parsed.errors[0];
-				visit(parsed, {
-					Scalar(_key, node) {
-						if (typeof node.value === "string") {
-							node.value = node.value.replaceAll(titleMarker, () => title);
-						}
-					},
-				});
-				frontmatterYaml = `---\n${stringify(parsed.toJS())}---\n`;
-			} catch {
-				// Fallback: wrap raw templated string with delimiters
-				frontmatterYaml = `---\n${templated.replaceAll(titleMarker, () => title).trim()}\n---\n`;
-			}
+			const parsed = parseDocument(templated);
+			if (parsed.errors.length > 0) throw parsed.errors[0];
+			visit(parsed, {
+				Scalar(_key, node) {
+					if (typeof node.value === "string") {
+						node.value = node.value.replaceAll(titleMarker, () => title);
+					}
+				},
+			});
+			frontmatterYaml = `---\n${stringify(parsed.toJS())}---\n`;
 		} else {
 			const defaultData = {
 				title: [title],
