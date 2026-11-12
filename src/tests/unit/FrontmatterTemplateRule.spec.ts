@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import { FrontmatterTemplateRule } from "../../rules/FrontmatterTemplateRule.js";
 import { InlinePropertiesToFrontmatter } from "../../rules/InlinePropertiesToFrontmatterRule.js";
 
@@ -48,6 +49,41 @@ status: draft`;
 		expect(output).toContain(`modified: ${today}`);
 		expect(output).toContain("status: draft");
 		expect(output).toContain("# Custom Title\nDocument text.");
+	});
+
+	it.each([
+		"title: {{title}}",
+		'title: "{{title}}"',
+		"title: '{{title}}'",
+		"title: {{{title}}}",
+		"title: {{& title}}",
+	])("preserves title text as valid YAML with %s", (template: string) => {
+		const titles = [
+			"Fish & Chips &amp; &#39; &quot;",
+			"It's Craig's note",
+			'He said "hello"',
+			`It's "quoted": [notes] #1 & more`,
+			"true",
+			"123",
+			'Slashes \\ and $& $$ $`',
+		];
+		for (const title of titles) {
+			const input = `# ${title}\nBody content.\n`;
+			const output = new FrontmatterTemplateRule(template).fix(input, "note.md");
+			const yaml = output.slice(4, output.indexOf("\n---\n", 4));
+
+			expect(parse(yaml)).toEqual({ title });
+			expect(output.endsWith(input)).toBe(true);
+		}
+	});
+
+	it("preserves titles inside larger template scalars and sequences", () => {
+		const title = `Craig's "notes": &amp;`;
+		const template = `title:\n  - "About {{title}}"\n  - '{{title}}'`;
+		const output = new FrontmatterTemplateRule(template).fix(`# ${title}\n`, "note.md");
+		const yaml = output.slice(4, output.indexOf("\n---\n", 4));
+
+		expect(parse(yaml)).toEqual({ title: [`About ${title}`, title] });
 	});
 
 	it("supports custom template with existing --- fences", () => {

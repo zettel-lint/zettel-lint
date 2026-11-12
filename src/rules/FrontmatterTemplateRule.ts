@@ -1,4 +1,5 @@
-import { parse, stringify } from "yaml";
+import { randomUUID } from "node:crypto";
+import { parseDocument, stringify, visit } from "yaml";
 import { Templator } from "../Templator.js";
 import { BaseRule } from "./BaseRule.js";
 
@@ -43,16 +44,26 @@ export class FrontmatterTemplateRule extends BaseRule {
 			}
 
 			const templator = new Templator();
-			templator.viewProps.title = title;
+			// Insert the title after parsing so YAML handles quoting, not HTML escaping.
+			const titleMarker = `FRONTMATTER_TITLE_${randomUUID()}`;
+			templator.viewProps.title = titleMarker;
 			templator.viewProps.modified = today;
 			const templated = templator.render(rawTemplate);
 
 			try {
-				const parsed = parse(templated);
-				frontmatterYaml = `---\n${stringify(parsed)}---\n`;
+				const parsed = parseDocument(templated);
+				if (parsed.errors.length > 0) throw parsed.errors[0];
+				visit(parsed, {
+					Scalar(_key, node) {
+						if (typeof node.value === "string") {
+							node.value = node.value.replaceAll(titleMarker, () => title);
+						}
+					},
+				});
+				frontmatterYaml = `---\n${stringify(parsed.toJS())}---\n`;
 			} catch {
 				// Fallback: wrap raw templated string with delimiters
-				frontmatterYaml = `---\n${templated.trim()}\n---\n`;
+				frontmatterYaml = `---\n${templated.replaceAll(titleMarker, () => title).trim()}\n---\n`;
 			}
 		} else {
 			const defaultData = {
