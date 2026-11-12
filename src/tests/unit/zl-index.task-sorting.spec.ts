@@ -14,7 +14,13 @@ test.each(['by-priority', 'by-file', 'none'] as const)(
     let output = '';
     const adapter: FileAdapter = {
       listFiles: async () => [...contents.keys()].filter(p => p.startsWith('notes/')).map(toFilePath),
-      readFile: async path => contents.get(path),
+      readFile: async path => {
+        const content = contents.get(path);
+        if (content === undefined) {
+          throw Object.assign(new Error(`File not found: ${path}`), { code: 'ENOENT' });
+        }
+        return content;
+      },
       writeFile: async (_path, content) => { output = content; },
     };
     const options: ZlIndexOptions = {
