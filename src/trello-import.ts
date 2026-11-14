@@ -405,6 +405,7 @@ export default class TrelloImport implements BaseImporter {
     const files = await glob(globpattern);
     var totalCards = 0;
     var totalNotes = 0;
+    // Security: Use Object.create(null) to prevent prototype pollution and built-in property collisions (e.g., toString)
     var checklists : { [id: string]: TrelloChecklistInfo; } = Object.create(null);
     var lists : { [id: string]: TrelloListInfo; } = Object.create(null);
     var labels : { [id: string]: TrelloLabelInfo; } = Object.create(null);
@@ -417,14 +418,20 @@ export default class TrelloImport implements BaseImporter {
       const notes = await this.extractNotes(file);
       totalCards += notes.cards.length;
       notes.checklists.forEach(checklist => {
-        checklists[checklist.id] = checklist;
+        if (checklist.id) {
+          checklists[checklist.id] = checklist;
+        }
       });
       notes.lists.forEach(list => {
-        lists[list.id] = list;
+        if (list.id) {
+          lists[list.id] = list;
+        }
       });
       notes.labels.forEach(label => {
-        labels[label.id] = label;
-      })
+        if (label.id) {
+          labels[label.id] = label;
+        }
+      });
       const cardComments: { [cardId: string]: TrelloCommentInfo[] } = Object.create(null);
       notes.actions?.forEach(action => {
         if (action.type === "commentCard" && action.data?.card?.id) {
