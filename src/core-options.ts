@@ -22,4 +22,5 @@ export interface ZlFixOptions {
   verbose: boolean;
   outputDir: FilePath;
   move: boolean;
+  frontmatterTemplate?: string;
 }
