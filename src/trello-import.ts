@@ -120,6 +120,17 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+function truncateUtf8(value: string, maxBytes: number): string {
+  let result = "";
+  let bytes = 0;
+  for (const char of value) {
+    bytes += Buffer.byteLength(char);
+    if (bytes > maxBytes) break;
+    result += char;
+  }
+  return result;
+}
+
 function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
   if (!val) return undefined;
   try {
@@ -273,6 +284,7 @@ export default class TrelloImport implements BaseImporter {
 
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
     var filenames: string[] = [];
+    const usedFileNames = new Set<string>();
 
     for await (var attachment of attachments) {
       // Validate attachment URL protocol to prevent malicious URI scheme injection (e.g., javascript:) and non-HTTP fetches
@@ -296,17 +308,46 @@ export default class TrelloImport implements BaseImporter {
         filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
         continue;
       }
-      const outputFilename = path.join(outputFolder, safeFileName);
-      if (options.verbose) {
-       console.log(sanitizeErrorUrl(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`));
-      }
+      // Prevent filename collisions from overwriting existing attachments
+      const ext = path.extname(safeFileName);
+      const stem = path.basename(safeFileName, ext);
+      let counter = 0;
+      const nextFileName = () => {
+        const suffix = counter === 0 ? "" : `-${counter}`;
+        counter++;
+        // Reserve space for the suffix and at least the first complete stem character.
+        const firstCharBytes = Buffer.byteLength(Array.from(stem)[0] || "");
+        const fittingExt = truncateUtf8(ext, 255 - Buffer.byteLength(suffix) - firstCharBytes);
+        const fittingStem = truncateUtf8(stem, 255 - Buffer.byteLength(suffix + fittingExt));
+        return `${fittingStem}${suffix}${fittingExt}`;
+      };
+      let uniqueFileName = nextFileName();
+      while (usedFileNames.has(uniqueFileName)) uniqueFileName = nextFileName();
+      usedFileNames.add(uniqueFileName);
+      let outputFilename = path.join(outputFolder, uniqueFileName);
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
           throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
-        await fs.writeFile(outputFilename, Buffer.from(data));
+        while (true) {
+          try {
+            // Let the destination filesystem decide whether a name is already taken.
+            await fs.writeFile(outputFilename, Buffer.from(data), { flag: "wx" });
+            break;
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+            do {
+              uniqueFileName = nextFileName();
+            } while (usedFileNames.has(uniqueFileName));
+            usedFileNames.add(uniqueFileName);
+            outputFilename = path.join(outputFolder, uniqueFileName);
+          }
+        }
+        if (options.verbose) {
+          console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
+        }
         filenames.push(`![${attachment.name}](${outputFilename})`);
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
@@ -345,6 +386,8 @@ export default class TrelloImport implements BaseImporter {
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
+    // Validate shortUrl protocol to prevent malicious URI scheme injection (e.g., javascript:) in frontmatter
+    const validShortUrl = toMarkdownHttpUrl(card.shortUrl) && !String(card.shortUrl).includes("\0") ? card.shortUrl : "";
     const listName = lists[card.idList]?.name || "";
     const header = "---" +
       "\ncreated: " + activityDate +
@@ -358,7 +401,7 @@ export default class TrelloImport implements BaseImporter {
       "\nboard: '" + escapeYamlString(boardName) + "'" +
       "\nlist: '" + escapeYamlString(listName) + "'" +
       "\npublished: " + listName.includes("Published") +
-      "\ntrello-url: '" + escapeYamlString(card.shortUrl) + "'" +
+      "\ntrello-url: '" + escapeYamlString(validShortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
