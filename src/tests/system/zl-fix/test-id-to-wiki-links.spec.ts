@@ -14,6 +14,7 @@ describe("zl-fix id-to-wiki-links system test", () => {
       ` --path "${inputDir}"` +
       ` --output-dir "${outputDir}"`;
 
+    rmSync(outputDir, { recursive: true, force: true });
     execSync(command, { cwd: packageDir });
   });
 

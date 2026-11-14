@@ -28,8 +28,8 @@ export class IdToWikiLinksRule extends BaseRule {
   }
 
   fix(content: string, _filePath: string): string {
-    return content.replace(/(?<!\[)\[(\d{8,14})\](?!\])/g, (match, id: string) =>
-      this.linksById.get(id) ?? match
+    return content.replace(/\[\[[\s\S]*?\]\]|(?<!\[)\[(\d{8,14})\](?!\])/g, (match, id?: string) =>
+      id ? this.linksById.get(id) ?? match : match
     );
   }
 }
