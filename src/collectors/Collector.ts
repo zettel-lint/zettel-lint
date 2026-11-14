@@ -68,7 +68,7 @@ export abstract class Collector {
     if (!files) return new Map();
     // Performance optimization: Indexed loop avoids callback allocations and intermediate array
     // creations from files?.map(ref => this.extractData(ref))
-    const extracted: formatData[] = new Array(files.length);
+    const extracted: formatData[] = Array.from({length: files.length});
     for (let i = 0; i < files.length; i++) {
       extracted[i] = this.extractData(files[i]);
     }
