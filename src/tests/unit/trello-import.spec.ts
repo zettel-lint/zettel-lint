@@ -283,6 +283,24 @@ describe('TrelloImport', () => {
       expect(decodeURIComponent(destination).split('/').join(path.sep)).toBe(path.join(outputFolder, fileName));
     });
 
+    test('uses a file URL for an absolute Windows attachment path', async () => {
+      vi.spyOn(path, 'join').mockImplementation(path.win32.join);
+      vi.spyOn(path, 'isAbsolute').mockImplementation(path.win32.isAbsolute);
+      const originalSep = path.sep;
+      Object.defineProperty(path, 'sep', { value: '\\', configurable: true });
+      try {
+        const result = await importer.saveAttachments('C:\\output folder\\attachments#1', options,
+          [createAttachmentInfo({ fileName: "photo!'()*;@&=+$,.png", name: 'Image' })]);
+
+        expect(fs.writeFile).toHaveBeenCalledWith("C:\\output folder\\attachments#1\\photo!'()*;@&=+$,.png",
+          expect.any(Buffer), { flag: "wx" });
+        expect(result).toEqual(['![Image](file:///C:/output%20folder/attachments%231/photo%21%27%28%29%2A%3B%40%26%3D%2B%24%2C.png)']);
+      } finally {
+        Object.defineProperty(path, 'sep', { value: originalSep });
+        vi.restoreAllMocks();
+      }
+    });
+
     test('sanitizes attachment fileName to prevent path traversal', async () => {
       const attachment = createAttachmentInfo({
         fileName: '../../evil.sh',

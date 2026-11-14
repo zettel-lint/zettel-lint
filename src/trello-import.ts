@@ -2,6 +2,7 @@ import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -333,10 +334,15 @@ export default class TrelloImport implements BaseImporter {
         if (options.verbose) {
           console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
         }
-        const markdownFilename = outputFilename.split(path.sep)
-          .map(segment => encodeURIComponent(segment).replace(/[!'()*]/g,
-            char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
-          .join("/");
+        const encodeSegment = (segment: string) => encodeURIComponent(segment).replace(/[!'()*]/g,
+          char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+        let markdownFilename = outputFilename.split(path.sep).map(encodeSegment).join("/");
+        if (path.sep === "\\" && path.isAbsolute(outputFilename)) {
+          const fileUrl = pathToFileURL(outputFilename, { windows: true });
+          fileUrl.pathname = fileUrl.pathname.split("/").map((segment, index) =>
+            index === 1 && /^[a-z]:$/i.test(segment) ? segment : encodeSegment(decodeURIComponent(segment))).join("/");
+          markdownFilename = fileUrl.href;
+        }
         filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);

@@ -269,7 +269,11 @@ describe('TrelloImport.saveAttachments security', () => {
       // Verify brackets and newlines are sanitized so markdown link structure cannot be broken
       expect(result).toContain("[Injected\\](https://evil.com/phish) \\[Click](https://example.com/file.pdf)");
       expect(result).toContain("[Malicious * Injected item * Item 2](https://example.com/doc.pdf)");
-      expect(result).toContain(`![Photo\\](https://evil.com/tracker.png) !\\[Clean](${path.join(tmpDir, "photo.png")})`);
+      const encodedPath = path.join(tmpDir, "photo.png").split(path.sep)
+        .map(segment => encodeURIComponent(segment).replace(/[!'()*]/g,
+          char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
+        .join("/");
+      expect(result).toContain(`![Photo\\](https://evil.com/tracker.png) !\\[Clean](${encodedPath})`);
 
       await fs.rm(tmpDir, { recursive: true, force: true });
     } finally {
