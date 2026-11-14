@@ -410,7 +410,7 @@ describe('TrelloImport', () => {
 
       const result = await importer.saveAttachments('/output folder/', options, [attachment]);
 
-      expect(fs.writeFile).toHaveBeenCalledWith('/output folder/image)[click](evil) #?%.png', expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith('/output folder/image)[click](evil) #?%.png', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual(['![Test Attachment](/output%20folder/image%29%5Bclick%5D%28evil%29%20%23%3F%25.png)']);
     });
 
@@ -423,7 +423,7 @@ describe('TrelloImport', () => {
       try {
         const result = await importer.saveAttachments(outputFolder, options, [attachment]);
 
-        expect(fs.writeFile).toHaveBeenCalledWith(outputFilename, expect.any(Buffer));
+        expect(fs.writeFile).toHaveBeenCalledWith(outputFilename, expect.any(Buffer), { flag: "wx" });
         const url = 'file:///C:/output%20folder/attachments/image%29%5Bclick%5D%28evil%29%20%23%3F%25.png';
         expect(result).toEqual([`![Test Attachment](${url})`]);
         expect(fileURLToPath(url, { windows: true })).toBe(outputFilename);
