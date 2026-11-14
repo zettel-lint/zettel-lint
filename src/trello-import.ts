@@ -337,7 +337,7 @@ export default class TrelloImport implements BaseImporter {
           .map(segment => encodeURIComponent(segment).replace(/[!'()*]/g,
             char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
           .join("/");
-        filenames.push(`![${safeName}](${markdownFilename})`);>>>>>>> main
+        filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }

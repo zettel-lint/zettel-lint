@@ -278,7 +278,7 @@ describe('TrelloImport', () => {
       const result = await importer.saveAttachments(outputFolder, options, [attachment]);
 
       const destination = `output%20folder/attachments%231/${encodedName}`;
-      expect(fs.writeFile).toHaveBeenCalledWith(path.join(outputFolder, fileName), expect.any(Buffer));
+      expect(fs.writeFile).toHaveBeenCalledWith(path.join(outputFolder, fileName), expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual([`![Image \\[1\\]](${destination})`]);
       expect(decodeURIComponent(destination).split('/').join(path.sep)).toBe(path.join(outputFolder, fileName));
     });
