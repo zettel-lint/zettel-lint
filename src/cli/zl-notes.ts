@@ -12,7 +12,7 @@ import { YAMLParseError } from 'yaml';
 export default function notesCommand() {
   const notes = new Command('notes');
   notes
-    .description("Lint and fix notes markdown files. Will update existing files. (Deprecated, use 'zl fix')")
+    .description("Lint and fix notes markdown files. Will update existing files. Deprecated: users relying on numeric-link conversion should continue using 'zl notes' until 'zl fix' supports it; all other users should use 'zl fix'.")
     .alias("update")
     .option('-p, --path <path>', "Root path for search", ".")
     .option('-i, --ignore-dirs <path...>', "Path(s) to ignore")

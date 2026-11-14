@@ -2,9 +2,11 @@ import { describe, expect, test, vi } from "vitest";
 import notesCommand from "../../cli/zl-notes.js";
 
 describe("notesCommand (deprecation of zl notes)", () => {
-  test("command has deprecated description", () => {
+  test("help description includes deprecation guidance for numeric links", () => {
     const cmd = notesCommand();
-    expect(cmd.description()).toContain("Deprecated, use 'zl fix'");
+    const guidance = "Deprecated: users relying on numeric-link conversion should continue using 'zl notes' until 'zl fix' supports it; all other users should use 'zl fix'.";
+    expect(cmd.description()).toContain(guidance);
+    expect(cmd.helpInformation().replace(/\s+/g, " ")).toContain(guidance);
     expect(cmd.alias()).toBe("update");
   });
 
