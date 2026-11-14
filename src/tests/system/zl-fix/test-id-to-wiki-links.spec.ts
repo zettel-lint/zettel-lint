@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, test } from "vitest";
-import { execFileSync, execSync } from "child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
+import { execFileSync, execSync } from "node:child_process";
+import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 describe("zl-fix id-to-wiki-links system test", () => {
   beforeAll(() => {

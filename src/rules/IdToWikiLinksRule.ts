@@ -1,5 +1,5 @@
 import { idFromFilename } from "../file-handling.js";
-import { FilePath } from "../file-system.js";
+import type { FilePath } from "../file-system.js";
 import { BaseRule } from "./BaseRule.js";
 
 export class IdToWikiLinksRule extends BaseRule {
