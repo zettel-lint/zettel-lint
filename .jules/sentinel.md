@@ -30,6 +30,11 @@
 **Learning:** Node's default `path.basename()` is platform-dependent and does not recognize `\` as a separator on POSIX platforms.
 **Prevention:** Normalize backslashes to forward slashes (`fileName.replace(/\\/g, "/")`) and use `path.posix.basename()`, or validate against dangerous filenames (`__proto__`, `constructor`, `prototype`).
 
+## 2026-11-08 - Markdown Link Injection in Trello Attachment Names
+**Vulnerability:** `saveAttachments` directly interpolated untrusted `attachment.name` from imported Trello cards into Markdown link syntax (`[${attachment.name}](${markdownUrl})` and `![${attachment.name}](${outputFilename})`). An attacker could provide attachment names containing unescaped closing brackets `]` and newlines to break out of the link label, hijacking link targets to malicious URLs or injecting arbitrary Markdown structure.
+**Learning:** Sanitizing URL destinations and filenames is insufficient if the link text or image alt text contains unescaped Markdown link delimiters (`[`, `]`, `\`) or structural line breaks.
+**Prevention:** Always escape Markdown bracket delimiters and collapse newlines in user-controlled link text and alt text before constructing Markdown links.
+
 ## 2026-11-08 - Unsafe URI Scheme Injection in Importer Card Metadata
 **Vulnerability:** `writeCard` directly escaped and placed untrusted `card.shortUrl` from external imports into YAML frontmatter (`trello-url: '<url>'`) without URL scheme validation, allowing non-HTTP schemes like `javascript:`, `data:`, or `file:` to be persisted into notes and downstream links.
 **Learning:** While attachment URLs were previously protocol-validated, top-level card metadata URLs were only escaped for YAML and lacked scheme validation.

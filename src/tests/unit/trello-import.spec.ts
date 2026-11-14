@@ -2,9 +2,10 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import os from 'node:os';
-import path from 'node:path';
 import { glob } from 'glob';
 import { parse } from 'yaml';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Mock dependencies
 vi.mock('fs', () => ({
@@ -342,6 +343,30 @@ describe('TrelloImport', () => {
       expect(fs.writeFile).not.toHaveBeenCalled();
     });
 
+    test('escapes Markdown syntax and newlines in attachment names for URL attachments', async () => {
+      const attachment = createAttachmentInfo({
+        fileName: '',
+        name: 'Evil Link](https://evil.com) [\nclick',
+        url: 'https://example.com/safe',
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual(['[Evil Link\\](https://evil.com) \\[ click](https://example.com/safe)']);
+    });
+
+    test('escapes Markdown syntax and newlines in attachment names for file attachments', async () => {
+      const attachment = createAttachmentInfo({
+        fileName: 'image.png',
+        name: 'Malicious Image](https://evil.com)\r\n[injected',
+        url: 'https://example.com/image.png',
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual(['![Malicious Image\\](https://evil.com) \\[injected](/output/image.png)']);
+    });
+
     test.each(['', '..', 'attachment.png'])('rejects unsafe or invalid URLs with fileName "%s"', async (fileName: string) => {
       const attachments = ['javascript:alert(1)', 'data:text/html,test', 'ftp://example.com/file', 'not a URL', '']
         .map(url => createAttachmentInfo({ fileName, url }));
@@ -364,6 +389,63 @@ describe('TrelloImport', () => {
 
       expect(fetch).not.toHaveBeenCalled();
       expect(result).toEqual(['[Null File](https://example.com/null)']);
+    });
+
+    test.each(['', 'image.png'])('renders HTML and inline Markdown names literally for fileName "%s"', async (fileName: string) => {
+      const attachment = createAttachmentInfo({
+        fileName,
+        name: '<em>**invoice**</em> &amp; _due_ `code` ~~old~~ ![x]\\\r\nnext',
+      });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      const label = '&lt;em&gt;\\*\\*invoice\\*\\*&lt;/em&gt; &amp;amp; \\_due\\_ \\`code\\` \\~\\~old\\~\\~ \\!\\[x\\]\\\\ next';
+      expect(result).toEqual([fileName
+        ? `![${label}](/output/image.png)`
+        : `[${label}](https://example.com/attachment.png)`]);
+    });
+
+    test('encodes image destinations while writing to the original filesystem path', async () => {
+      const attachment = createAttachmentInfo({ fileName: 'image)[click](evil) #?%.png' });
+
+      const result = await importer.saveAttachments('/output folder/', options, [attachment]);
+
+      expect(fs.writeFile).toHaveBeenCalledWith('/output folder/image)[click](evil) #?%.png', expect.any(Buffer), { flag: "wx" });
+      expect(result).toEqual(['![Test Attachment](/output%20folder/image%29%5Bclick%5D%28evil%29%20%23%3F%25.png)']);
+    });
+
+    test('preserves Windows drive and separators in image destinations', async () => {
+      const attachment = createAttachmentInfo({ fileName: 'image)[click](evil) #?%.png' });
+      const outputFolder = 'C:\\output folder\\attachments';
+      const outputFilename = path.win32.join(outputFolder, attachment.fileName);
+      const joinSpy = vi.spyOn(path, 'join').mockImplementation(path.win32.join);
+
+      try {
+        const result = await importer.saveAttachments(outputFolder, options, [attachment]);
+
+        expect(fs.writeFile).toHaveBeenCalledWith(outputFilename, expect.any(Buffer), { flag: "wx" });
+        const url = 'file:///C:/output%20folder/attachments/image%29%5Bclick%5D%28evil%29%20%23%3F%25.png';
+        expect(result).toEqual([`![Test Attachment](${url})`]);
+        expect(fileURLToPath(url, { windows: true })).toBe(outputFilename);
+      } finally {
+        joinSpy.mockRestore();
+      }
+    });
+
+    test('uses the sanitized name and URL in fetch failure details', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(fetch).mockResolvedValueOnce({ ok: false, status: 404, statusText: 'Not Found' });
+      const attachment = createAttachmentInfo({ name: '**invoice**', url: 'https://example.com/)[click](evil)' });
+
+      const result = await importer.saveAttachments('/output/', options, [attachment]);
+
+      expect(result).toEqual([]);
+      expect(fs.writeFile).not.toHaveBeenCalled();
+      expect(fetch).toHaveBeenCalledWith(attachment.url);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining(
+        'Failed to fetch attachment [\\*\\*invoice\\*\\*](https://example.com/%29%5Bclick%5D%28evil%29): 404 Not Found',
+      ));
+      consoleErrorSpy.mockRestore();
     });
 
     test('handles multiple attachments', async () => {
@@ -1270,6 +1352,22 @@ describe('TrelloImport', () => {
   });
 
   describe('edge cases and integration', () => {
+    test.each([undefined, null, ''])('imports a URL attachment with name %s using a visible fallback', async (name: string | null | undefined) => {
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ attachments: [createAttachmentInfo({ fileName: '', name })] })],
+        lists: [createTrelloListInfo()],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('*.json', '/output/', options);
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFile).toHaveBeenCalledWith(expect.any(String),
+        expect.stringContaining('[Attachment](https://example.com/attachment.png)'), {});
+      expect(fetch).not.toHaveBeenCalled();
+    });
+
     test('handles card with empty description', async () => {
       const card = createTrelloCardInfo({ desc: '' });
       const lists = { list1: createTrelloListInfo() };

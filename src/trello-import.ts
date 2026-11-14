@@ -2,6 +2,7 @@ import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
 import { promises as fs } from "fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -143,6 +144,13 @@ function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
   }
 }
 
+function escapeMarkdownLinkText(val: string | undefined | null): string {
+  if (!val) return "Attachment";
+  return String(val).replace(/[\r\n]+/g, " ")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/([\\\[\]*_`~!])/g, "\\$1");
+}
+
 function escapeYamlSingleQuote(val: string | undefined | null): string {
   if (!val) return "";
   return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
@@ -268,9 +276,11 @@ export default class TrelloImport implements BaseImporter {
         }
         continue;
       }
+      // Sanitise attachment name to prevent Markdown link injection and structure breakout
+      const safeName = escapeMarkdownLinkText(attachment.name);
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
       // Sanitise fileName to prevent cross-platform path traversal and dangerous names
@@ -278,7 +288,7 @@ export default class TrelloImport implements BaseImporter {
       const safeFileName = path.posix.basename(normalizedFileName);
       if (!safeFileName || safeFileName === "." || safeFileName === ".." ||
           safeFileName === "__proto__" || safeFileName === "constructor" || safeFileName === "prototype") {
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
       // Prevent filename collisions from overwriting existing attachments
@@ -301,7 +311,7 @@ export default class TrelloImport implements BaseImporter {
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch attachment [${safeName}](${markdownUrl}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
         while (true) {
@@ -321,7 +331,13 @@ export default class TrelloImport implements BaseImporter {
         if (options.verbose) {
           console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
         }
-        filenames.push(`![${attachment.name}](${outputFilename})`);
+         // Convert Windows drive and UNC paths before encoding Markdown delimiters.
+        const markdownFilename = path.win32.isAbsolute(outputFilename) && !path.posix.isAbsolute(outputFilename)
+          ? pathToFileURL(outputFilename, { windows: true }).href.replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+          : outputFilename.split(path.sep).map(segment =>
+          encodeURIComponent(segment).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+        ).join("/");
+        filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }
