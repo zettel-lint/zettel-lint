@@ -12,6 +12,8 @@ CodeRabbit: This is an LLM-based Code Review tool, mainly used to provide a seco
 
 GitHub Copilot: Using the ChatGPT and Anthropic Claude models to write code to resolve issues, and to review human-authored changes prior to committing. All generated code has been reviewedby human to ensure future maintenance and security are maintained, and any code which does not meet these standards has been rejected.
 
+Google Jules: Automomous agent for reviewing and fixing small bugs, performance enhancements and security concerns. All changes have been reviewed by human to ensure future maintenance and security are maintained, and any code which does not meet these standards has been rejected.
+
 ---
 
 If you are a coder and watch to submit a PR, please see the [Contributor guide](CONTRIBUTING.md) [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
