@@ -51,6 +51,119 @@ describe('zl-import Trello options', () => {
     ]).opts();
     expect(opts.outputFolder).toBe("../import/");
   });
+
+  test('redacts custom options containing sensitive keywords when printed', async () => {
+    const originalConsoleLog = console.log;
+    let loggedOutput = "";
+    console.log = (...args: any[]) => {
+      loggedOutput += args.join(" ") + "\n";
+    };
+
+    try {
+      const cmd = importerCommand();
+      await cmd.parseAsync([
+        "node", "zl", "--source", "unknown", "--path", ".", "--trello-api-key", "MY_SECRET_KEY", "--trello-token", "MY_SECRET_TOKEN"
+      ]);
+
+      expect(loggedOutput).not.toContain("MY_SECRET_KEY");
+      expect(loggedOutput).not.toContain("MY_SECRET_TOKEN");
+      expect(loggedOutput).toContain("[REDACTED]");
+    } finally {
+      console.log = originalConsoleLog;
+    }
+  });
+});
+
+describe('TrelloImport credential redaction in errors', () => {
+  test('redacts key and token in downloadBoardJson error messages when fetch fails', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      return {
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+      } as Response;
+    };
+
+    try {
+      const options: TrelloOptions = {
+        boardIdOrName: "0123456789abcdef01234567",
+        apiKey: "SECRET_KEY_123",
+        token: "SECRET_TOKEN_456",
+        verbose: false,
+      };
+
+      await expect(TrelloImport.downloadBoardJson(options)).rejects.toThrow();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('redacts secret query parameters in error messages containing raw URLs', async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => {
+      throw new TypeError("Failed to fetch https://api.trello.com/1/boards/123?key=SECRET_KEY_999&token=SECRET_TOKEN_888");
+    };
+
+    try {
+      const options: TrelloOptions = {
+        boardIdOrName: "0123456789abcdef01234567",
+        apiKey: "SECRET_KEY_999",
+        token: "SECRET_TOKEN_888",
+        verbose: false,
+      };
+      await expect(TrelloImport.downloadBoardJson(options)).rejects.toSatisfy((err: Error) => {
+        expect(err.message).not.toContain("SECRET_KEY_999");
+        expect(err.message).not.toContain("SECRET_TOKEN_888");
+        expect(err.message).toContain("[REDACTED]");
+        return true;
+      });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('redacts secret query parameters in verbose attachment logging', async () => {
+    const originalConsoleLog = console.log;
+    let logged = "";
+    console.log = (...args: any[]) => {
+      logged += args.join(" ") + "\n";
+    };
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(0),
+    } as any);
+
+    try {
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const os = await import("os");
+      const importer = new TrelloImport();
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-att-log-"));
+      await importer.saveAttachments(tmpDir, {
+        boardIdOrName: "123",
+        apiKey: "key",
+        verbose: true,
+      }, [
+        {
+          id: "att1",
+          url: "https://api.trello.com/file?key=SECRET_KEY&token=SECRET_TOKEN",
+          fileName: "file.png",
+          name: "File",
+          mimeType: "image/png",
+        } as any,
+      ]);
+      expect(logged).not.toContain("SECRET_KEY");
+      expect(logged).not.toContain("SECRET_TOKEN");
+      expect(logged).toContain("[REDACTED]");
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    } finally {
+      console.log = originalConsoleLog;
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe('TrelloImport.saveAttachments security', () => {
