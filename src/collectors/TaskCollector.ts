@@ -1,4 +1,4 @@
-import { type formatData, formatLink } from "../types.js";
+import { type fileWikiLinks, type formatData, formatLink } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 
 export class TaskCollector extends RegexCollector {
@@ -17,8 +17,8 @@ export class TaskCollector extends RegexCollector {
 	}
 
 	protected getTasks(references: formatData[]): string[] {
-		const tasks: string[] = [];
-		if (!references) return tasks;
+		const tasks: { content: string; formatted: string }[] = [];
+		if (!references) return [];
 
 		// Performance optimization: Hoist projectFromFilename and formatLink string formatting
 		// out of inner loop over tags and use indexed for loops to eliminate iterator allocations.
@@ -28,11 +28,21 @@ export class TaskCollector extends RegexCollector {
 			if (tags && tags.length > 0) {
 				const suffix = `${this.projectFromFilename(ref.filename)} => ${formatLink(ref)}`;
 				for (let j = 0; j < tags.length; j++) {
-					tasks.push(tags[j] + suffix);
+					tasks.push({ content: tags[j], formatted: tags[j] + suffix });
 				}
 			}
 		}
-		return tasks;
+		if (this.programArgs?.taskDisplay === "by-priority") {
+			tasks.sort((a, b) => TaskCollector.compareTasks(a.content, b.content)
+				|| a.formatted.localeCompare(b.formatted));
+		}
+		return tasks.map(task => task.formatted);
+	}
+
+	public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
+		const tasks = super.extractAll(files);
+		if (this.programArgs?.taskDisplay !== "by-priority") return tasks;
+		return new Map([...tasks].sort(([a], [b]) => TaskCollector.compareTasks(a, b)));
 	}
 
 	protected projectFromFilename(filename: string | undefined): string {
@@ -40,6 +50,26 @@ export class TaskCollector extends RegexCollector {
 			return "";
 		}
 		return ` +${filename.substring(0, filename.lastIndexOf("."))}`;
+	}
+
+	// Priority order: (A)-(Z) -> [ ] checklist -> unprioritized/other
+	// Within the same priority, sort by due:YYYY-MM-DD (earliest first, no due date last)
+	protected static compareTasks(a: string, b: string): number {
+		const getPriorityRank = (t: string): string => {
+			const m = /^\(([A-Z])\)/.exec(t);
+			if (m) return `0_${m[1]}`;
+			if (t.startsWith("[ ]")) return "1";
+			return "2";
+		};
+		const rankA = getPriorityRank(a);
+		const rankB = getPriorityRank(b);
+		if (rankA !== rankB) return rankA.localeCompare(rankB);
+
+		const dueA = /due:(\d{4}-\d{2}-\d{2})/.exec(a)?.[1] ?? "9999-99-99";
+		const dueB = /due:(\d{4}-\d{2}-\d{2})/.exec(b)?.[1] ?? "9999-99-99";
+		if (dueA !== dueB) return dueA.localeCompare(dueB);
+
+		return a.localeCompare(b);
 	}
 
 	protected formatSortByPriority(references: formatData[]): string {
