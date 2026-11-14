@@ -1,7 +1,8 @@
 import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -143,6 +144,16 @@ function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
   }
 }
 
+function escapeMarkdownLinkText(text: string | undefined | null): string {
+  if (!text) return "";
+  return String(text)
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/</g, "\\<");
+}
+
 function escapeYamlSingleQuote(val: string | undefined | null): string {
   if (!val) return "";
   return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
@@ -268,9 +279,11 @@ export default class TrelloImport implements BaseImporter {
         }
         continue;
       }
+      // Escape attachment name to prevent markdown link and image injection via unescaped brackets or newlines
+      const safeName = escapeMarkdownLinkText(attachment.name);
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
       // Sanitise fileName to prevent cross-platform path traversal and dangerous names
@@ -278,7 +291,7 @@ export default class TrelloImport implements BaseImporter {
       const safeFileName = path.posix.basename(normalizedFileName);
       if (!safeFileName || safeFileName === "." || safeFileName === ".." ||
           safeFileName === "__proto__" || safeFileName === "constructor" || safeFileName === "prototype") {
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
       // Prevent filename collisions from overwriting existing attachments
@@ -301,7 +314,7 @@ export default class TrelloImport implements BaseImporter {
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch attachment [${safeName}](${attachment.url}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
         while (true) {
@@ -321,7 +334,16 @@ export default class TrelloImport implements BaseImporter {
         if (options.verbose) {
           console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
         }
-        filenames.push(`![${attachment.name}](${outputFilename})`);
+        const encodeSegment = (segment: string) => encodeURIComponent(segment).replace(/[!'()*]/g,
+          char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+        let markdownFilename = outputFilename.split(path.sep).map(encodeSegment).join("/");
+        if (path.sep === "\\" && path.isAbsolute(outputFilename)) {
+          const fileUrl = pathToFileURL(outputFilename, { windows: true });
+          fileUrl.pathname = fileUrl.pathname.split("/").map((segment, index) =>
+            index === 1 && /^[a-z]:$/i.test(segment) ? segment : encodeSegment(decodeURIComponent(segment))).join("/");
+          markdownFilename = fileUrl.href;
+        }
+        filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }

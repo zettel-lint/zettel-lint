@@ -185,9 +185,9 @@ describe('TrelloImport.saveAttachments security', () => {
         } as Response;
       };
 
-      const fs = await import("fs/promises");
-      const path = await import("path");
-      const os = await import("os");
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
       const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-att-test-"));
 
       const result = await importer.saveAttachments(tmpDir, options, attachments);
@@ -196,6 +196,84 @@ describe('TrelloImport.saveAttachments security', () => {
       expect(result).toContain("![Windows Subfolder](" + path.join(tmpDir, "sub.png") + ")");
       expect(result).toContain("[Proto File](https://example.com/proto)");
       expect(result).toContain("[Constructor File](https://example.com/constructor)");
+
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('escapes markdown delimiters and newlines in attachment name to prevent markdown link and image injection', async () => {
+    const importer = new TrelloImport();
+    const attachments = [
+      {
+        id: "att-link-inject",
+        name: "Injected](https://evil.com/phish) [Click",
+        url: "https://example.com/file.pdf",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "application/pdf",
+        previews: [],
+        pos: 0
+      },
+      {
+        id: "att-newline-inject",
+        name: "Malicious\n* Injected item\n* Item 2",
+        url: "https://example.com/doc.pdf",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "application/pdf",
+        previews: [],
+        pos: 1
+      },
+      {
+        id: "att-img-inject",
+        name: "Photo](https://evil.com/tracker.png) ![Clean",
+        url: "https://example.com/photo.png",
+        fileName: "photo.png",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: true,
+        mimeType: "image/png",
+        previews: [],
+        pos: 2
+      }
+    ];
+
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        arrayBuffer: async () => new ArrayBuffer(4),
+      } as Response);
+
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-name-test-"));
+
+      const result = await importer.saveAttachments(tmpDir, options, attachments);
+
+      // Verify brackets and newlines are sanitized so markdown link structure cannot be broken
+      expect(result).toContain("[Injected\\](https://evil.com/phish) \\[Click](https://example.com/file.pdf)");
+      expect(result).toContain("[Malicious * Injected item * Item 2](https://example.com/doc.pdf)");
+      const encodedPath = path.join(tmpDir, "photo.png").split(path.sep)
+        .map(segment => encodeURIComponent(segment).replace(/[!'()*]/g,
+          char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
+        .join("/");
+      expect(result).toContain(`![Photo\\](https://evil.com/tracker.png) !\\[Clean](${encodedPath})`);
 
       await fs.rm(tmpDir, { recursive: true, force: true });
     } finally {
@@ -212,9 +290,9 @@ describe('TrelloImport prototype collision resilience', () => {
   };
 
   test('handles card comments and lists with prototype collision IDs without crashing', async () => {
-    const fs = await import("fs/promises");
-    const path = await import("path");
-    const os = await import("os");
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const os = await import("node:os");
 
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-proto-test-"));
     const jsonPath = path.join(tmpDir, "trello-export.json");

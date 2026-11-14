@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeAll } from 'vitest';
-import { readFileSync } from 'fs';
+import { readFileSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
-import { resolve } from 'path';
+import { resolve } from 'node:path';
 
 describe('bump-patch-version workflow', () => {
   let workflowContent: string;

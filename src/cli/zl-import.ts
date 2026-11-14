@@ -101,7 +101,7 @@ async function importer(program: ZlImportOptions): Promise<void> {
         }
         // Save to a temp file
         const tempFile = path.join(program.outputFolder, "trello-board.json");
-        const fsPromises = await import("fs/promises");
+        const fsPromises = await import("node:fs/promises");
         await fsPromises.mkdir(program.outputFolder, { recursive: true });
         await fsPromises.writeFile(tempFile, JSON.stringify(boardJson, null, 2));
         // Now import as usual
