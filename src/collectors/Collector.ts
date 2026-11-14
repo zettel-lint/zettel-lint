@@ -1,8 +1,8 @@
-import { formatData, fileWikiLinks, invertData } from "../types.js";
-import { parse, stringify } from 'yaml';
+import { parse, stringify } from "yaml";
+import { type fileWikiLinks, type formatData, invertData } from "../types.js";
 
 export interface YamlHeaders {
-  [property: string]: string[] | undefined;
+	[property: string]: string[] | undefined;
 }
 
 export abstract class Collector {
@@ -53,9 +53,9 @@ export abstract class Collector {
     const header = content.substring(this.yamlSep.length, endIndex);
     const yamlData = parse(header);
 
-    if (!yamlData || typeof yamlData !== 'object') {
-      return result;
-    }
+		if (!yamlData || typeof yamlData !== "object") {
+			return result;
+		}
 
     // Performance optimization: Avoid Object.entries array allocations and map closures per property
     for (const key in yamlData) {
@@ -120,4 +120,32 @@ export abstract class Collector {
     return this.yamlSep + stringify(properties) + this.yamlSep;
   }
 
+		return result;
+	}
+	public extractData(ref: fileWikiLinks): formatData {
+		return {
+			...ref,
+			name: this.dataName,
+			data: ref.matchData[this.dataName],
+			bag: [],
+		};
+	}
+	public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
+		return invertData(files?.map((ref) => this.extractData(ref)));
+	}
+	public formatter(references: fileWikiLinks[]): string {
+		return (
+			"## " +
+			this.dataName +
+			"\n\n<details>\n<summary>Show " +
+			this.dataName +
+			"</summary>\n\n" +
+			this.format(references.map((r) => this.extractData(r))) +
+			"\n\n</details>"
+		);
+	}
+	protected abstract format(references: formatData[]): string;
+	public writeHeader(properties: YamlHeaders): string {
+		return this.yamlSep + stringify(properties) + this.yamlSep;
+	}
 }
