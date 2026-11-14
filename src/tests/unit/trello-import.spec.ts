@@ -412,6 +412,24 @@ describe('TrelloImport', () => {
       error.mockRestore();
     });
 
+    test.each(['private@tail', 'private)tail', 'private(tail)'])('redacts complete attachment query value %s', async (value: string) => {
+      const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const url = `https://example.com?password=${value}`;
+      vi.mocked(fetch).mockRejectedValueOnce(new Error(`Request (${url}): 401 Unauthorized`));
+
+      await importer.saveAttachments('/output/', { ...options, verbose: true }, [createAttachmentInfo({ url })]);
+
+      expect(fetch).toHaveBeenCalledWith(url);
+      expect(log).toHaveBeenCalledWith(expect.stringContaining('https://example.com?password=[REDACTED] to '));
+      expect(error).toHaveBeenCalledWith(expect.stringContaining('Request (https://example.com?password=[REDACTED]): 401 Unauthorized'));
+      for (const spy of [log, error]) {
+        expect(spy.mock.calls.flat().join(' ')).not.toMatch(/private|tail/);
+      }
+      log.mockRestore();
+      error.mockRestore();
+    });
+
     test('redacts credentials in invalid URL warnings', async () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const url = 'not-a-url?access%5Ftoken=private-token&sig=private-signature';
@@ -995,6 +1013,21 @@ describe('TrelloImport', () => {
 
       await expect(TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' }))
         .rejects.toThrow(`Request https://example.com/?safe=1&${name}=[REDACTED]): 401 Unauthorized`);
+    });
+
+    test.each([
+      ['https://example.com?password=private@tail', 'https://example.com?password=[REDACTED]'],
+      ['https://example.com?password=private)tail', 'https://example.com?password=[REDACTED]'],
+      ['https://example.com?password=private(tail)', 'https://example.com?password=[REDACTED]'],
+      ['https://example.com/path@host?password=private', 'https://example.com/path@host?password=[REDACTED]'],
+      ['https://example.com#user@host', 'https://example.com#user@host'],
+      ['custom+scheme://user:private@host/file', 'custom+scheme://[REDACTED]@host/file'],
+      ['https://example.com user@host', 'https://example.com user@host'],
+    ])('redacts download error URL %s', async (url: string, redacted: string) => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error(`Request (${url}): 401 Unauthorized`));
+
+      await expect(TrelloImport.downloadBoardJson({ boardIdOrName: 'abc12345', apiKey: 'test-key' }))
+        .rejects.toThrow(`Request (${redacted}): 401 Unauthorized`);
     });
 
     test('downloads board by valid ID', async () => {

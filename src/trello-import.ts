@@ -149,11 +149,23 @@ function sortableDate(d: Date | string) : string {
 
 function sanitizeErrorUrl(msg: string): string {
   // Match query values without consuming surrounding prose or Markdown delimiters.
-  return msg.replace(/([a-z][a-z0-9+.-]*:\/\/)[^/\s@]+@/gi, "$1[REDACTED]@")
-    .replace(/([?&])([^=&#\s"'<>()[\]]+)=([^&#\s"'<>()[\]]*)/g, (match, separator, name) => {
+  return msg.replace(/([a-z][a-z0-9+.-]*:\/\/)[^/?#\s@]+@/gi, "$1[REDACTED]@")
+    .replace(/([?&])([^=&#\s"'<>()[\]]+)=([^&#\s"'<>[\]]*)/g, (match, separator, name, value: string) => {
       const decodedName = new URLSearchParams(`${name}=`).keys().next().value || "";
       const sensitive = /^(?:key|api_key|token|access_token|secret|auth|password|signature|sig|credential|awsaccesskeyid|x-amz-.+|x-goog-.+)$/i;
-      return sensitive.test(decodedName) ? `${separator}${name}=[REDACTED]` : match;
+      if (!sensitive.test(decodedName)) return match;
+      // Keep unmatched trailing ')' delimiters from surrounding error text.
+      // Parentheses within the value (including balanced trailing ones) are secret.
+      let balance = 0;
+      for (const char of value) {
+        if (char === '(') balance++;
+        if (char === ')') balance--;
+      }
+      const suffix = value.match(/(\)+)([:.,;!?]?)$/);
+      const trailing = suffix?.[1].length || 0;
+      const closing = Math.min(trailing, Math.max(0, -balance));
+      const delimiters = ')'.repeat(closing) + (closing ? suffix?.[2] || '' : '');
+      return `${separator}${name}=[REDACTED]${delimiters}`;
     });
 }
 
