@@ -2,7 +2,6 @@ import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
 import { promises as fs } from 'fs';
 import os from 'node:os';
-import path from 'node:path';
 import { glob } from 'glob';
 import { parse } from 'yaml';
 import path from 'node:path';
