@@ -14,10 +14,21 @@ export interface ZlIndexOptions {
   verbose: boolean;
 }
 
+export interface RuleExecutionConfig {
+  name: string;
+  include?: string[];
+  exclude?: string[];
+  propertyFilter?: string[];
+  move?: boolean;
+}
+
 export interface ZlFixOptions {
   path: FilePath;
   ignoreDirs?: SearchPattern[];
   rules: string[];
+  ruleConfigs?: RuleExecutionConfig[];
+  /** Stable input-directory prefix for rule globs; defaults to the adapter path. */
+  ruleGlobPath?: string;
   propertyFilter?: string[];
   verbose: boolean;
   outputDir: FilePath;

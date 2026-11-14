@@ -19,10 +19,13 @@ export async function fixNotes(
   adapter: FileAdapter,
   onFileError?: FileErrorHandler,
 ): Promise<void> {
+  const ruleConfigMap = new Map((program.ruleConfigs ?? []).map((rc) => [rc.name, rc]));
+  const inlineConfig = ruleConfigMap.get("inline-properties-to-frontmatter");
+  const propertyFilter = inlineConfig?.propertyFilter ?? program.propertyFilter;
   let propertyRegex: RegExp[] = [];
-  if (program.propertyFilter?.length) {
+  if (propertyFilter?.length) {
     try {
-      propertyRegex = program.propertyFilter.map((pattern) => {
+      propertyRegex = propertyFilter.map((pattern) => {
         const regex = new RegExp(pattern);
         return regex.global ? new RegExp(regex.source, regex.flags.replace("g", "")) : regex;
       });
@@ -37,6 +40,7 @@ export async function fixNotes(
     new FrontmatterTemplateRule(program.frontmatterTemplate).name,
     new InlinePropertiesToFrontmatter(program.move, propertyRegex).name,
     new TrailingNewlineRule().name,
+    new InlinePropertiesToFrontmatter(inlineConfig?.move ?? program.move, propertyRegex),
     IdToWikiLinksRule.ruleName,
   ];
   const ruleNames = new Set(program.rules);
@@ -67,12 +71,54 @@ export async function fixNotes(
   const activeRules = importedRules.filter((rule) => ruleNames.has(rule.name));
   const prefix = program.path ? `${program.path}/` : "";
 
+  function matchesGlob(filepath: string, pattern: string): boolean {
+    const normalized = filepath.replace(/\\/g, "/");
+    let escaped = "";
+    for (let i = 0; i < pattern.length; i++) {
+      const token = pattern[i];
+      if (token === "*") {
+        if (pattern[i + 1] === "*") {
+          escaped += ".*";
+          i++;
+        } else {
+          escaped += "[^/]*";
+        }
+      } else if (token === "?") {
+        escaped += "[^/]";
+      } else {
+        escaped += token.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+      }
+    }
+    return new RegExp(`(^|/)${escaped}$`).test(normalized) || new RegExp(`^${escaped}$`).test(normalized);
+  }
+
+  function shouldRunRule(ruleName: string, filepath: string): boolean {
+    const config = ruleConfigMap.get(ruleName);
+    if (!config) return true;
+
+    if (config.include && config.include.length > 0) {
+      const included = config.include.some((pat) => matchesGlob(filepath, pat));
+      if (!included) return false;
+    }
+
+    if (config.exclude && config.exclude.length > 0) {
+      const excluded = config.exclude.some((pat) => matchesGlob(filepath, pat));
+      if (excluded) return false;
+    }
+
+    return true;
+  }
+
   await Promise.all(files.map(async (filename) => {
     try {
       let newContents = await adapter.readFile(filename);
       const originalContents = newContents;
+      const rulePath = [program.ruleGlobPath ?? program.path, filename.slice(prefix.length)]
+        .filter(Boolean).join("/");
       activeRules.forEach((rule) => {
-        newContents = rule.fix(newContents, filename);
+        if (shouldRunRule(rule.name, rulePath)) {
+          newContents = rule.fix(newContents, filename);
+        }
       });
       if (newContents !== originalContents) {
         const relativePath = filename.slice(prefix.length);
