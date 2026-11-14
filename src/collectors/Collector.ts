@@ -6,61 +6,119 @@ export interface YamlHeaders {
 }
 
 export abstract class Collector {
-	abstract readonly dataName: string;
-	protected yaml: any;
-	protected programArgs: any;
-	public collector(filename: string, content: string, program: any): string[] {
-		this.programArgs = program;
-		if (this.shouldCollect(filename)) {
-			return this.collect(content);
-		}
-		return [];
-	}
-	protected shouldCollect(_filename: string): boolean {
-		return true;
-	}
-	protected abstract collect(content: string): string[];
-	private listOf(value: string): string[] {
-		if (value.trim().startsWith("[")) {
-			return value.trim().slice(1, -1).replaceAll(", ", ",").split(",");
-		}
-		return value.split(" ").filter((v) => v.length > 0);
-	}
-	private readonly yamlSep = "---\n";
-	protected collectYaml(content: string): YamlHeaders {
-		const result: YamlHeaders = Object.create(null);
-		result.tags = undefined;
-		if (!content.startsWith(this.yamlSep)) {
-			return result;
-		}
-		// Performance optimization: Avoid scanning full document when delimiter is unclosed,
-		// and replace Object.entries array/callback allocations with for...in object iteration.
-		const endIdx = content.indexOf(this.yamlSep, this.yamlSep.length);
-		if (endIdx === -1) {
-			return result;
-		}
-		const header = content.substring(this.yamlSep.length, endIdx);
-		const yamlData = parse(header);
+  abstract readonly dataName: string;
+  protected yaml: any;
+  protected programArgs: any;
+  public collector(filename: string, content: string, program: any): string[] {
+    this.programArgs = program;
+    if (this.shouldCollect(filename)) {
+      return this.collect(content);
+    }
+    return [];
+  }
+  protected shouldCollect(filename: string): boolean { return true; }
+  protected abstract collect(content: string): string[];
+  private listOf(value: string): string[] {
+    const trimmed = value.trim();
+    if (trimmed.startsWith("[")) {
+      return trimmed.slice(1, -1).replaceAll(", ", ",").split(",");
+    }
+    const parts = trimmed.split(" ");
+    const result: string[] = [];
+    for (let i = 0; i < parts.length; i++) {
+      if (parts[i].length > 0) {
+        result.push(parts[i]);
+      }
+    }
+    return result;
+  }
+  private getValue(headers: string[][], key: string) : string {
+    for (let i = 0; i < headers.length; i++) {
+      if (headers[i][0] === key) return headers[i][1];
+    }
+    return "";
+  }
+  private readonly yamlSep = "---\n";
+  protected collectYaml(content: string) : YamlHeaders {
+    const result: YamlHeaders = Object.create(null);
+    result.tags = undefined;
+    if (!content.startsWith(this.yamlSep)){
+      return result;
+    }
+    // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
+    const endIndex = content.indexOf(this.yamlSep, this.yamlSep.length);
+    if (endIndex === -1) {
+      return result;
+    }
+    const header = content.substring(this.yamlSep.length, endIndex);
+    const yamlData = parse(header);
 
 		if (!yamlData || typeof yamlData !== "object") {
 			return result;
 		}
 
-		for (const key in yamlData) {
-			// biome-ignore lint/suspicious/noPrototypeBuiltins: ES2021 target in tsconfig
-			if (!Object.prototype.hasOwnProperty.call(yamlData, key)) continue;
-			if (key === "__proto__" || key === "constructor" || key === "prototype")
-				continue;
-			const value = yamlData[key];
-			if (key === "tags") {
-				result[key] = Array.isArray(value)
-					? value.map((v) => String(v))
-					: this.listOf(String(value));
-			} else {
-				const arr = Array.isArray(value) ? value : [value];
-				result[key] = arr.map((v) => String(v));
-			}
-		}
+    // Performance optimization: Avoid Object.entries array allocations and map closures per property
+    for (const key in yamlData) {
+      // biome-ignore lint/suspicious/noPrototypeBuiltins: TS target is es2021 so Object.hasOwn cannot be used
+      if (!Object.prototype.hasOwnProperty.call(yamlData, key)) continue;
+      if (key === '__proto__' || key === 'constructor' || key === 'prototype') continue;
+      const value = yamlData[key];
+      if (key === 'tags') {
+        if (Array.isArray(value)) {
+          const arr: string[] = new Array(value.length);
+          for (let i = 0; i < value.length; i++) {
+            arr[i] = String(value[i]);
+          }
+          result[key] = arr;
+        } else {
+          result[key] = this.listOf(String(value));
+        }
+      } else if (Array.isArray(value)) {
+        const arr: string[] = new Array(value.length);
+        for (let i = 0; i < value.length; i++) {
+          arr[i] = String(value[i]);
+        }
+        result[key] = arr;
+      } else {
+        result[key] = [String(value)];
+      }
+    }
+
+    return result;
+  }
+  public extractData(ref: fileWikiLinks): formatData {
+    return {
+      ...ref,
+      name: this.dataName,
+      data: ref.matchData[this.dataName],
+      bag: []
+    };
+  };
+  public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
+    if (!files || files.length === 0) return new Map<string, formatData[]>();
+
+    // Performance optimization: Avoid array allocation overhead by only accumulating
+    // formatData items that contain non-empty collector data before passing to invertData.
+    const formatDataList: formatData[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const item = this.extractData(files[i]);
+      if (item.data && item.data.length > 0) {
+        formatDataList.push(item);
+      }
+    }
+    return invertData(formatDataList);
+  }
+  public formatter(references: fileWikiLinks[]): string {
+    return "## " + this.dataName + "\n\n<details>\n<summary>Show " + this.dataName + "</summary>\n\n" +
+      this.format(
+        references
+          .map(r => this.extractData(r)))
+      + "\n\n</details>";
+  };
+  protected abstract format(references: formatData[]): string;
+  public writeHeader(properties: YamlHeaders): string {
+    return this.yamlSep + stringify(properties) + this.yamlSep;
+  }
 
 		return result;
 	}
