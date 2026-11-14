@@ -42,6 +42,21 @@ test('empty file has no tasks', () => {
     expect(sut.collect("- [X] First Task").toString()).toHaveLength(0);
   });
 
+  test('respects ignoreQuoted option when enabled via collector', () => {
+    var sut = new TaskCollector();
+    const content = `
+* [ ] Valid Task
+\`\`\`
+* [ ] Codeblock Task
+\`\`\`
+> * [ ] Quoted Block Task
+"- [ ] Double Quoted Task"
+'- [ ] Single Quoted Task'
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true, taskDisplay: "by-file" })).toEqual(["[ ] Valid Task"]);
+    expect(sut.collector("test.md", content, { ignoreQuoted: false, taskDisplay: "by-file" })).toContain("[ ] Valid Task");
+  });
+
   test('formats tasks grouped by filename', () => {
     const sut = new TaskCollector();
     const formatMethod = (sut as unknown as { formatGroupByFilename: (refs: unknown[]) => string }).formatGroupByFilename.bind(sut);

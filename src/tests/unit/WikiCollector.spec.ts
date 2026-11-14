@@ -35,6 +35,32 @@ test('empty file has no links', () => {
     expect(sut.collect('[[Wïkï-Link]]')).toHaveLength(0);
   });
 
+  test('respects ignoreQuoted option', () => {
+    var sut = new WikiCollector();
+    const content = `
+[[Valid-Link]]
+\`\`\`
+[[Codeblock-Link]]
+\`\`\`
+> [[Blockquote-Link]]
+"[[Quoted-Link]]"
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["[[Valid-Link]]"]);
+  });
+
+  test('ignoring quoted text does not join fragments into wiki links', () => {
+    const sut = new WikiCollector();
+    const content = '[`code`[Inline-Link]] [[Double"quote"Link]] [[Single \'quote\' Link]]';
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual([]);
+  });
+
+  test('ignoring fenced code preserves surrounding line boundaries', () => {
+    const sut = new WikiCollector();
+    const content = '[[Before]]\n```\n[[Hidden]]\n```\n[[After]]';
+    expect(sut.collector("test.md", content, { ignoreQuoted: true }))
+      .toEqual(["[[Before]]", "[[After]]"]);
+  });
+
   test('formats references correctly with links and backlinks', () => {
     const sut = new WikiCollector();
     const formatMethod = (sut as unknown as { format: (refs: unknown[]) => string }).format.bind(sut);
