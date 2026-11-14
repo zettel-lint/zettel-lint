@@ -34,3 +34,13 @@
 **Vulnerability:** `saveAttachments` concatenated untrusted `attachment.name` directly into Markdown link labels (`[${name}](${url})`) and image labels (`![${name}](${filename})`), allowing closing brackets (`]`) and unescaped newlines to inject secondary malicious links, external image trackers, or break list rendering.
 **Learning:** Sanitizing URLs and file paths is insufficient if the link text or image alt text is not also escaped against Markdown structural characters.
 **Prevention:** Normalize line breaks to spaces and escape Markdown syntax characters (`\`, `[`, `]`) via an `escapeMarkdownLinkText` helper before embedding external names into Markdown links or image tags.
+
+## 2026-11-08 - Unsafe URI Scheme Injection in Importer Card Metadata
+**Vulnerability:** `writeCard` directly escaped and placed untrusted `card.shortUrl` from external imports into YAML frontmatter (`trello-url: '<url>'`) without URL scheme validation, allowing non-HTTP schemes like `javascript:`, `data:`, or `file:` to be persisted into notes and downstream links.
+**Learning:** While attachment URLs were previously protocol-validated, top-level card metadata URLs were only escaped for YAML and lacked scheme validation.
+**Prevention:** Validate all external URLs against permitted protocols (`http:` and `https:`) using URL parsing helpers before writing them to frontmatter or markdown.
+
+## 2026-11-12 - Attachment Filename Collision and Overwrite in Importers
+**Vulnerability:** `saveAttachments` saved downloaded files directly under `outputFolder` using their base filename. When external board exports contained multiple attachments with the same filename (or sanitized to the same basename), later attachments silently overwrote earlier files, resulting in data corruption or stealth replacement of legitimate files.
+**Learning:** Sanitizing path traversal alone is insufficient if external filenames can collide and overwrite previously written attachments within the destination directory.
+**Prevention:** Track written filenames and disambiguate collisions with a counter before the extension (`stem-1.ext`) to ensure each imported attachment is stored separately.
