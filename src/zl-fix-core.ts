@@ -1,5 +1,7 @@
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from "./rules/InlinePropertiesToFrontmatterRule.js";
+import { FrontmatterTemplateRule } from "./rules/FrontmatterTemplateRule.js";
+import { IdToWikiLinksRule } from "./rules/IdToWikiLinksRule.js";
 import { escapeGlobPath, FileAdapter, FilePath, joinFilePath, joinSearchPattern, parentFilePath } from "./file-system.js";
 import { ZlFixOptions } from "./core-options.js";
 
@@ -34,17 +36,20 @@ export async function fixNotes(
     }
   }
 
-  const importedRules: BaseRule[] = [
-    new TrailingNewlineRule(),
+  const knownRuleNames = [
+    new FrontmatterTemplateRule(program.frontmatterTemplate).name,
+    new InlinePropertiesToFrontmatter(program.move, propertyRegex).name,
+    new TrailingNewlineRule().name,
     new InlinePropertiesToFrontmatter(inlineConfig?.move ?? program.move, propertyRegex),
+    IdToWikiLinksRule.ruleName,
   ];
-  const rulesByName = new Map(importedRules.map((rule) => [rule.name, rule]));
-  const activeRules = [...new Set(program.rules)]
-    .map((name) => rulesByName.get(name))
-    .filter((rule): rule is BaseRule => rule !== undefined);
-  if (activeRules.length === 0) {
+  const ruleNames = new Set(program.rules);
+  if (program.frontmatterTemplate) {
+    ruleNames.add("frontmatter-template");
+  }
+  if (!knownRuleNames.some((name) => ruleNames.has(name))) {
     throw new FixConfigurationError(
-      `No rules specified. Known rules are: ${[...rulesByName.keys()].join(", ")}`,
+      `No rules specified. Known rules are: ${knownRuleNames.join(", ")}`,
     );
   }
 
@@ -56,6 +61,14 @@ export async function fixNotes(
       ...(program.ignoreDirs ?? []),
     ],
   );
+  const importedRules: BaseRule[] = [
+    new FrontmatterTemplateRule(program.frontmatterTemplate),
+    new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+    new TrailingNewlineRule(),
+    new IdToWikiLinksRule(files, program.path),
+  ];
+  // Keep the rule order deterministic regardless of the order provided on the command line.
+  const activeRules = importedRules.filter((rule) => ruleNames.has(rule.name));
   const prefix = program.path ? `${program.path}/` : "";
 
   function matchesGlob(filepath: string, pattern: string): boolean {
