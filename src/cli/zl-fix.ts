@@ -8,6 +8,7 @@ import { ZlFixOptions } from "../core-options.js";
 import { InlinePropertiesToFrontmatter } from "../rules/InlinePropertiesToFrontmatterRule.js";
 import { FrontmatterTemplateRule } from "../rules/FrontmatterTemplateRule.js";
 import { TrailingNewlineRule } from "../rules/BaseRule.js";
+import { IdToWikiLinksRule } from "../rules/IdToWikiLinksRule.js";
 import { cliPath, cliPattern, commonPathRoot, isSkippableFileError } from "./cli-paths.js";
 
 export { fixNotes } from "../zl-fix-core.js";
@@ -45,6 +46,7 @@ async function runFixer(program: ZlFixCommandOptions): Promise<void> {
     new FrontmatterTemplateRule().name,
     new TrailingNewlineRule().name,
     new InlinePropertiesToFrontmatter(program.move, []).name,
+    IdToWikiLinksRule.ruleName,
   ];
   printHeader({ ...program, outputDir }, knownRules);
   for (const rule of new Set(program.rules ?? [])) {

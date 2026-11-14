@@ -1,6 +1,7 @@
 import { BaseRule, TrailingNewlineRule } from "./rules/BaseRule.js";
 import { InlinePropertiesToFrontmatter } from "./rules/InlinePropertiesToFrontmatterRule.js";
 import { FrontmatterTemplateRule } from "./rules/FrontmatterTemplateRule.js";
+import { IdToWikiLinksRule } from "./rules/IdToWikiLinksRule.js";
 import { escapeGlobPath, FileAdapter, FilePath, joinFilePath, joinSearchPattern, parentFilePath } from "./file-system.js";
 import { ZlFixOptions } from "./core-options.js";
 
@@ -32,24 +33,19 @@ export async function fixNotes(
     }
   }
 
-  const importedRules: BaseRule[] = [
-    new FrontmatterTemplateRule(program.frontmatterTemplate),
-    new InlinePropertiesToFrontmatter(program.move, propertyRegex),
-    new TrailingNewlineRule(),
+  const knownRuleNames = [
+    new FrontmatterTemplateRule(program.frontmatterTemplate).name,
+    new InlinePropertiesToFrontmatter(program.move, propertyRegex).name,
+    new TrailingNewlineRule().name,
+    IdToWikiLinksRule.ruleName,
   ];
-  const rulesByName = new Map(importedRules.map((rule) => [rule.name, rule]));
-
   const ruleNames = new Set(program.rules);
   if (program.frontmatterTemplate) {
     ruleNames.add("frontmatter-template");
   }
-
-  // Ensure deterministic execution order: frontmatter-template, then inline-properties, then trailing-newline
-  const activeRules = importedRules.filter((rule) => ruleNames.has(rule.name));
-
-  if (activeRules.length === 0) {
+  if (!knownRuleNames.some((name) => ruleNames.has(name))) {
     throw new FixConfigurationError(
-      `No rules specified. Known rules are: ${[...rulesByName.keys()].join(", ")}`,
+      `No rules specified. Known rules are: ${knownRuleNames.join(", ")}`,
     );
   }
 
@@ -61,6 +57,14 @@ export async function fixNotes(
       ...(program.ignoreDirs ?? []),
     ],
   );
+  const importedRules: BaseRule[] = [
+    new FrontmatterTemplateRule(program.frontmatterTemplate),
+    new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+    new TrailingNewlineRule(),
+    new IdToWikiLinksRule(files, program.path),
+  ];
+  // Keep the rule order deterministic regardless of the order provided on the command line.
+  const activeRules = importedRules.filter((rule) => ruleNames.has(rule.name));
   const prefix = program.path ? `${program.path}/` : "";
 
   await Promise.all(files.map(async (filename) => {
