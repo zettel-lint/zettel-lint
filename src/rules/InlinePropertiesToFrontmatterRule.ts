@@ -17,6 +17,11 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
   }
 
   fix(content: string, filePath: string): string {
+    // Notes with frontmatter still need YAML parsing and validation.
+    if (content.indexOf("::") === -1 && !content.startsWith('---\n')) {
+      return content;
+    }
+
     // Collect all properties from both YAML and inline notation
     const propertyCollector = this.propertyCollector.collectProperties(content, this.regexes);
     if (!propertyCollector.hasInline) {
