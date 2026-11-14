@@ -41,7 +41,7 @@ export async function collectFromFile(filename: FilePath, program: ZlIndexOption
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
-    wikiname: name ? name.slice(0, -3) : name,
+    wikiname: lastDot !== -1 ? name.slice(0, lastDot) : name,
     title: capturedTitle && capturedTitle.length > 0 ? capturedTitle : fallbackTitle,
     matchData,
   };
@@ -66,11 +66,15 @@ export async function indexer(
   const pathPattern = escapeGlobPath(program.path);
   const exclude = [
     joinSearchPattern(pathPattern, "**/node_modules/**"),
+    joinSearchPattern(pathPattern, "**/done*.txt"),
     toSearchPattern(escapeGlobPath(program.referenceFile)),
     ...(program.ignoreDirs ?? []),
   ];
   const files = await adapter.listFiles(
-    [joinSearchPattern(pathPattern, "**/*.md")],
+    [
+      joinSearchPattern(pathPattern, "**/*.md"),
+      joinSearchPattern(pathPattern, "**/*.txt"),
+    ],
     exclude,
   );
   // Bound concurrent reads while keeping results in discovery order.
