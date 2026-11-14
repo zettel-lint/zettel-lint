@@ -1,6 +1,6 @@
 {
   "name": "zettel-lint",
-  "version": "0.13.17",
+  "version": "0.13.18",
   "description": "Command line zettel linting/indexing",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -54,7 +54,7 @@
     "clear": "^0.1.0",
     "commander": "^15.0.0",
     "figlet": "^1.8.0",
-    "glob": "^13.0.0",
+    "glob": "^14.0.2",
     "mustache": "^4.2.0",
     "simple-markdown": "^0.7.3",
     "yaml": "^2.8.1"
