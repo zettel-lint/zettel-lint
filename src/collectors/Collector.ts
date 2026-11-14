@@ -42,15 +42,33 @@ export abstract class Collector {
   protected collectYaml(content: string) : YamlHeaders {
     const result: YamlHeaders = Object.create(null);
     result.tags = undefined;
-    if (!content.startsWith(this.yamlSep)){
+    let sep = this.yamlSep;
+    let sepLen = 4;
+    let isCrLf = false;
+    if (content.startsWith(this.yamlSep)) {
+      sep = this.yamlSep;
+      sepLen = 4;
+    } else if (content.startsWith("---\r\n")) {
+      sep = "---\r\n";
+      sepLen = 5;
+      isCrLf = true;
+    } else {
       return result;
     }
     // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
-    const endIndex = content.indexOf(this.yamlSep, this.yamlSep.length);
-    if (endIndex === -1) {
-      return result;
+    let endIndex = content.indexOf(sep, sepLen);
+    while (endIndex !== -1 && content[endIndex - 1] !== "\n") {
+      endIndex = content.indexOf(sep, endIndex + sepLen);
     }
-    const header = content.substring(this.yamlSep.length, endIndex);
+    if (endIndex === -1) {
+      const closingSep = isCrLf ? "\r\n---" : "\n---";
+      if (content.endsWith(closingSep)) {
+        endIndex = content.length - 3;
+      } else {
+        return result;
+      }
+    }
+    const header = content.substring(sepLen, endIndex);
     const yamlData = parse(header);
 
     if (!yamlData || typeof yamlData !== 'object') {
