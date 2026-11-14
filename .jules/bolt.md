@@ -32,6 +32,12 @@
 
 **Action:** Use direct string `substring` slicing instead of `.replace()` for trimming known boundary characters, and use indexed `for` loops in hot data processing pipelines.
 
+## 2026-04-01 - Single-Pass Extraction and Array Allocation Elimination in `WikiCollector`
+
+**Learning:** In `WikiCollector.extractAll`, using functional `.filter().map()` chains created intermediate arrays, and `[...result.values()].flat()` allocated an unnecessary flattened array before backlink collection. Replacing these array method chains with indexed `for` loops and single-pass collection eliminates intermediate array allocations and reduces garbage collection pressure during vault indexing.
+
+**Action:** Replace multi-step array method chains (`.filter().map().flat()`) with single-pass indexed `for` loops when collecting objects across large file lists.
+
 ## 2026-04-01 - Batch Extraction Optimization in `WikiCollector.extractAll`
 
 **Learning:** In `WikiCollector.extractAll`, calling `this.extractData(ref)` during batch processing executed `collectBacklinks([data])` for every individual file before running `collectBacklinks(allNotes)` on the aggregated dataset. Reusing `super.extractData(ref)` during batch file collection eliminates $N$ redundant single-file backlink collector passes.
