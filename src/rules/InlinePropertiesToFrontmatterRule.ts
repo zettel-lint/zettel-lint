@@ -17,9 +17,8 @@ export class InlinePropertiesToFrontmatter extends BaseRule {
   }
 
   fix(content: string, filePath: string): string {
-    // Performance optimization: Fast-path return when content contains no '::' delimiter,
-    // avoiding expensive regex execution, YAML parsing, and object allocations for notes without inline properties (~100x faster).
-    if (content.indexOf("::") === -1) {
+    // Notes with frontmatter still need YAML parsing and validation.
+    if (content.indexOf("::") === -1 && !content.startsWith('---\n')) {
       return content;
     }
 

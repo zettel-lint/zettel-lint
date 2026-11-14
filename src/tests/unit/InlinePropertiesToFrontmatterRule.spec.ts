@@ -195,3 +195,18 @@ invalid:: value
     expect(rule.fix(input, 'test.md')).toBe(input);
   });
 });
+
+
+describe('frontmatter validation without inline delimiters', () => {
+  it.each([true, false])('preserves YAML parse errors (move=%s)', (move: boolean) => {
+    const rule = new InlinePropertiesToFrontmatter(move);
+    const input = '---\nauthor: [unclosed\n---\nBody';
+    expect(() => rule.fix(input, 'test.md')).toThrow();
+  });
+
+  it.each([true, false])('preserves valid frontmatter verbatim (move=%s)', (move: boolean) => {
+    const rule = new InlinePropertiesToFrontmatter(move);
+    const input = '---\nauthor: Charles Dickens # keep comment\n---\n\nBody  ';
+    expect(rule.fix(input, 'test.md')).toBe(input);
+  });
+});

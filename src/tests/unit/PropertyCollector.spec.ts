@@ -135,3 +135,17 @@ test('formats references sorted alphabetically by property tag', () => {
   const formatted = sut.formatPublic(refs);
   expect(formatted).toBe('* author:Asimov : [Book B][2]\n* author:Tolkien : [Book A][1]\n* status:read : [Book A][1]\n');
 });
+
+
+test('collects subclass patterns without a double-colon delimiter', () => {
+  class EqualsPropertyCollector extends PropertyCollector {
+    readonly regex = /\[([\w-]+)=([^\]]+)\]/g;
+  }
+  const sut = new EqualsPropertyCollector();
+  expect(sut.collectProperties('[author=Charles Dickens]')).toEqual({
+    hasInline: true, properties: { author: ['Charles Dickens'] }
+  });
+  expect(sut.collectProperties('No properties')).toEqual({
+    hasInline: false, properties: {}
+  });
+});
