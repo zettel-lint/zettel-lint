@@ -51,14 +51,11 @@ export function collectBacklinks(references: formatData[]) {
     if (tags) {
       const targetId = ref.id ?? ref.filename ?? "";
       for (let j = 0; j < tags.length; j++) {
-        let tag = tags[j];
-        // Performance optimization: Boundary index checking avoids string allocations on
-        // unbracketed tags and replaces .replace() calls with direct slicing
-        const start = tag.startsWith("[") ? 1 : 0;
-        const end = tag.endsWith("]") ? tag.length - 1 : tag.length;
-        if (start > 0 || end < tag.length) {
-          tag = start < end ? tag.slice(start, end) : "";
-        }
+        const rawTag = tags[j];
+        // Performance optimization: O(1) string slicing without string replace/regex overhead
+        const start = rawTag.startsWith("[") ? 1 : 0;
+        const end = rawTag.endsWith("]") ? rawTag.length - 1 : rawTag.length;
+        const tag = start < end ? rawTag.substring(start, end) : (start === 0 && end === rawTag.length ? rawTag : "");
         let list = tagList.get(tag);
         if (!list) {
           list = [];
@@ -71,8 +68,9 @@ export function collectBacklinks(references: formatData[]) {
   return tagList;
 }
 
-export function invertDictionary(references: formatData[]) {
-  const tagList: { [tag: string]: string[]; } = {};
+export function invertDictionary(references: formatData[]): { [tag: string]: string[] } {
+  // Security: Use Object.create(null) to avoid prototype pollution and collision with Object.prototype methods
+  const tagList: { [tag: string]: string[] } = Object.create(null);
 
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
@@ -82,10 +80,12 @@ export function invertDictionary(references: formatData[]) {
       const link = formatLink(ref);
       for (let j = 0; j < tags.length; j++) {
         const tag = tags[j];
-        let list = tagList[tag];
-        if (!list) {
-          list = [];
-          tagList[tag] = list;
+        // Security: Prevent prototype pollution from dangerous keys
+        if (tag === "__proto__" || tag === "constructor" || tag === "prototype") {
+          continue;
+        }
+        if (!tagList[tag]) {
+          tagList[tag] = [];
         }
         list.push(link);
       }

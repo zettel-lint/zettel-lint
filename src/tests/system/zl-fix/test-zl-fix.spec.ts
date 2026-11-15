@@ -1,7 +1,7 @@
 import { describe, test, beforeAll, expect } from "vitest";
-import { execSync } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 describe("zl-fix system test", () => {
   beforeAll(() => {

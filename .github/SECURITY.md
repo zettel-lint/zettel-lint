@@ -6,8 +6,8 @@ Only the latest release of `zettel-lint` receives security updates.
 
 | Version | Supported             |
 | ------- | --------------------- |
-| 0.13.17 (latest) | :white_check_mark: |
-| < 0.13.17 | :x: |
+| 0.13.18 (latest) | :white_check_mark: |
+| < 0.13.18 | :x: |
 
 ## Reporting a Vulnerability
 
