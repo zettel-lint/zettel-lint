@@ -233,6 +233,8 @@ export default class TrelloImport implements BaseImporter {
     for (const field of ["cards", "lists", "checklists", "labels", "members", "fields"]) {
       url.searchParams.set(field, "all");
     }
+    url.searchParams.set("card_attachments", "true");
+    url.searchParams.set("card_attachment_fields", "all");
     if (token) {
       url.searchParams.set("token", token);
     }
