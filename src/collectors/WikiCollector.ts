@@ -44,22 +44,9 @@ export class WikiCollector extends RegexCollector {
     return {...data, bag: collectBacklinks([data]).get(ref.filename ?? "") ?? []}
   }
   protected format(references: formatData[]): string {
-    const backList: { [target: string]: string[]; } = invertDictionary(references);
+    var backList: { [target: string]: string[]; } = invertDictionary(references);
 
-    // Performance optimization: Single-pass indexed loop avoids intermediate .map()
-    // array allocation, iterator closures, and .join() pass (~45% faster, reduces GC pressure).
-    let result = "";
-    for (let i = 0; i < references.length; i++) {
-      const r = references[i];
-      const linksStr = r.data && r.data.length > 0 ? r.data.join(",") : "No links";
-      const backlinks = backList[`[${r.id ?? ""}]`];
-      const backlinksStr = backlinks ? backlinks.join(",") : "No backlinks";
-      if (i > 0) {
-        result += "\n";
-      }
-      result += `* ${formatLink(r)} = \`${r.filename}\`:\n  * ${linksStr}\n  * ${backlinksStr}`;
-    }
-    return result;
+    return references.map(r => "* " + formatLink(r) + " = `" + r.filename + "`:\n  * " + (r.data.length > 0 ? r.data : "No links") + "\n  * " + (backList["[" + (r.id ?? "") + "]"] ?? "No backlinks")).join("\n");
   }
   readonly dataName = "Links";
   readonly regex = /(?:\[\d{8,14}\])|(?:\[\[[A-Za-z0-9-]*\]\])/g;
