@@ -39,7 +39,7 @@ This is a link to a [Page that doesn't exist](404.md)
 * [ ] Also supports tasks in a bullet list
 * [x] if they aren't completed
 
-Tags can use #hashtag or +projectref formats for compatibility with `todo.txt` files
+Tags can use #hashtag or +projectref formats for compatibility with `todo.txt` files. In `.txt` files, each non-empty, non-completed line is treated as a todo.txt task; completed lines beginning with `x` are ignored. `(A)` priorities and dates remain part of the task text, and `due:YYYY-MM-DD` can be used with the template's `{{?Tasks?sort(due)//}}` query to sort by due date. A `+project` token links to a note with the same filename stem (either `.md` or `.txt`).
 
 To refresh the index:
 

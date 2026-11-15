@@ -6,6 +6,28 @@ export class TaskCollector extends RegexCollector {
 		return this.programArgs.taskDisplay !== "none";
 	}
 
+	public collector(filename: string, content: string, program: any): string[] {
+		this.programArgs = program;
+		if (!this.shouldCollect(filename)) {
+			return [];
+		}
+		if (filename.toLowerCase().endsWith(".txt")) {
+			return this.collectTodoTxt(content);
+		}
+		return this.collect(content);
+	}
+
+	protected collectTodoTxt(content: string): string[] {
+		const tasks: string[] = [];
+		for (const line of content.split(/\r?\n/)) {
+			const task = line.trim();
+			if (task && !/^x\s/i.test(task)) {
+				tasks.push(task);
+			}
+		}
+		return tasks;
+	}
+
 	protected format(references: formatData[]): string {
 		switch (this.programArgs.taskDisplay as string) {
 			case "by-priority":
