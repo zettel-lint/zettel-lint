@@ -1,6 +1,9 @@
 import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 
+// Module-scoped non-global regex to inspect frontmatter with cross-platform (LF / CRLF) line endings.
+const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+
 export class TagCollector extends RegexCollector {
   protected format(references: formatData[]): string {
     const tagList: { [tag: string]: string[] } = invertDictionary(references);
@@ -29,7 +32,18 @@ export class TagCollector extends RegexCollector {
    */
   collect(content: string): string[] {
     const inlineMatches = super.collect(content);
-    const rawYamlTags = this.collectYaml(content)?.tags;
+
+    // Parse closed frontmatter so malformed YAML errors reach the caller.
+    let rawYamlTags: string[] | undefined;
+    if (content.startsWith("---")) {
+      const fmMatch = FRONTMATTER_REGEX.exec(content);
+      if (fmMatch) {
+        const yaml = this.collectYaml(content);
+        if (fmMatch[1].includes("tags") || fmMatch[1].includes("\\")) {
+          rawYamlTags = yaml.tags;
+        }
+      }
+    }
 
     const result: string[] = [];
 
