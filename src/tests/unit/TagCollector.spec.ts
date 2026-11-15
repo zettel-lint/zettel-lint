@@ -79,10 +79,35 @@ test('empty file has no tags', () => {
       .toEqual(["#12345678", "#tag1"]);
   });
 
-test('collects project tags at the start of subsequent task lines', () => {
-  const sut = new TagCollector();
-  expect(sut.collector("todo.txt", "First task\n+alpha Follow up", {})).toEqual(["+alpha"]);
-  expect(sut.collect("#first +work/home\n#second +alpha-beta_2")).toEqual([
-    "#first", "+work/home", "#second", "+alpha-beta_2",
-  ]);
-});
+  test('collects project tags at the start of subsequent task lines', () => {
+    const sut = new TagCollector();
+    expect(sut.collector("todo.txt", "First task\n+alpha Follow up", {})).toEqual(["+alpha"]);
+    expect(sut.collect("#first +work/home\n#second +alpha-beta_2")).toEqual([
+      "#first", "+work/home", "#second", "+alpha-beta_2",
+    ]);
+  });
+
+  test('respects ignoreQuoted option', () => {
+    const sut = new TagCollector();
+    const content = `#valid
+\`\`\`
+#codeblock
+\`\`\`
+> #blockquote
+"#quoted"
+It's a test file with contractions.
+'#singlequoted'
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["#valid"]);
+  });
+
+  test('preserves YAML frontmatter when ignoreQuoted is enabled', () => {
+    const sut = new TagCollector();
+    const content = `---
+tags: "work"
+---
+Some content
+"#quoted"
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["#work"]);
+  });
