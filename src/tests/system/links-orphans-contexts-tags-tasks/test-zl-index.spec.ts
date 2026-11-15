@@ -1,7 +1,7 @@
 import { describe, it, beforeAll, expect } from "vitest";
-import { execSync } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 describe("zl-index system test", () => {
   const expectedOutputFile = join(__dirname, "expected", "references.md");
