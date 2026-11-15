@@ -36,11 +36,14 @@ export async function fixNotes(
     }
   }
 
+  const inlinePropertiesRule = new InlinePropertiesToFrontmatter(
+    inlineConfig?.move ?? program.move,
+    propertyRegex,
+  );
   const knownRuleNames = [
     new FrontmatterTemplateRule(program.frontmatterTemplate).name,
-    new InlinePropertiesToFrontmatter(program.move, propertyRegex).name,
+    inlinePropertiesRule.name,
     new TrailingNewlineRule().name,
-    new InlinePropertiesToFrontmatter(inlineConfig?.move ?? program.move, propertyRegex),
     IdToWikiLinksRule.ruleName,
   ];
   const ruleNames = new Set(program.rules);
@@ -63,7 +66,7 @@ export async function fixNotes(
   );
   const importedRules: BaseRule[] = [
     new FrontmatterTemplateRule(program.frontmatterTemplate),
-    new InlinePropertiesToFrontmatter(program.move, propertyRegex),
+    inlinePropertiesRule,
     new TrailingNewlineRule(),
     new IdToWikiLinksRule(files, program.path),
   ];
