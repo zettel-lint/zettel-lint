@@ -1,5 +1,5 @@
 import { Command } from "@commander-js/extra-typings";
-import { clear } from "console";
+import { clear } from "node:console";
 import chalk from "chalk";
 import figlet from "figlet";
 import { NodeFileAdapter } from "../file-adapter.js";
