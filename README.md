@@ -12,6 +12,8 @@ CodeRabbit: This is an LLM-based Code Review tool, mainly used to provide a seco
 
 GitHub Copilot: Using the ChatGPT and Anthropic Claude models to write code to resolve issues, and to review human-authored changes prior to committing. All generated code has been reviewedby human to ensure future maintenance and security are maintained, and any code which does not meet these standards has been rejected.
 
+Google Jules: Automomous agent for reviewing and fixing small bugs, performance enhancements and security concerns. All changes have been reviewed by human to ensure future maintenance and security are maintained, and any code which does not meet these standards has been rejected. Merge permissions are only granted to humans, and there are no plans to change this policy.
+
 ---
 
 If you are a coder and watch to submit a PR, please see the [Contributor guide](CONTRIBUTING.md) [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
@@ -117,7 +119,7 @@ Options:
 * `-p, --path <path>` - Root path for search (default: ".")
 * `-i, --ignore-dirs <path...>` - Path(s) to ignore
 * `-o, --output-dir <path>` - Directory to output fixed files to. If not specified, files will be updated in place. (default: the `--path` directory)
-* `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`)
+* `-r, --rules <rule...>` - Rules to use (e.g., `trailing-newline`, `inline-properties-to-frontmatter`, `id-to-wiki-links`)
 * `-f, --property-filter <regex...>` - Regex patterns to filter which properties to copy or move to frontmatter. Only applies to inline-properties-to-frontmatter rule.
   * e.g. Use `author` to match `[author:: alice]` or `[authors:: alice, bob]` ; use `^author$` if you only want to match the first. 
 * `-m, --move` - Move inline properties to frontmatter instead of copying (default: false)
@@ -129,6 +131,7 @@ Options:
 * `inline-properties-to-frontmatter` - Ensure YAML frontmatter is correctly formatted, with inline properties moved to frontmatter if specified
   * If `--move` is specified, inline properties will be moved to frontmatter instead of copied
   * This is useful for moving Obsidian dataview properties to YAML frontmatter
+* `id-to-wiki-links` - Convert resolvable numeric `[id]` links to wiki links; unresolved links and existing wiki-links are left unchanged
 
 ## Programmatic API
 
@@ -149,6 +152,8 @@ Options:
 * `--json-debug-output` - Output JSON intermediate representations
 * `--no-wiki` - Disable wiki-style links
 * `-v, --verbose` - Show additional output
+
+Use `zl fix --rules id-to-wiki-links` instead of `zl notes --wiki-links-from-id` to convert resolvable numeric links. The `zl notes` command remains available for now.
 
 ## Templating (for the `index` and `import` options)
 
