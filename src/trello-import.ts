@@ -144,14 +144,11 @@ function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
   }
 }
 
-function escapeMarkdownLinkText(text: string | undefined | null): string {
-  if (!text) return "";
-  return String(text)
-    .replace(/[\r\n]+/g, " ")
-    .replace(/\\/g, "\\\\")
-    .replace(/\[/g, "\\[")
-    .replace(/\]/g, "\\]")
-    .replace(/</g, "\\<");
+function escapeMarkdownLinkText(val: string | undefined | null): string {
+  if (!val) return "Attachment";
+  return String(val).replace(/[\r\n]+/g, " ")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/([\\\[\]*_`~!])/g, "\\$1");
 }
 
 function escapeYamlSingleQuote(val: string | undefined | null): string {
@@ -314,7 +311,7 @@ export default class TrelloImport implements BaseImporter {
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${safeName}](${attachment.url}): ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch attachment [${safeName}](${markdownUrl}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
         while (true) {
