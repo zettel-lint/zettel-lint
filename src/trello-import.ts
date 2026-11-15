@@ -1,7 +1,8 @@
 import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -120,6 +121,17 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
+function truncateUtf8(value: string, maxBytes: number): string {
+  let result = "";
+  let bytes = 0;
+  for (const char of value) {
+    bytes += Buffer.byteLength(char);
+    if (bytes > maxBytes) break;
+    result += char;
+  }
+  return result;
+}
+
 function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
   if (!val) return undefined;
   try {
@@ -130,6 +142,16 @@ function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function escapeMarkdownLinkText(text: string | undefined | null): string {
+  if (!text) return "";
+  return String(text)
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/</g, "\\<");
 }
 
 function escapeYamlSingleQuote(val: string | undefined | null): string {
@@ -246,6 +268,7 @@ export default class TrelloImport implements BaseImporter {
 
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
     var filenames: string[] = [];
+    const usedFileNames = new Set<string>();
 
     for await (var attachment of attachments) {
       // Validate attachment URL protocol to prevent malicious URI scheme injection (e.g., javascript:) and non-HTTP fetches
@@ -256,9 +279,11 @@ export default class TrelloImport implements BaseImporter {
         }
         continue;
       }
+      // Escape attachment name to prevent markdown link and image injection via unescaped brackets or newlines
+      const safeName = escapeMarkdownLinkText(attachment.name);
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
       // Sanitise fileName to prevent cross-platform path traversal and dangerous names
@@ -266,21 +291,59 @@ export default class TrelloImport implements BaseImporter {
       const safeFileName = path.posix.basename(normalizedFileName);
       if (!safeFileName || safeFileName === "." || safeFileName === ".." ||
           safeFileName === "__proto__" || safeFileName === "constructor" || safeFileName === "prototype") {
-        filenames.push("[" + attachment.name + "](" + markdownUrl + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
       }
-      const outputFilename = path.join(outputFolder, safeFileName);
-      if (options.verbose) {
-       console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
-      }
+      // Prevent filename collisions from overwriting existing attachments
+      const ext = path.extname(safeFileName);
+      const stem = path.basename(safeFileName, ext);
+      let counter = 0;
+      const nextFileName = () => {
+        const suffix = counter === 0 ? "" : `-${counter}`;
+        counter++;
+        // Reserve space for the suffix and at least the first complete stem character.
+        const firstCharBytes = Buffer.byteLength(Array.from(stem)[0] || "");
+        const fittingExt = truncateUtf8(ext, 255 - Buffer.byteLength(suffix) - firstCharBytes);
+        const fittingStem = truncateUtf8(stem, 255 - Buffer.byteLength(suffix + fittingExt));
+        return `${fittingStem}${suffix}${fittingExt}`;
+      };
+      let uniqueFileName = nextFileName();
+      while (usedFileNames.has(uniqueFileName)) uniqueFileName = nextFileName();
+      usedFileNames.add(uniqueFileName);
+      let outputFilename = path.join(outputFolder, uniqueFileName);
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch attachment [${safeName}](${attachment.url}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
-        await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push(`![${attachment.name}](${outputFilename})`);
+        while (true) {
+          try {
+            // Let the destination filesystem decide whether a name is already taken.
+            await fs.writeFile(outputFilename, Buffer.from(data), { flag: "wx" });
+            break;
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+            do {
+              uniqueFileName = nextFileName();
+            } while (usedFileNames.has(uniqueFileName));
+            usedFileNames.add(uniqueFileName);
+            outputFilename = path.join(outputFolder, uniqueFileName);
+          }
+        }
+        if (options.verbose) {
+          console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
+        }
+        const encodeSegment = (segment: string) => encodeURIComponent(segment).replace(/[!'()*]/g,
+          char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+        let markdownFilename = outputFilename.split(path.sep).map(encodeSegment).join("/");
+        if (path.sep === "\\" && path.isAbsolute(outputFilename)) {
+          const fileUrl = pathToFileURL(outputFilename, { windows: true });
+          fileUrl.pathname = fileUrl.pathname.split("/").map((segment, index) =>
+            index === 1 && /^[a-z]:$/i.test(segment) ? segment : encodeSegment(decodeURIComponent(segment))).join("/");
+          markdownFilename = fileUrl.href;
+        }
+        filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }
@@ -317,6 +380,8 @@ export default class TrelloImport implements BaseImporter {
 
     const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
+    // Validate shortUrl protocol to prevent malicious URI scheme injection (e.g., javascript:) in frontmatter
+    const validShortUrl = toMarkdownHttpUrl(card.shortUrl) && !String(card.shortUrl).includes("\0") ? card.shortUrl : "";
     const listName = lists[card.idList]?.name || "";
     const header = "---" +
       "\ncreated: " + activityDate +
@@ -330,7 +395,7 @@ export default class TrelloImport implements BaseImporter {
       "\nboard: '" + escapeYamlString(boardName) + "'" +
       "\nlist: '" + escapeYamlString(listName) + "'" +
       "\npublished: " + listName.includes("Published") +
-      "\ntrello-url: '" + escapeYamlString(card.shortUrl) + "'" +
+      "\ntrello-url: '" + escapeYamlString(validShortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
@@ -362,6 +427,7 @@ export default class TrelloImport implements BaseImporter {
     const files = await glob(globpattern);
     var totalCards = 0;
     var totalNotes = 0;
+    // Security: Use Object.create(null) to prevent prototype pollution and built-in property collisions (e.g., toString)
     var checklists : { [id: string]: TrelloChecklistInfo; } = Object.create(null);
     var lists : { [id: string]: TrelloListInfo; } = Object.create(null);
     var labels : { [id: string]: TrelloLabelInfo; } = Object.create(null);
@@ -374,14 +440,20 @@ export default class TrelloImport implements BaseImporter {
       const notes = await this.extractNotes(file);
       totalCards += notes.cards.length;
       notes.checklists.forEach(checklist => {
-        checklists[checklist.id] = checklist;
+        if (checklist.id) {
+          checklists[checklist.id] = checklist;
+        }
       });
       notes.lists.forEach(list => {
-        lists[list.id] = list;
+        if (list.id) {
+          lists[list.id] = list;
+        }
       });
       notes.labels.forEach(label => {
-        labels[label.id] = label;
-      })
+        if (label.id) {
+          labels[label.id] = label;
+        }
+      });
       const cardComments: { [cardId: string]: TrelloCommentInfo[] } = Object.create(null);
       notes.actions?.forEach(action => {
         if (action.type === "commentCard" && action.data?.card?.id) {

@@ -6,9 +6,3 @@ title: 'https://trello.com/b/ZE5BzGZD/okrs'
 ---
 
 ## Checklists
-
----
-
-## Attachments
-
-* 
