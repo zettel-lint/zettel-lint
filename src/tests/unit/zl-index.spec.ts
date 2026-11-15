@@ -32,4 +32,19 @@ describe('indexerCommand', () => {
       const opts = indexerCommand().parse(["node", "zl", "--ignore-numeric-tags"]);
       expect(opts.opts().ignoreNumericTags).toBe(true);
     });
+
+    test('ignores quoted content by default', () => {
+      const opts = indexerCommand().parse(["node", "zl"]);
+      expect(opts.opts().ignoreQuoted).toBe(true);
+    });
+
+    test('can parse ignore-quoted option', () => {
+      const opts = indexerCommand().parse(["node", "zl", "--ignore-quoted"]);
+      expect(opts.opts().ignoreQuoted).toBe(true);
+    });
+
+    test('can opt out of quoted filtering', () => {
+      const opts = indexerCommand().parse(["node", "zl", "--no-ignore-quoted"]);
+      expect(opts.opts().ignoreQuoted).toBe(false);
+    });
 });
