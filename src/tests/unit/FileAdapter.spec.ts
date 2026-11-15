@@ -143,6 +143,18 @@ describe("FileAdapter contract and integration", () => {
     expect(referencesContent?.indexOf("Buy milk")).toBeLessThan(referencesContent?.indexOf("Call Mom") ?? -1);
   });
 
+  it("does not resolve a slash project token as a shorter filename stem", async () => {
+    const memory = new MemoryFileAdapter();
+    memory.files.set(toFilePath("work.md"), "# Work");
+    memory.files.set(toFilePath("todo.txt"), "First task\n+work/home Follow up");
+    memory.files.set(toFilePath("template.mustache"), "Index");
+
+    const references = await indexer(indexOptions(), memory);
+    const todo = references.find((r) => r.filename === "todo.txt");
+    expect(todo?.matchData["Tags"]).toEqual(["+work/home"]);
+    expect(todo?.matchData["Links"]).toEqual(["+work/home"]);
+  });
+
   it("runs fixNotes with an in-memory adapter", async () => {
     const memory = new MemoryFileAdapter();
     memory.files.set(toFilePath("note.md"), "# My Note\n[author:: Alice]");

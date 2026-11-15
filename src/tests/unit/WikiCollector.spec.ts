@@ -34,3 +34,11 @@ test('empty file has no links', () => {
     var sut = new WikiCollector();
     expect(sut.collect('[[Wïkï-Link]]')).toHaveLength(0);
   });
+
+test('uses project tag boundaries and preserves complete tokens', () => {
+  const sut = new WikiCollector();
+  expect(sut.collector("todo.txt", "First task\n+alpha Follow up +work/home +alpha-beta_2", {}))
+    .toEqual(["+alpha", "+work/home", "+alpha-beta_2"]);
+  expect(sut.collect("word+embedded (+parenthesized) [[Wiki-Link]] [20200101120060]"))
+    .toEqual(["[[Wiki-Link]]", "[20200101120060]"]);
+});

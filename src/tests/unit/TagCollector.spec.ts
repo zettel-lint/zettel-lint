@@ -78,3 +78,11 @@ test('empty file has no tags', () => {
     expect(sut.collector("file.md", "Content with #12345678 and #tag1", { ignoreNumericTags: false }))
       .toEqual(["#12345678", "#tag1"]);
   });
+
+test('collects project tags at the start of subsequent task lines', () => {
+  const sut = new TagCollector();
+  expect(sut.collector("todo.txt", "First task\n+alpha Follow up", {})).toEqual(["+alpha"]);
+  expect(sut.collect("#first +work/home\n#second +alpha-beta_2")).toEqual([
+    "#first", "+work/home", "#second", "+alpha-beta_2",
+  ]);
+});
