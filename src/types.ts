@@ -87,7 +87,7 @@ export function invertDictionary(references: formatData[]): { [tag: string]: str
         if (!tagList[tag]) {
           tagList[tag] = [];
         }
-        list.push(link);
+        tagList[tag].push(link);
       }
     }
   }
