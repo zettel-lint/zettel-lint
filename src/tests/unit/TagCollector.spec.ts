@@ -113,3 +113,12 @@ test('empty file has no tags', () => {
   test('ignores unclosed malformed frontmatter', () => {
     expect(new TagCollector().collect("---\ntitle: [unclosed")).toEqual([]);
   });
+
+  test.each([
+    ["LF opening and CRLF closing", "---\ntags: [mixed]\r\n---\r\nBody"],
+    ["CRLF opening and LF closing", "---\r\ntags: [mixed]\n---\nBody"],
+    ["LF opening and CRLF before EOF delimiter", "---\ntags: [mixed]\r\n---"],
+    ["CRLF opening and LF before EOF delimiter", "---\r\ntags: [mixed]\n---"],
+  ])('supports mixed frontmatter line endings: %s', (_description: string, content: string) => {
+    expect(new TagCollector().collect(content)).toEqual(["#mixed"]);
+  });
