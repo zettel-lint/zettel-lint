@@ -1,12 +1,12 @@
 import { Command } from '@commander-js/extra-typings';
 import { glob } from "glob";
-import { promises as fs } from "fs";
-import { idFromFilename } from "./file-handling.js";
-import { clear } from "console";
+import { promises as fs } from "node:fs";
+import { idFromFilename } from "../file-handling.js";
+import { clear } from "node:console";
 import chalk from "chalk";
 import figlet from "figlet";
-import { collectMatches } from "./collectors/RegexCollector.js";
-import { exit } from "process";
+import { collectMatches } from "../collectors/RegexCollector.js";
+import { exit } from "node:process";
 import { YAMLParseError } from 'yaml';
 
 export default function notesCommand() {
@@ -22,7 +22,10 @@ export default function notesCommand() {
     .option('--no-wiki', "use [[wiki style]] links")
     .option('-v, --verbose', "Additional output")
     .allowExcessArguments(true)
-    .action((cmdObj) => { lintNotes(cmdObj) })
+    .action((cmdObj) => {
+      console.warn("Warning: 'zl notes' is deprecated and will be removed in a future release. Please use 'zl fix' instead.");
+      lintNotes(cmdObj);
+    })
   return notes;
 }
 

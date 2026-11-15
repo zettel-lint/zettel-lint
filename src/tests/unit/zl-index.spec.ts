@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import indexerCommand from "../../zl-index";
+import indexerCommand from "../../cli/zl-index";
 
 describe('indexerCommand', () => {
     test('adds index to cli', () => {
@@ -26,5 +26,10 @@ describe('indexerCommand', () => {
       const opts = indexerCommand().parse(["node", "zl", "--path", ".", "--verbose"]);
       expect(opts.opts().path).toBe(".");
       expect(opts.opts().verbose).toBe(true);
+    });
+
+    test('can parse ignore-numeric-tags option', () => {
+      const opts = indexerCommand().parse(["node", "zl", "--ignore-numeric-tags"]);
+      expect(opts.opts().ignoreNumericTags).toBe(true);
     });
 });

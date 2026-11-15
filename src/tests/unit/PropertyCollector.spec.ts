@@ -78,3 +78,60 @@ test('filters correctly when regex has global flag', () => {
     sut.collectProperties("---\n---\n\n[tag:: v] [tag-extra:: v2]", [/^tag$/g])
   ).toEqual({ hasInline: true, properties: { tag: ['v'] } });
 });
+
+test('handles built-in object properties safely without throwing or prototype collision', () => {
+  const sut = new PropertyCollector();
+  const res = sut.collectProperties("[toString:: test] [valueOf:: val]");
+  expect(res.hasInline).toBe(true);
+  expect(res.properties.toString).toEqual(['test']);
+  expect(res.properties.valueOf).toEqual(['val']);
+});
+
+test('ignores dangerous keys (__proto__, constructor, prototype) to prevent prototype pollution', () => {
+  const sut = new PropertyCollector();
+  const res = sut.collectProperties("---\n__proto__:\n  polluted: true\nconstructor: bad\n---\n\n[__proto__:: bad] [constructor:: bad] [prototype:: bad]");
+  expect(res.properties['__proto__']).toBeUndefined();
+  expect(res.properties.constructor).toBeUndefined();
+  expect(res.properties.prototype).toBeUndefined();
+  expect((Object.prototype as Record<string, unknown>).polluted).toBeUndefined();
+});
+
+test('ignores inline keys containing colons to prevent invalid YAML frontmatter structure', () => {
+  const sut = new PropertyCollector();
+  const res = sut.collectProperties("[invalid:key:: test]");
+  expect(res.properties['invalid:key']).toBeUndefined();
+});
+
+test('formats references sorted alphabetically by property tag', () => {
+  class TestPropertyCollector extends PropertyCollector {
+    // biome-ignore lint/suspicious/noExplicitAny: test mocks arbitrary reference shapes
+    public formatPublic(references: any[]): string {
+      return this.format(references);
+    }
+  }
+
+  const sut = new TestPropertyCollector();
+  const refs = [
+    {
+      id: '1',
+      title: 'Book A',
+      filename: 'a.md',
+      fullpath: 'a.md',
+      name: 'Properties',
+      data: ['status:read', 'author:Tolkien'],
+      bag: []
+    },
+    {
+      id: '2',
+      title: 'Book B',
+      filename: 'b.md',
+      fullpath: 'b.md',
+      name: 'Properties',
+      data: ['author:Asimov'],
+      bag: []
+    }
+  ];
+
+  const formatted = sut.formatPublic(refs);
+  expect(formatted).toBe('* author:Asimov : [Book B][2]\n* author:Tolkien : [Book A][1]\n* status:read : [Book A][1]\n');
+});

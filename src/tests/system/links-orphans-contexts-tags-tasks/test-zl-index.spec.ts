@@ -1,15 +1,15 @@
 import { describe, it, beforeAll, expect } from "vitest";
-import { execSync } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { execSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 describe("zl-index system test", () => {
   const expectedOutputFile = join(__dirname, "expected", "references.md");
   const outputFile = join(__dirname, "outputs", "references.md");
 
   beforeAll(() => {
-    // Run zl-index command over all `*.md` files in the root directory
-    const command = `npm run-script zl -- index -v -r ${outputFile} --show-orphans --ignore-dirs \"node_modules/**\" \"src/**\" \"lib/**\"`;
+    // Run zl-index command over markdown files in the root directory, ignoring AGENTS.md
+    const command = `npm run-script zl -- index -v -r ${outputFile} --show-orphans --ignore-dirs "node_modules/**" "src/**" "lib/**" "docs/**" "AGENTS.md"`;
     execSync(command, { cwd: join(__dirname, "../../../../") });
   });
 

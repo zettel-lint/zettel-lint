@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
         with:
           egress-policy: audit
 
@@ -25,7 +25,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
 
@@ -49,15 +49,20 @@ jobs:
         run: |
           git checkout -b bump-version-${{ env.new_version }}
 
-      - name: Update version in TypeScript file
+      - name: Update version references
         run: |
-          sed -i 's/version = "${{ env.current_version }}"/version = "${{ env.new_version }}"/' src/zl.ts
+          sed -i 's/version = "${{ env.current_version }}"/version = "${{ env.new_version }}"/' src/cli/zl.ts
+          if ! grep -Fq "| ${current_version} (latest)" .github/SECURITY.md; then
+            echo "::error::Could not find the current package version in .github/SECURITY.md"
+            exit 1
+          fi
+          sed -i "s|${current_version}|${new_version}|g" .github/SECURITY.md
 
       - name: Commit changes
         run: |
           npm ci
           npm test
-          git add package.json package-lock.json src/zl.ts
+          git add package.json package-lock.json src/cli/zl.ts .github/SECURITY.md
           git commit -m "chore: bump version to ${{ env.new_version }}"
           git push origin bump-version-${{ env.new_version }}
 
@@ -78,7 +83,8 @@ jobs:
             ### Files Changed
             - package.json: Updated version to ${{ env.new_version }}
             - package-lock.json: Updated version to ${{ env.new_version }}
-            - src/zl.ts: Updated version string to ${{ env.new_version }}
+            - src/cli/zl.ts: Updated version string to ${{ env.new_version }}
+            - .github/SECURITY.md: Updated the supported version.
 
             The Bump Patch Version workflow automatically created this PR.
 

@@ -1,5 +1,6 @@
 import { expect, test, describe } from "vitest";
-import importerCommand from "../../zl-import";
+import importerCommand from "../../cli/zl-import.js";
+import TrelloImport, { TrelloOptions } from "../../trello-import.js";
 
 describe('zl-import Trello options', () => {
   test('parses --trello-api-key', () => {
@@ -42,5 +43,324 @@ describe('zl-import Trello options', () => {
     expect(opts.trelloApiKey).toBe("abc123");
     expect(opts.trelloBoard).toBe("bid123");
     expect(opts.trelloToken).toBe("tok123");
+  });
+
+  test('normalizes output-folder path without trailing slash issues', () => {
+    const opts = importerCommand().parse([
+      "node", "zl", "--source", "trello", "--output-folder", "../import/", "--trello-api-key", "abc123", "--trello-board", "bid123"
+    ]).opts();
+    expect(opts.outputFolder).toBe("../import/");
+  });
+});
+
+describe('TrelloImport.saveAttachments security', () => {
+  const options: TrelloOptions = {
+    boardIdOrName: "bid123",
+    apiKey: "key",
+    verbose: false,
+  };
+
+  test('filters out unsafe attachment URL protocols like javascript:', async () => {
+    const importer = new TrelloImport();
+    const attachments = [
+      {
+        id: "att1",
+        name: "Safe Link",
+        url: "https://example.com/file.png",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/html",
+        previews: [],
+        pos: 0
+      },
+      {
+        id: "att2",
+        name: "Malicious JS Link",
+        url: "javascript:alert(1)",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/html",
+        previews: [],
+        pos: 1
+      },
+      {
+        id: "att3",
+        name: "Local File Link",
+        url: "file:///etc/passwd",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/plain",
+        previews: [],
+        pos: 2
+      }
+    ];
+
+    const result = await importer.saveAttachments("/tmp/out", options, attachments);
+    expect(result).toEqual(["[Safe Link](https://example.com/file.png)"]);
+  });
+
+  test('sanitizes Windows-style backslash path traversals and dangerous property names', async () => {
+    const importer = new TrelloImport();
+    const attachments = [
+      {
+        id: "att-win-traversal",
+        name: "Windows Traversal",
+        url: "https://example.com/evil.sh",
+        fileName: "..\\..\\evil.sh",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "application/x-sh",
+        previews: [],
+        pos: 0
+      },
+      {
+        id: "att-win-subfolder",
+        name: "Windows Subfolder",
+        url: "https://example.com/sub.png",
+        fileName: "nested\\sub.png",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "image/png",
+        previews: [],
+        pos: 1
+      },
+      {
+        id: "att-proto",
+        name: "Proto File",
+        url: "https://example.com/proto",
+        fileName: "__proto__",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/plain",
+        previews: [],
+        pos: 2
+      },
+      {
+        id: "att-constructor",
+        name: "Constructor File",
+        url: "https://example.com/constructor",
+        fileName: "constructor",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "text/plain",
+        previews: [],
+        pos: 3
+      }
+    ];
+
+    // Dangerous names (__proto__, constructor) should fall back to markdown links
+    // Windows backslash traversals should be stripped to base filename (mocking fetch)
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (url: string | URL | Request) => {
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          arrayBuffer: async () => new ArrayBuffer(8),
+        } as Response;
+      };
+
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-att-test-"));
+
+      const result = await importer.saveAttachments(tmpDir, options, attachments);
+
+      expect(result).toContain("![Windows Traversal](" + path.join(tmpDir, "evil.sh") + ")");
+      expect(result).toContain("![Windows Subfolder](" + path.join(tmpDir, "sub.png") + ")");
+      expect(result).toContain("[Proto File](https://example.com/proto)");
+      expect(result).toContain("[Constructor File](https://example.com/constructor)");
+
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  test('escapes markdown delimiters and newlines in attachment name to prevent markdown link and image injection', async () => {
+    const importer = new TrelloImport();
+    const attachments = [
+      {
+        id: "att-link-inject",
+        name: "Injected](https://evil.com/phish) [Click",
+        url: "https://example.com/file.pdf",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "application/pdf",
+        previews: [],
+        pos: 0
+      },
+      {
+        id: "att-newline-inject",
+        name: "Malicious\n* Injected item\n* Item 2",
+        url: "https://example.com/doc.pdf",
+        fileName: "",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: false,
+        mimeType: "application/pdf",
+        previews: [],
+        pos: 1
+      },
+      {
+        id: "att-img-inject",
+        name: "Photo](https://evil.com/tracker.png) ![Clean",
+        url: "https://example.com/photo.png",
+        fileName: "photo.png",
+        bytes: {},
+        date: new Date(),
+        edgeColor: "#000000",
+        idMember: "",
+        isUpload: true,
+        mimeType: "image/png",
+        previews: [],
+        pos: 2
+      }
+    ];
+
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        arrayBuffer: async () => new ArrayBuffer(4),
+      } as Response);
+
+      const fs = await import("node:fs/promises");
+      const path = await import("node:path");
+      const os = await import("node:os");
+      const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-name-test-"));
+
+      const result = await importer.saveAttachments(tmpDir, options, attachments);
+
+      // Verify brackets and newlines are sanitized so markdown link structure cannot be broken
+      expect(result).toContain("[Injected\\](https://evil.com/phish) \\[Click](https://example.com/file.pdf)");
+      expect(result).toContain("[Malicious * Injected item * Item 2](https://example.com/doc.pdf)");
+      const encodedPath = path.join(tmpDir, "photo.png").split(path.sep)
+        .map(segment => encodeURIComponent(segment).replace(/[!'()*]/g,
+          char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`))
+        .join("/");
+      expect(result).toContain(`![Photo\\](https://evil.com/tracker.png) !\\[Clean](${encodedPath})`);
+
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe('TrelloImport prototype collision resilience', () => {
+  const options: TrelloOptions = {
+    boardIdOrName: "bid123",
+    apiKey: "key",
+    verbose: false,
+  };
+
+  test('handles card comments and lists with prototype collision IDs without crashing', async () => {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const os = await import("node:os");
+
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "trello-proto-test-"));
+    const jsonPath = path.join(tmpDir, "trello-export.json");
+    const outFolder = path.join(tmpDir, "output");
+    await fs.mkdir(outFolder, { recursive: true });
+
+    const boardContent = {
+      name: "Test Board",
+      cards: [
+        {
+          id: "toString",
+          name: "Card with Prototype ID",
+          desc: "Description",
+          closed: false,
+          isTemplate: false,
+          idList: "toString",
+          dateLastActivity: new Date().toISOString(),
+          idChecklists: [],
+          attachments: [],
+          labels: []
+        }
+      ],
+      checklists: [
+        {
+          id: "toString",
+          name: "Prototype Checklist",
+          checkItems: []
+        }
+      ],
+      lists: [
+        {
+          id: "toString",
+          name: "Prototype List",
+          closed: false
+        }
+      ],
+      labels: [],
+      actions: [
+        {
+          type: "commentCard",
+          data: {
+            card: { id: "toString" },
+            text: "A comment on toString card"
+          },
+          date: new Date().toISOString(),
+          memberCreator: { fullName: "Tester" }
+        },
+        {
+          type: "commentCard",
+          data: {
+            card: { id: "valueOf" },
+            text: "A comment on valueOf card"
+          },
+          date: new Date().toISOString(),
+          memberCreator: { fullName: "Tester" }
+        }
+      ]
+    };
+
+    await fs.writeFile(jsonPath, JSON.stringify(boardContent));
+
+    const importer = new TrelloImport();
+    const response = await importer.importAsync(jsonPath, outFolder, options);
+
+    expect(response.success).toBe(true);
+    expect(response.message).toContain("1 notes created");
+
+    // Clean up
+    await fs.rm(tmpDir, { recursive: true, force: true });
   });
 });

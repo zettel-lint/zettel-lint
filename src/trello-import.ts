@@ -1,6 +1,8 @@
 import { BaseImporter, ErrorResponse, ImportOptions } from "./base-importer.js"
 import { glob } from "glob";
-import { promises as fs } from "fs";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { min } from "./types.js";
 
 class NoteInfo {
@@ -69,6 +71,38 @@ class TrelloListInfo {
   readonly closed: boolean = false;
 }
 
+class TrelloMemberCreator {
+  readonly id: string = "";
+  readonly username?: string = "";
+  readonly fullName?: string = "";
+}
+
+class TrelloActionData {
+  readonly text?: string = "";
+  readonly card?: { id: string } = { id: "" };
+}
+
+class TrelloActionInfo {
+  readonly id: string = "";
+  readonly idMemberCreator?: string = "";
+  readonly data?: TrelloActionData = {};
+  readonly type: string = "";
+  readonly date: Date | string = new Date(Date.now());
+  readonly memberCreator?: TrelloMemberCreator = new TrelloMemberCreator();
+}
+
+export class TrelloCommentInfo {
+  readonly text: string = "";
+  readonly date: Date = new Date(Date.now());
+  readonly authorName: string = "";
+
+  constructor(text: string = "", date: Date = new Date(Date.now()), authorName: string = "") {
+    this.text = text;
+    this.date = date;
+    this.authorName = authorName;
+  }
+}
+
 class TrelloBoardInfo {
   readonly id: string = "";
   readonly name: string = "";
@@ -77,7 +111,7 @@ class TrelloBoardInfo {
   readonly prefs: any = {};
   readonly labelNames: any = {};
   readonly limits: any = {};
-  readonly actions: any[] = [];
+  readonly actions: TrelloActionInfo[] = [];
   readonly cards: TrelloCardInfo[] = [];
   readonly checklists: TrelloChecklistInfo[] = [];
   readonly customFields: any[] =[];
@@ -87,13 +121,62 @@ class TrelloBoardInfo {
   readonly members: any[] = [];
 }
 
-function sortableDate(d: Date) : string {
+function truncateUtf8(value: string, maxBytes: number): string {
+  let result = "";
+  let bytes = 0;
+  for (const char of value) {
+    bytes += Buffer.byteLength(char);
+    if (bytes > maxBytes) break;
+    result += char;
+  }
+  return result;
+}
+
+function toMarkdownHttpUrl(val: string | undefined | null): string | undefined {
+  if (!val) return undefined;
+  try {
+    const url = new URL(val);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+    // URL serialization leaves Markdown delimiters unescaped.
+    return url.href.replace(/[\\()[\]]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  } catch {
+    return undefined;
+  }
+}
+
+function escapeMarkdownLinkText(text: string | undefined | null): string {
+  if (!text) return "";
+  return String(text)
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/</g, "\\<");
+}
+
+function escapeYamlSingleQuote(val: string | undefined | null): string {
+  if (!val) return "";
+  return String(val).replace(/\r?\n/g, " ").replace(/'/g, "''");
+}
+
+function sortableDate(d: Date | string) : string {
   // Because String.ToDate("YYYYMMDDHHmmSS") is too processed for an artisan language like JS?
   // And no, moment.js is not a good solution - we don't need a new library to do one bit of formatting
 
   // WTF - card.dateLastActivity is a Date without any date methods.
 
-  return ("" + d).replace(/[^0-9]/g,"").substring(0,14);
+  const dateStr = typeof d === "string" ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
+  return dateStr.replace(/[^0-9]/g,"").substring(0,14);
+}
+
+/**
+ * Returns content for a single-quoted YAML scalar, without surrounding quotes.
+ * Doubles apostrophes and replaces each run of CR/LF characters with one space.
+ * Null, undefined, and empty strings yield an empty string.
+ */
+function escapeYamlString(value: string | undefined | null): string {
+  if (!value) return '';
+  return String(value).replace(/'/g, "''").replace(/[\r\n]+/g, ' ');
 }
 
 export type TrelloOptions = ImportOptions & {
@@ -111,6 +194,16 @@ export default class TrelloImport implements BaseImporter {
     return response.json();
   }
 
+  /**
+   * Downloads board JSON, requesting all cards, lists, checklists, labels, members,
+   * and board fields.
+   *
+   * @param options - An API key and an 8- or 24-character hexadecimal board ID,
+   *   or an exact, case-sensitive board name. Name lookup requires a token.
+   * @returns The parsed board response, without schema validation.
+   * @throws If name lookup lacks a token, the name is not found, or either HTTP
+   *   response is unsuccessful. Network and JSON parsing errors also propagate.
+   */
   static async downloadBoardJson(options: TrelloOptions): Promise<any> {
     let { boardIdOrName, apiKey, token, verbose } = options;
     // If not a Trello board id (alphanumeric, 8 or 24 chars), look up by name
@@ -121,8 +214,10 @@ export default class TrelloImport implements BaseImporter {
       if (!token) {
         throw new Error("A Trello token (--trello-token) is required to look up boards by name.");
       }
-      const boardsUrl = `https://api.trello.com/1/members/me/boards?key=${apiKey}&token=${token}`;
-      const boards = await TrelloImport.fetchJsonOrThrow(boardsUrl, "Trello board lookup");
+      const boardsUrl = new URL("https://api.trello.com/1/members/me/boards");
+      boardsUrl.searchParams.set("key", apiKey);
+      boardsUrl.searchParams.set("token", token);
+      const boards = await TrelloImport.fetchJsonOrThrow(boardsUrl.toString(), "Trello board lookup");
       const found = boards.find((b: any) => b.name === boardIdOrName);
       if (!found) {
         throw new Error(`Could not find Trello board with name: ${boardIdOrName}`);
@@ -132,11 +227,18 @@ export default class TrelloImport implements BaseImporter {
         console.log(`Resolved board name '${options.boardIdOrName}' to id: ${boardIdOrName}`);
       }
     }
-    const url = `https://api.trello.com/1/boards/${boardIdOrName}?key=${apiKey}&cards=all&lists=all&checklists=all&labels=all&members=all&fields=all` + (token ? `&token=${token}` : '');
+    const url = new URL(`https://api.trello.com/1/boards/${boardIdOrName}`);
+    url.searchParams.set("key", apiKey);
+    for (const field of ["cards", "lists", "checklists", "labels", "members", "fields"]) {
+      url.searchParams.set(field, "all");
+    }
+    if (token) {
+      url.searchParams.set("token", token);
+    }
     if (verbose) {
       console.log(`Downloading Trello board ${boardIdOrName}`);
     }
-    return TrelloImport.fetchJsonOrThrow(url, "Trello board download");
+    return TrelloImport.fetchJsonOrThrow(url.toString(), "Trello board download");
   }
   async extractNotes(filename: string) : Promise<TrelloBoardInfo> {
     const contents = await fs.readFile(filename, "utf8");
@@ -147,30 +249,101 @@ export default class TrelloImport implements BaseImporter {
 
   writeCheckList(cl: TrelloChecklistInfo) {
     return "### " + cl.name + "\n\n" +
-      cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + ci.due.toISOString() : "")).join("\n");
+      cl.checkItems.map(ci => "* [" + (ci.state === "complete" ? "X" : " ") + "] " + ci.name + (ci.due ? " due:" + new Date(ci.due).toISOString() : "")).join("\n");
+  }
+
+  writeComments(comments: TrelloCommentInfo[]) {
+    return comments.map(c => {
+      const author = c.authorName || "Unknown";
+      let dateStr = "";
+      if (c.date instanceof Date && !Number.isNaN(c.date.getTime())) {
+        dateStr = c.date.toISOString();
+      } else if (c.date) {
+        dateStr = String(c.date);
+      }
+      const header = dateStr ? `### ${author} (${dateStr})` : `### ${author}`;
+      return `${header}\n\n${c.text}`;
+    }).join("\n\n");
   }
 
   async saveAttachments(outputFolder: string, options: TrelloOptions, attachments: AttachmentInfo[]) : Promise<string[]> {
     var filenames: string[] = [];
+    const usedFileNames = new Set<string>();
 
     for await (var attachment of attachments) {
-      const outputFilename = outputFolder + attachment.fileName;  
-      if (options.verbose) {
-       console.log("Writing attachment " + attachment.id + " from " + attachment.url + " to " + outputFilename + " of type " + attachment.mimeType);
+      // Validate attachment URL protocol to prevent malicious URI scheme injection (e.g., javascript:) and non-HTTP fetches
+      const markdownUrl = toMarkdownHttpUrl(attachment.url);
+      if (!markdownUrl) {
+        if (options.verbose) {
+          console.warn(`Skipping attachment with unsafe or invalid URL: ${attachment.url}`);
+        }
+        continue;
       }
+      // Escape attachment name to prevent markdown link and image injection via unescaped brackets or newlines
+      const safeName = escapeMarkdownLinkText(attachment.name);
       if (attachment.fileName == null || attachment.fileName === "null" || attachment.fileName === "") {
         // It's a URL
-        filenames.push("[" + attachment.name + "](" + attachment.url + ")");
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
         continue;
-      }      
+      }
+      // Sanitise fileName to prevent cross-platform path traversal and dangerous names
+      const normalizedFileName = attachment.fileName.replace(/\\/g, "/");
+      const safeFileName = path.posix.basename(normalizedFileName);
+      if (!safeFileName || safeFileName === "." || safeFileName === ".." ||
+          safeFileName === "__proto__" || safeFileName === "constructor" || safeFileName === "prototype") {
+        filenames.push("[" + safeName + "](" + markdownUrl + ")");
+        continue;
+      }
+      // Prevent filename collisions from overwriting existing attachments
+      const ext = path.extname(safeFileName);
+      const stem = path.basename(safeFileName, ext);
+      let counter = 0;
+      const nextFileName = () => {
+        const suffix = counter === 0 ? "" : `-${counter}`;
+        counter++;
+        // Reserve space for the suffix and at least the first complete stem character.
+        const firstCharBytes = Buffer.byteLength(Array.from(stem)[0] || "");
+        const fittingExt = truncateUtf8(ext, 255 - Buffer.byteLength(suffix) - firstCharBytes);
+        const fittingStem = truncateUtf8(stem, 255 - Buffer.byteLength(suffix + fittingExt));
+        return `${fittingStem}${suffix}${fittingExt}`;
+      };
+      let uniqueFileName = nextFileName();
+      while (usedFileNames.has(uniqueFileName)) uniqueFileName = nextFileName();
+      usedFileNames.add(uniqueFileName);
+      let outputFilename = path.join(outputFolder, uniqueFileName);
       try {
         const response = await fetch(attachment.url);
         if (!response.ok) {
-          throw new Error(`Failed to fetch attachment [${attachment.name}](${attachment.url}): ${response.status} ${response.statusText}`);
+          throw new Error(`Failed to fetch attachment [${safeName}](${attachment.url}): ${response.status} ${response.statusText}`);
         }
         const data = await response.arrayBuffer();
-        await fs.writeFile(outputFilename, Buffer.from(data));
-        filenames.push("![" + attachment.name + "](" + outputFilename + ")");
+        while (true) {
+          try {
+            // Let the destination filesystem decide whether a name is already taken.
+            await fs.writeFile(outputFilename, Buffer.from(data), { flag: "wx" });
+            break;
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+            do {
+              uniqueFileName = nextFileName();
+            } while (usedFileNames.has(uniqueFileName));
+            usedFileNames.add(uniqueFileName);
+            outputFilename = path.join(outputFolder, uniqueFileName);
+          }
+        }
+        if (options.verbose) {
+          console.log(`Writing attachment ${attachment.id} from ${attachment.url} to ${outputFilename} of type ${attachment.mimeType}`);
+        }
+        const encodeSegment = (segment: string) => encodeURIComponent(segment).replace(/[!'()*]/g,
+          char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+        let markdownFilename = outputFilename.split(path.sep).map(encodeSegment).join("/");
+        if (path.sep === "\\" && path.isAbsolute(outputFilename)) {
+          const fileUrl = pathToFileURL(outputFilename, { windows: true });
+          fileUrl.pathname = fileUrl.pathname.split("/").map((segment, index) =>
+            index === 1 && /^[a-z]:$/i.test(segment) ? segment : encodeSegment(decodeURIComponent(segment))).join("/");
+          markdownFilename = fileUrl.href;
+        }
+        filenames.push(`![${safeName}](${markdownFilename})`);
       } catch (error) {
         console.error("Could not write file " + outputFilename + " because " + error);
       }
@@ -178,31 +351,51 @@ export default class TrelloImport implements BaseImporter {
     return filenames;
   }
 
+  /**
+   * Writes or overwrites a Markdown note with frontmatter, description, checklists,
+   * and attachment links. File attachments are downloaded under outputFolder/attachments.
+   * Failed attachment downloads or writes are omitted without failing the note.
+   * The activity date is normalized to UTC for the filename and created/modified fields.
+   *
+   * @param outputFolder - Destination directory, with or without a trailing separator.
+   *   This method does not create it or its attachments subdirectory.
+   * @param checklists - Checklists keyed by ID for the card's idChecklists.
+   * @param lists - Lists keyed by ID; missing entries use an empty list name.
+   * @param comments - Optional comments associated with the card.
+   * @returns True when the note is written; false if checklist rendering or note writing fails.
+   * @throws Errors preparing the filename, attachments, or frontmatter propagate,
+   *   including an invalid activity Date.
+   */
   async writeCard(outputFolder: string,
       options: TrelloOptions,
       boardName: string,
       card: TrelloCardInfo,
       checklists : { [id: string]: TrelloChecklistInfo; },
-      lists : { [id: string]: TrelloListInfo; }) : Promise<boolean> {
-    const outputFilename :string = outputFolder + 
-      sortableDate(card.dateLastActivity) + 
-      "-" + this.sanitiseName(card) + ".md";
+      lists : { [id: string]: TrelloListInfo; },
+      comments? : TrelloCommentInfo[]) : Promise<boolean> {
+    const activityDate = new Date(card.dateLastActivity).toISOString();
+    const outputFilename :string = path.join(outputFolder,
+      sortableDate(activityDate) +
+      "-" + this.sanitiseName(card) + ".md");
 
-    const filenames = await this.saveAttachments(outputFolder + "attachments/", options, card.attachments || []);
+    const filenames = await this.saveAttachments(path.join(outputFolder, "attachments"), options, card.attachments || []);
 
+    // Validate shortUrl protocol to prevent malicious URI scheme injection (e.g., javascript:) in frontmatter
+    const validShortUrl = toMarkdownHttpUrl(card.shortUrl) && !String(card.shortUrl).includes("\0") ? card.shortUrl : "";
+    const listName = lists[card.idList]?.name || "";
     const header = "---" +
-      "\ncreated: " + card.dateLastActivity +
-      "\nmodified: " + card.dateLastActivity +
-      "\ntitle: '" + card.name + "'" +
+      "\ncreated: " + activityDate +
+      "\nmodified: " + activityDate +
+      "\ntitle: '" + escapeYamlSingleQuote(card.name) + "'" +
       "\nsource: Trello" + 
-      "\ntags:" + card.labels.map(l => l.name.replace(/[^a-zA-Z0-9]/g, "_")).join(" #") +
+      "\ntags: [" + (card.labels || []).map(l => "'" + escapeYamlSingleQuote((l?.name || "").replace(/[^A-Za-z0-9]/g, "_")) + "'").join(", ") + "]" +
       "\nreferences: " +
       (card.closed ? "\n closed: true": "") +
       (card.isTemplate ? "\n template: true": "") +
-      "\nboard: '" + boardName + "'" + 
-      "\nlist: '" + lists[card.idList].name + "'" +
-      "\npublished: " + lists[card.idList].name.includes("Published") +
-      "\ntrello-url: '" + card.shortUrl + "'" +
+      "\nboard: '" + escapeYamlString(boardName) + "'" +
+      "\nlist: '" + escapeYamlString(listName) + "'" +
+      "\npublished: " + listName.includes("Published") +
+      "\ntrello-url: '" + escapeYamlString(validShortUrl) + "'" +
       "\n---" +
       "\n\n## " + card.name +
       "\n\n";
@@ -211,19 +404,19 @@ export default class TrelloImport implements BaseImporter {
       await fs.writeFile(outputFilename,
         header + 
         card.desc + 
-
-        (card.idChecklists.length > 0 ? "\n\n---\n\n## Checklists\n\n" + card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n") : "") +
-        (filenames.length > 0 ? "\n\n---\n\n## Attachments\n\n* " + filenames.join("\n* ") : "")
+        (card.idChecklists.length > 0 ? `\n\n---\n\n## Checklists\n\n${card.idChecklists.map(checklistId => this.writeCheckList(checklists[checklistId])).join("\n\n")}` : "") +
+        (comments && comments.length > 0 ? `\n\n---\n\n## Comments\n\n${this.writeComments(comments)}` : "") +
+        (filenames.length > 0 ? `\n\n---\n\n## Attachments\n\n* ${filenames.join("\n* ")}` : "")
         , { });
         return true;     
     } catch (error) {
-      console.error("Could not write file " + outputFilename + " because " + error);
+      console.error(`Could not write file ${outputFilename} because ${error}`);
     }
     return false;
   }
 
   private sanitiseName(card: TrelloCardInfo) {
-    return card.name.replace(/[^A-Za-z0-9]/gm, '-').slice(0, min(50, card.name.length));
+    return card.name.replace(/[^A-Za-z0-9]/g, '-').slice(0, min(50, card.name.length));
   }
 
   async importAsync(globpattern: string, outputFolder: string, options: TrelloOptions): Promise<ErrorResponse> {
@@ -234,9 +427,10 @@ export default class TrelloImport implements BaseImporter {
     const files = await glob(globpattern);
     var totalCards = 0;
     var totalNotes = 0;
-    var checklists : { [id: string]: TrelloChecklistInfo; } = {};
-    var lists : { [id: string]: TrelloListInfo; } = {};
-    var labels : { [id: string]: TrelloLabelInfo; } = {};
+    // Security: Use Object.create(null) to prevent prototype pollution and built-in property collisions (e.g., toString)
+    var checklists : { [id: string]: TrelloChecklistInfo; } = Object.create(null);
+    var lists : { [id: string]: TrelloListInfo; } = Object.create(null);
+    var labels : { [id: string]: TrelloLabelInfo; } = Object.create(null);
     if (files.length === 0) {
       return { success: false, message: "No files found matching " + globpattern };
     } else  {
@@ -246,16 +440,38 @@ export default class TrelloImport implements BaseImporter {
       const notes = await this.extractNotes(file);
       totalCards += notes.cards.length;
       notes.checklists.forEach(checklist => {
-        checklists[checklist.id] = checklist;
+        if (checklist.id) {
+          checklists[checklist.id] = checklist;
+        }
       });
       notes.lists.forEach(list => {
-        lists[list.id] = list;
+        if (list.id) {
+          lists[list.id] = list;
+        }
       });
       notes.labels.forEach(label => {
-        labels[label.id] = label;
-      })
+        if (label.id) {
+          labels[label.id] = label;
+        }
+      });
+      const cardComments: { [cardId: string]: TrelloCommentInfo[] } = Object.create(null);
+      notes.actions?.forEach(action => {
+        if (action.type === "commentCard" && action.data?.card?.id) {
+          const cardId = action.data.card.id;
+          const text = action.data.text || "";
+          const date = action.date ? new Date(action.date) : new Date();
+          const authorName = action.memberCreator?.fullName || action.memberCreator?.username || "";
+          if (!cardComments[cardId]) {
+            cardComments[cardId] = [];
+          }
+          cardComments[cardId].push(new TrelloCommentInfo(text, date, authorName));
+        }
+      });
+      for (const cardId in cardComments) {
+        cardComments[cardId].sort((a, b) => a.date.getTime() - b.date.getTime());
+      }
       for await(const note of notes.cards) {
-        if(!note.closed && !note.isTemplate && !lists[note.idList].closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists)) {
+        if(!note.closed && !note.isTemplate && !lists[note.idList]?.closed && await this.writeCard(outputFolder, options, notes.name, note, checklists, lists, cardComments[note.id] || [])) {
           totalNotes++;
         }
       }
