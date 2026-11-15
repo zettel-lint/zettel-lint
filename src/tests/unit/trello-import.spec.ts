@@ -1,13 +1,13 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from 'vitest';
 import TrelloImport, { TrelloCommentInfo } from '../../trello-import.js';
-import { promises as fs } from 'fs';
+import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { glob } from 'glob';
 import { parse } from 'yaml';
 
 // Mock dependencies
-vi.mock('fs', () => ({
+vi.mock('node:fs', () => ({
   promises: {
     readFile: vi.fn(),
     writeFile: vi.fn(),
@@ -264,6 +264,41 @@ describe('TrelloImport', () => {
       expect(fetch).toHaveBeenCalledWith('https://example.com/test.png');
       expect(fs.writeFile).toHaveBeenCalledWith('/output/test.png', expect.any(Buffer), { flag: "wx" });
       expect(result).toEqual(['![Test Image](/output/test.png)']);
+    });
+
+    test.each([
+      ['photo #1?.png', 'photo%20%231%3F.png'],
+      ['a%20[b](c)!.png', 'a%2520%5Bb%5D%28c%29%21.png'],
+      ["a'()*;:@&=+$,.png", 'a%27%28%29%2A%3B%3A%40%26%3D%2B%24%2C.png'],
+      ['café\nimage.png', 'caf%C3%A9%0Aimage.png'],
+    ])('encodes the image destination for %s without renaming the file', async (fileName: string, encodedName: string) => {
+      const outputFolder = path.join('output folder', 'attachments#1');
+      const attachment = createAttachmentInfo({ fileName, name: 'Image [1]' });
+
+      const result = await importer.saveAttachments(outputFolder, options, [attachment]);
+
+      const destination = `output%20folder/attachments%231/${encodedName}`;
+      expect(fs.writeFile).toHaveBeenCalledWith(path.join(outputFolder, fileName), expect.any(Buffer), { flag: "wx" });
+      expect(result).toEqual([`![Image \\[1\\]](${destination})`]);
+      expect(decodeURIComponent(destination).split('/').join(path.sep)).toBe(path.join(outputFolder, fileName));
+    });
+
+    test('uses a file URL for an absolute Windows attachment path', async () => {
+      vi.spyOn(path, 'join').mockImplementation(path.win32.join);
+      vi.spyOn(path, 'isAbsolute').mockImplementation(path.win32.isAbsolute);
+      const originalSep = path.sep;
+      Object.defineProperty(path, 'sep', { value: '\\', configurable: true });
+      try {
+        const result = await importer.saveAttachments('C:\\output folder\\attachments#1', options,
+          [createAttachmentInfo({ fileName: "photo!'()*;@&=+$,.png", name: 'Image' })]);
+
+        expect(fs.writeFile).toHaveBeenCalledWith("C:\\output folder\\attachments#1\\photo!'()*;@&=+$,.png",
+          expect.any(Buffer), { flag: "wx" });
+        expect(result).toEqual(['![Image](file:///C:/output%20folder/attachments%231/photo%21%27%28%29%2A%3B%40%26%3D%2B%24%2C.png)']);
+      } finally {
+        Object.defineProperty(path, 'sep', { value: originalSep });
+        vi.restoreAllMocks();
+      }
     });
 
     test('sanitizes attachment fileName to prevent path traversal', async () => {
@@ -943,16 +978,16 @@ describe('TrelloImport', () => {
       consoleWarnSpy.mockRestore();
     });
 
-    test('skips cards in closed lists', async () => {
+    test.each(['list2', '__proto__', 'constructor', 'prototype'])('skips cards in closed list %s', async (closedListId: string) => {
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const board = createTrelloBoardInfo({
         cards: [
           createTrelloCardInfo({ id: 'card1', idList: 'list1' }),
-          createTrelloCardInfo({ id: 'card2', idList: 'list2' }),
+          createTrelloCardInfo({ id: 'card2', idList: closedListId }),
         ],
         lists: [
           createTrelloListInfo({ id: 'list1', closed: false }),
-          createTrelloListInfo({ id: 'list2', closed: true }),
+          createTrelloListInfo({ id: closedListId, closed: true }),
         ],
       });
       vi.mocked(glob).mockResolvedValue(['board.json']);
@@ -1015,6 +1050,48 @@ describe('TrelloImport', () => {
       await importer.importAsync('*.json', '/output/', options);
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('2 files found'));
+      consoleWarnSpy.mockRestore();
+    });
+
+    test.each(['__proto__', 'constructor', 'prototype', 'toString'])('preserves ID %s without prototype pollution or property collisions', async (id: string) => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const originalPrototype = Object.getOwnPropertyDescriptors(Object.prototype);
+      const label = createTrelloLabelInfo({ id });
+      const board = createTrelloBoardInfo({
+        cards: [createTrelloCardInfo({ id, idList: id, idChecklists: [id], labels: [label] })],
+        lists: [createTrelloListInfo({ id, name: 'Published List' })],
+        checklists: [createTrelloChecklistInfo({
+          id,
+          name: 'Tasks',
+          checkItems: [createTrelloCheckItemInfo({ name: 'Task 1' })],
+        })],
+        labels: [label],
+        actions: [
+          {
+            id: 'act1',
+            type: 'commentCard',
+            date: '2024-01-15T12:00:00Z',
+            data: { text: 'Test comment', card: { id } },
+            memberCreator: { id: 'm1', fullName: 'Alice' },
+          },
+        ],
+      });
+      vi.mocked(glob).mockResolvedValue(['board.json']);
+      vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(board));
+
+      const result = await importer.importAsync('board.json', '/output/', options);
+
+      expect(result).toEqual({ success: true, message: '1 cards found; 1 notes created.' });
+      expect(fs.writeFile).toHaveBeenCalledTimes(1);
+      const content = vi.mocked(fs.writeFile).mock.calls[0][1] as string;
+      expect(content).toContain("list: 'Published List'");
+      expect(content).toContain('published: true');
+      expect(content).toContain('### Tasks');
+      expect(content).toContain('* [ ] Task 1');
+      expect(content).toContain("tags: ['Test_Label']");
+      expect(content).toContain('### Alice (2024-01-15T12:00:00.000Z)');
+      expect(content).toContain('Test comment');
+      expect(Object.getOwnPropertyDescriptors(Object.prototype)).toEqual(originalPrototype);
       consoleWarnSpy.mockRestore();
     });
   });
@@ -1297,6 +1374,25 @@ describe('TrelloImport', () => {
       expect(content).toContain('## Attachments');
       consoleWarnSpy.mockRestore();
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe('expected fixtures formatting (issue #497)', () => {
+    test('expected markdown fixtures have LF line endings and no trailing placeholder bullets', async () => {
+      const fsActual = await vi.importActual('node:fs') as typeof import('node:fs');
+      const pathActual = await vi.importActual('node:path') as typeof import('node:path');
+      const expectedDir = pathActual.join(__dirname, '../system/import-trello/expected');
+      const files = await fsActual.promises.readdir(expectedDir);
+
+      for (const file of files) {
+        if (!file.endsWith('.md')) continue;
+        const content = await fsActual.promises.readFile(pathActual.join(expectedDir, file), 'utf8');
+
+        expect(content).not.toContain('\r');
+        expect(content.endsWith('\n')).toBe(true);
+        expect(content.endsWith('\n\n')).toBe(false);
+        expect(content).not.toContain('## Attachments\n\n* ');
+      }
     });
   });
 });
