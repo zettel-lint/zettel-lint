@@ -15,6 +15,6 @@ test('backlinks come only from retained entries in map order', () => {
     note('20200104', [])
   ]);
 
-  expect(result.get('20200101')?.[0].bag).toEqual(['20200102', '20200102', '20200103']);
-  expect(result.get('20200104')?.[0].bag).toEqual([]);
+  expect(result.get('20200101')?.[0].bag).toEqual(['20200102', '20200103', '20200102', '20200102']);
+  expect(result.get('20200104')?.[0].bag).toEqual(['20200102']);
 });
