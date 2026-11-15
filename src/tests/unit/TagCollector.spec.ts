@@ -92,3 +92,14 @@ It's a test file with contractions.
 `;
     expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["#valid"]);
   });
+
+  test('preserves YAML frontmatter when ignoreQuoted is enabled', () => {
+    const sut = new TagCollector();
+    const content = `---
+tags: "work"
+---
+Some content
+"#quoted"
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["#work"]);
+  });
