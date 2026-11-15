@@ -44,6 +44,12 @@
 
 **Action:** In regex collection loops, accumulate values directly in persistent `Set` instances per key rather than re-creating and spreading Sets on every match, and fast-path single-source data structures.
 
+## 2026-04-03 - Single-Pass Tag Processing and Early Unclosed YAML Guard
+
+**Learning:** `TagCollector.collect` executed 4 intermediate array operations (`.map`, `.concat`, `.filter`, `.filter`) and evaluated regex `/^#\d/` on every tag, causing high array allocation churn and regex overhead during note scanning. Single-pass indexed loop processing with direct ASCII digit check (`tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57`) eliminates array allocations and regex matching. Furthermore, in `Collector.collectYaml`, missing closing `---\n` frontmatter delimiters caused `indexOf` to scan full document strings and return `-1`, passing invalid substrings to YAML parsing; returning early on `-1` and replacing `Object.entries` with `for...in` iteration prevents unnecessary document parsing and callback allocations.
+
+**Action:** Consolidate array pipeline transformations into single-pass loops with direct charCode comparisons, and always guard against unclosed boundary delimiters before performing string slicing or parsing.
+
 ## 2026-04-03 - Avoid Array Chaining and Per-Element Regex in Hot Collector Paths
 
 **Learning:** In `TagCollector.collect`, combining inline matches with YAML tags via `concat`, `map`, and `filter` allocated 3–4 intermediate arrays per file scanned. Additionally, checking for numeric tags via `.filter(tg => !/^#\d/.test(tg))` executed regex matching engines on every extracted tag string. Pushing items directly into a single result array and performing in-place filtering with direct ASCII character code checks (`tg.charCodeAt(1) >= 48 && tg.charCodeAt(1) <= 57`) eliminates garbage collection pressure and regex execution overhead.
