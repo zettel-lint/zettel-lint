@@ -1,0 +1,29 @@
+name: 'Zettel Lint'
+description: 'Run zettel-lint to validate your zettelkasten'
+author: 'Craig Nicol'
+
+inputs:
+  path:
+    description: 'Path to scan for zettel notes'
+    required: false
+    default: '.'
+
+  verbose:
+    description: 'Enable verbose output'
+    required: false
+    default: 'false'
+
+outputs:
+  result:
+    description: 'Zettel lint result (success, warning, error)'
+
+  summary:
+    description: 'Summary of lint results'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+
+branding:
+  icon: 'check-circle'
+  color: 'blue'
