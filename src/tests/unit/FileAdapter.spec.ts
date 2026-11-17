@@ -106,6 +106,55 @@ describe("FileAdapter contract and integration", () => {
     expect(memory.createdDirs).toEqual(new Set());
   });
 
+  it("indexes *.txt files but excludes done*.txt files", async () => {
+    const memory = new MemoryFileAdapter();
+    memory.files.set(toFilePath("note.md"), "# Note\n- [ ] Task in note +project");
+    memory.files.set(toFilePath("project.md"), "# Project");
+    memory.files.set(toFilePath("todo.txt"), "(A) Call Mom due:2026-04-12 +project\nBuy milk due:2026-04-04\nx 2026-04-05 Completed task");
+    memory.files.set(toFilePath("done.txt"), "x 2026-04-01 Archived task");
+    memory.files.set(toFilePath("tasks/done-archive.txt"), "x 2026-04-02 Old task");
+    memory.files.set(
+      toFilePath("template.txt"),
+      "{{! template task marker should not be indexed }}\nNotes:\n{{#notes}}\n- {{filename}}\n{{/notes}}\nTasks:\n{{?Tasks?sort(due)//}}{{key}}\n{{/?Tasks}}\nLinks:\n{{#Links}}{{key}}=>{{#value}}{{#bag}}{{.}}{{/bag}}{{/value}}\n{{/Links}}",
+    );
+
+    const options: ZlIndexOptions = {
+      ...indexOptions(),
+      templateFile: toFilePath("template.txt"),
+      taskDisplay: "by-priority",
+    };
+
+    const references = await indexer(options, memory);
+    const filenames = references.map((r) => r.filename).sort();
+    expect(filenames).toEqual(["note.md", "project.md", "todo.txt"]);
+    expect(references.find((r) => r.filename === "todo.txt")?.matchData["Links"]).toEqual(["[project]"]);
+    expect(references.find((r) => r.filename === "todo.txt")?.matchData["Tags"]).toContain("+project");
+    expect(references.find((r) => r.filename === "note.md")?.matchData["Links"]).toEqual([]);
+    expect(references.find((r) => r.filename === "note.md")?.matchData["Tags"]).not.toContain("+project");
+
+    const referencesContent = memory.files.get(toFilePath("references.md"));
+    expect(referencesContent).toContain("Buy milk due:2026-04-04");
+    expect(referencesContent).toContain("Call Mom due:2026-04-12 +project");
+    expect(referencesContent).toContain("project=>todo");
+    expect(referencesContent).not.toContain("template task marker");
+    expect(referencesContent).not.toContain("Completed task");
+    expect(referencesContent).not.toContain("Archived task");
+    expect(referencesContent).not.toContain("Old task");
+    expect(referencesContent?.indexOf("Buy milk")).toBeLessThan(referencesContent?.indexOf("Call Mom") ?? -1);
+  });
+
+  it("does not resolve a slash project token as a shorter filename stem", async () => {
+    const memory = new MemoryFileAdapter();
+    memory.files.set(toFilePath("work.md"), "# Work");
+    memory.files.set(toFilePath("todo.txt"), "First task\n+work/home Follow up");
+    memory.files.set(toFilePath("template.mustache"), "Index");
+
+    const references = await indexer(indexOptions(), memory);
+    const todo = references.find((r) => r.filename === "todo.txt");
+    expect(todo?.matchData["Tags"]).toEqual(["+work/home"]);
+    expect(todo?.matchData["Links"]).toEqual(["+work/home"]);
+  });
+
   it("runs fixNotes with an in-memory adapter", async () => {
     const memory = new MemoryFileAdapter();
     memory.files.set(toFilePath("note.md"), "# My Note\n[author:: Alice]");

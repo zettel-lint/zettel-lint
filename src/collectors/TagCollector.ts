@@ -2,6 +2,13 @@ import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 
 export class TagCollector extends RegexCollector {
+  public collector(filename: string, content: string, program: any): string[] {
+    const tags = super.collector(filename, content, program);
+    return filename.toLowerCase().endsWith(".txt")
+      ? tags
+      : tags.filter((tag) => !tag.startsWith("+"));
+  }
+
   protected format(references: formatData[]): string {
     const tagList: { [tag: string]: string[] } = invertDictionary(references);
     const keys = Object.keys(tagList).sort();
@@ -17,7 +24,7 @@ export class TagCollector extends RegexCollector {
   }
 
   /**
-   * Collects inline hashtags and YAML frontmatter tags, prefixing YAML tags with `#` as needed.
+   * Collects inline hashtags, todo.txt projects, and YAML frontmatter tags.
    * Empty tags are omitted; duplicates are preserved.
    *
    * If `ignoreNumericTags` or `ignore-numeric-tags` in the options passed to `collector`
@@ -80,5 +87,5 @@ export class TagCollector extends RegexCollector {
   }
 
   readonly dataName = "Tags";
-  readonly regex = /(?: |^)(#[a-zA-Z0-9-_/]+)/g;
+  readonly regex = /(?: |^)(#[a-zA-Z0-9-_/]+|\+[a-zA-Z0-9][a-zA-Z0-9-_/]*)/gm;
 }

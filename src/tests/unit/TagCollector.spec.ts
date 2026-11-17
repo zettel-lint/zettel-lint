@@ -79,6 +79,14 @@ test('empty file has no tags', () => {
       .toEqual(["#12345678", "#tag1"]);
   });
 
+  test('collects project tags at the start of subsequent task lines', () => {
+    const sut = new TagCollector();
+    expect(sut.collector("todo.txt", "First task\n+alpha Follow up", {})).toEqual(["+alpha"]);
+    expect(sut.collect("#first +work/home\n#second +alpha-beta_2")).toEqual([
+      "#first", "+work/home", "#second", "+alpha-beta_2",
+    ]);
+  });
+
   test('respects ignoreQuoted option', () => {
     const sut = new TagCollector();
     const content = `#valid

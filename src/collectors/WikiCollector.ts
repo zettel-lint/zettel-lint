@@ -2,6 +2,13 @@ import { formatData, invertDictionary, formatLink, fileWikiLinks, collectBacklin
 import { RegexCollector } from "./RegexCollector.js";
 
 export class WikiCollector extends RegexCollector {
+  public collector(filename: string, content: string, program: any): string[] {
+    const links = super.collector(filename, content, program);
+    return filename.toLowerCase().endsWith(".txt")
+      ? links
+      : links.filter((link) => !link.startsWith("+"));
+  }
+
   public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
     const result = new Map<string, formatData[]>();
     if (!files) return result;
@@ -64,5 +71,5 @@ export class WikiCollector extends RegexCollector {
     return result;
   }
   readonly dataName = "Links";
-  readonly regex = /(?:\[\d{8,14}\])|(?:\[\[[A-Za-z0-9-]*\]\])/g;
+  readonly regex = /(?:\[\d{8,14}\])|(?:\[\[[A-Za-z0-9-]*\]\])|(?: |^)(\+[a-zA-Z0-9][a-zA-Z0-9-_/]*)/gm;
 }

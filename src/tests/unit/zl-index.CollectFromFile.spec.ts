@@ -45,3 +45,12 @@ test("can parse wikilinks in file", async () => {
   expect(await (await collectFromFile(toFilePath("yaml-wikilink.md"), options, adapter)).title)
       .toBe("YAML title");
 });
+
+test("collectFromFile handles .txt files with correct wikiname and title fallback", async () => {
+  const result = await collectFromFile(toFilePath("todo.txt"), options, {
+    readFile: async () => "- [ ] buy milk",
+  } as unknown as NodeFileAdapter);
+  expect(result.wikiname).toBe("todo");
+  expect(result.title).toBe("todo");
+  expect(result.filename).toBe("todo.txt");
+});
