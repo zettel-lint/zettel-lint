@@ -1,5 +1,7 @@
 # Feature Ferret's Journal
 
+## Critical Architecture Learnings
+
 Critical architecture learnings and patterns discovered during Feature Ferret investigations.
 
 ## 2026-11-06 - Formal deprecation of zl notes in favor of zl fix
