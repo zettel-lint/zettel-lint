@@ -39,14 +39,13 @@ export function min(x: number, y: number): number | undefined {
  * Order and duplicates are preserved within each group. Null or undefined references
  * produce an empty map; references with null or undefined data are skipped.
  */
-export function collectBacklinks(references: formatData[]) {
+export function collectBacklinks(references: Iterable<formatData>) {
   // Keep boundary slicing and reference ID resolution out of the inner loop.
   const tagList = new Map<string, string[]>();
 
   if (!references) return tagList;
 
-  for (let i = 0; i < references.length; i++) {
-    const ref = references[i];
+  for (const ref of references) {
     const tags = ref.data;
     if (tags) {
       const targetId = ref.id ?? ref.filename ?? "";

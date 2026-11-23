@@ -36,6 +36,32 @@ test('empty file has no links', () => {
     expect(sut.collect('[[Wïkï-Link]]')).toHaveLength(0);
   });
 
+  test('respects ignoreQuoted option', () => {
+    var sut = new WikiCollector();
+    const content = `
+[[Valid-Link]]
+\`\`\`
+[[Codeblock-Link]]
+\`\`\`
+> [[Blockquote-Link]]
+"[[Quoted-Link]]"
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["[[Valid-Link]]"]);
+  });
+
+  test('ignoring quoted text does not join fragments into wiki links', () => {
+    const sut = new WikiCollector();
+    const content = '[`code`[Inline-Link]] [[Double"quote"Link]] [[Single \'quote\' Link]]';
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual([]);
+  });
+
+  test('ignoring fenced code preserves surrounding line boundaries', () => {
+    const sut = new WikiCollector();
+    const content = '[[Before]]\n```\n[[Hidden]]\n```\n[[After]]';
+    expect(sut.collector("test.md", content, { ignoreQuoted: true }))
+      .toEqual(["[[Before]]", "[[After]]"]);
+  });
+
   test('collects backlinks only from the last note for each ID in map order', () => {
     const sut = new WikiCollector();
     const files = [

@@ -6,23 +6,20 @@ export class WikiCollector extends RegexCollector {
     const result = new Map<string, formatData[]>();
     if (!files) return result;
 
-    // Keep only the last note for each ID, matching the map values used in the result.
+    // Performance optimization: Avoid intermediate filter/map array allocations and
+    // redundant single-file collectBacklinks passes during extractAll indexing.
+    const allFormatData: formatData[] = [];
     for (let i = 0; i < files.length; i++) {
       const ref = files[i];
       if (ref.id !== undefined) {
         const baseData = super.extractData(ref);
         const dataItem: formatData = { ...baseData, bag: [] };
         result.set(ref.id, [dataItem]);
+        allFormatData.push(dataItem);
       }
     }
 
-    const allFormatData: formatData[] = [];
-    for (const items of result.values()) {
-      for (let i = 0; i < items.length; i++) {
-        allFormatData.push(items[i]);
-      }
-    }
-
+    // Single-pass backlink collection across all formatData items
     const bag = collectBacklinks(allFormatData);
 
     // Performance optimization: Replace nested .forEach closures with indexed loops
