@@ -41,7 +41,7 @@ export async function collectFromFile(filename: FilePath, program: ZlIndexOption
     id: idFromFilename(filename),
     filename: name,
     fullpath: filename,
-    wikiname: name ? name.slice(0, -3) : name,
+    wikiname: lastDot !== -1 ? name.slice(0, lastDot) : name,
     title: capturedTitle && capturedTitle.length > 0 ? capturedTitle : fallbackTitle,
     matchData,
   };
@@ -51,6 +51,27 @@ export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ConfigurationError";
+  }
+}
+
+function resolveProjectLinks(references: fileWikiLinks[]): void {
+  const projectNotes = new Map<string, fileWikiLinks | null>();
+  for (const reference of references) {
+    if (!reference.wikiname) continue;
+    projectNotes.set(
+      reference.wikiname,
+      projectNotes.has(reference.wikiname) ? null : reference,
+    );
+  }
+
+  for (const reference of references) {
+    const links = reference.matchData["Links"];
+    if (!links) continue;
+    reference.matchData["Links"] = links.map((link) => {
+      if (!link.startsWith("+")) return link;
+      const target = projectNotes.get(link.slice(1));
+      return target?.id ? `[${target.id}]` : link;
+    });
   }
 }
 
@@ -66,11 +87,16 @@ export async function indexer(
   const pathPattern = escapeGlobPath(program.path);
   const exclude = [
     joinSearchPattern(pathPattern, "**/node_modules/**"),
+    joinSearchPattern(pathPattern, "**/done*.txt"),
     toSearchPattern(escapeGlobPath(program.referenceFile)),
+    toSearchPattern(escapeGlobPath(program.templateFile)),
     ...(program.ignoreDirs ?? []),
   ];
   const files = await adapter.listFiles(
-    [joinSearchPattern(pathPattern, "**/*.md")],
+    [
+      joinSearchPattern(pathPattern, "**/*.md"),
+      joinSearchPattern(pathPattern, "**/*.txt"),
+    ],
     exclude,
   );
   // Bound concurrent reads while keeping results in discovery order.
@@ -95,6 +121,7 @@ export async function indexer(
     fileResults.push(...batchResults);
   }
   const references = fileResults.filter((result): result is fileWikiLinks => result !== null);
+  resolveProjectLinks(references);
 
   const template = await adapter.readFile(program.templateFile);
   const templator = new Templator(references, collectors);

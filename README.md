@@ -41,7 +41,13 @@ This is a link to a [Page that doesn't exist](404.md)
 * [ ] Also supports tasks in a bullet list
 * [x] if they aren't completed
 
-Tags can use #hashtag or +projectref formats for compatibility with `todo.txt` files
+<!-- coderabbit-ai-generated:v1 -->
+
+<!-- coderabbit-ai-generated-section:v1:df7d2bade6edd1e6a28a803cbf63b64676b7425fc7f887687d183138676d7262 -->
+
+Tags can use #hashtag format. In `.txt` files only, tags can also use `+projectref` format for compatibility with `todo.txt`; Markdown tasks do not support `+projectref` linking. Each non-empty, non-completed line in a `.txt` file is treated as a todo.txt task; completed lines beginning with `x` are ignored. Files whose names begin with `done` (`done*.txt`) are excluded from indexing, even if they contain unfinished tasks; keep active tasks in files with other names. `(A)` priorities and dates remain part of the task text, and `due:YYYY-MM-DD` can be used with the template's `{{?Tasks?sort(due)//}}` query to sort by due date. In `.txt` files, a `+project` token links to a note only when exactly one indexed file has the matching filename stem (either `.md` or `.txt`). Duplicate stems leave the link unresolved.
+
+<!-- /coderabbit-ai-generated:v1 -->
 
 To refresh the index:
 
