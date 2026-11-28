@@ -17,12 +17,8 @@ export class WikiCollector extends RegexCollector {
       }
     }
 
-    // Collect only retained notes, preserving Map order after duplicate IDs are replaced.
-    const retainedData: formatData[] = [];
-    for (const items of result.values()) {
-      retainedData.push(...items);
-    }
-    const bag = collectBacklinks(retainedData);
+    // Each result entry holds one item; collect backlinks in Map order.
+    const bag = collectBacklinks(Array.from(result.values(), ([item]) => item));
 
     // Performance optimization: Replace nested .forEach closures with indexed loops
     // and hoist Map lookups outside inner loops.
