@@ -1,8 +1,8 @@
 import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 
-// Module-scoped non-global regex to inspect frontmatter with cross-platform (LF / CRLF) line endings.
-const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
+// A root flow mapping or node property can hide keys from the line-based detector.
+const COMPLEX_YAML_ROOT = /^(?:[ \t]*(?:#[^\n]*)?\r?\n)*[ \t]*[{&!]/;
 
 function decodeDoubleQuotedYamlKey(key: string): string | undefined {
   if (key.length < 2 || key[0] !== '"' || key[key.length - 1] !== '"') {
@@ -132,19 +132,11 @@ export class TagCollector extends RegexCollector {
   collect(content: string): string[] {
     const inlineMatches = super.collect(content);
 
-    // Parse closed frontmatter so malformed YAML errors reach the caller.
+    // Parse when the fast path sees tags or cannot rule them out.
     let rawYamlTags: string[] | undefined;
-    if (content.startsWith("---")) {
-      const fmMatch = FRONTMATTER_REGEX.exec(content);
-      if (fmMatch) {
-        const hasTagsKey = hasTagsYamlKey(fmMatch[1]);
-        if (hasTagsKey || hasMalformedYamlStructure(fmMatch[1])) {
-          const yaml = this.collectYaml(content);
-          if (hasTagsKey) {
-            rawYamlTags = yaml?.tags;
-          }
-        }
-      }
+    const header = this.findFrontmatter(content)?.header;
+    if (header && (COMPLEX_YAML_ROOT.test(header) || hasTagsYamlKey(header) || hasMalformedYamlStructure(header))) {
+      rawYamlTags = this.collectYaml(content).tags;
     }
 
     const result: string[] = [];

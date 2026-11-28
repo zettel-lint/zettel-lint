@@ -143,6 +143,21 @@ test('empty file has no tags', () => {
     expect(new TagCollector().collect("---\ntitle: [unclosed")).toEqual([]);
   });
 
+  test.each(["\n", "\r\n"])('keeps metadata and quote masking within an empty frontmatter boundary (%j)', (newline: string) => {
+    const sut = new InstrumentedTagCollector();
+    const content = ["---", "---", "tags: [body]", '"#quoted" #inline', "---"].join(newline);
+    expect(sut.collector("test.md", content, {})).toEqual(["#inline"]);
+    expect(sut.collectYamlCallCount).toBe(0);
+  });
+
+  test.each([
+    "{title: Example, tags: [flow, mapping]}",
+    "# Metadata\n{title: Example, tags: [flow, mapping]}",
+    "&metadata {title: Example, tags: [flow, mapping]}",
+  ])('collects tags from a flow-style mapping: %j', (header: string) => {
+    expect(new TagCollector().collect(`---\n${header}\n---\nBody`)).toEqual(["#flow", "#mapping"]);
+  });
+
   test.each([
     ["LF opening and CRLF closing", "---\ntags: [mixed]\r\n---\r\nBody"],
     ["CRLF opening and LF closing", "---\r\ntags: [mixed]\n---\nBody"],

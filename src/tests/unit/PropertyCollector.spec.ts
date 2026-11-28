@@ -18,6 +18,12 @@ test('empty file has no properties', () => {
       .toEqual({ hasInline: false, properties: { 'author': ['Charles Dickens'] } });
   })
 
+  test('ignores YAML-like body text after empty frontmatter', () => {
+    const sut = new PropertyCollector();
+    expect(sut.collectProperties("---\n---\nauthor: Body\n---\n"))
+      .toEqual({ hasInline: false, properties: {} });
+  });
+
   test('collects properties from YAML frontmatter using indented list format', () => {
     var sut = new PropertyCollector();
     expect(sut.collectProperties("---\nauthor:\n  - Charles Dickens\n---\n\n* Great Expectations"))

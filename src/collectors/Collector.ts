@@ -33,11 +33,10 @@ export abstract class Collector {
     }
 
     const mask = (quoted: string): string => quoted.replace(/[^\r\n]/g, " ");
-    const frontmatterMatch = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
-    const frontmatter = frontmatterMatch.exec(content);
-    const body = frontmatter ? content.slice(frontmatter[0].length) : content;
+    const frontmatter = this.findFrontmatter(content);
+    const body = frontmatter ? content.slice(frontmatter.end) : content;
     const strippedBody = this.stripQuotedBody(body, mask);
-    return frontmatter ? content.slice(0, frontmatter[0].length) + strippedBody : strippedBody;
+    return frontmatter ? content.slice(0, frontmatter.end) + strippedBody : strippedBody;
   }
 
   private stripQuotedBody(content: string, mask: (quoted: string) => string): string {
@@ -162,22 +161,28 @@ export abstract class Collector {
     }
     return "";
   }
+  protected findFrontmatter(content: string): { header: string; end: number } | undefined {
+    const openingMatch = /^---\r?\n/.exec(content);
+    if (!openingMatch) return undefined;
+
+    const sepLen = openingMatch[0].length;
+    // An empty header closes at the start of the slice, without another newline.
+    const closingMatch = /(?:^|\r?\n)---(?:\r?\n|$)/.exec(content.slice(sepLen));
+    if (!closingMatch) return undefined;
+
+    const closingStart = sepLen + closingMatch.index;
+    return {
+      header: content.slice(sepLen, closingStart),
+      end: closingStart + closingMatch[0].length,
+    };
+  }
+
   protected collectYaml(content: string) : YamlHeaders {
     const result: YamlHeaders = Object.create(null);
     result.tags = undefined;
-    const openingMatch = /^---(?:\r\n|\n)/.exec(content);
-    if (!openingMatch) {
-      return result;
-    }
-    const sepLen = openingMatch[0].length;
-    // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
-    const closingMatch = /\r?\n---(?=\r?\n|$)/.exec(content.substring(sepLen));
-    if (!closingMatch) {
-      return result;
-    }
-    const endIndex = sepLen + closingMatch.index;
-    const header = content.substring(sepLen, endIndex);
-    const yamlData = parse(header);
+    const frontmatter = this.findFrontmatter(content);
+    if (!frontmatter?.header) return result;
+    const yamlData = parse(frontmatter.header);
 
     if (!yamlData || typeof yamlData !== 'object') {
       return result;
