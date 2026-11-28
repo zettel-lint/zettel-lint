@@ -151,3 +151,28 @@ test('empty file has no tags', () => {
   ])('supports mixed frontmatter line endings: %s', (_description: string, content: string) => {
     expect(new TagCollector().collect(content)).toEqual(["#mixed"]);
   });
+
+  test('respects ignoreQuoted option', () => {
+    const sut = new TagCollector();
+    const content = `#valid
+\`\`\`
+#codeblock
+\`\`\`
+> #blockquote
+"#quoted"
+It's a test file with contractions.
+'#singlequoted'
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["#valid"]);
+  });
+
+  test('preserves YAML frontmatter when ignoreQuoted is enabled', () => {
+    const sut = new TagCollector();
+    const content = `---
+tags: "work"
+---
+Some content
+"#quoted"
+`;
+    expect(sut.collector("test.md", content, { ignoreQuoted: true })).toEqual(["#work"]);
+  });

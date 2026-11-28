@@ -8,19 +8,17 @@ export class WikiCollector extends RegexCollector {
 
     // Performance optimization: Avoid intermediate filter/map array allocations and
     // redundant single-file collectBacklinks passes during extractAll indexing.
-    const allFormatData: formatData[] = [];
     for (let i = 0; i < files.length; i++) {
       const ref = files[i];
       if (ref.id !== undefined) {
         const baseData = super.extractData(ref);
         const dataItem: formatData = { ...baseData, bag: [] };
         result.set(ref.id, [dataItem]);
-        allFormatData.push(dataItem);
       }
     }
 
-    // Single-pass backlink collection across all formatData items
-    const bag = collectBacklinks(allFormatData);
+    // Each result entry holds one item; collect backlinks in Map order.
+    const bag = collectBacklinks(Array.from(result.values(), ([item]) => item));
 
     // Performance optimization: Replace nested .forEach closures with indexed loops
     // and hoist Map lookups outside inner loops.
