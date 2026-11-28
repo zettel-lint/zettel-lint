@@ -38,30 +38,20 @@ export abstract class Collector {
     }
     return "";
   }
-  private readonly yamlSep = "---\n";
   protected collectYaml(content: string) : YamlHeaders {
     const result: YamlHeaders = Object.create(null);
     result.tags = undefined;
-    let sepLen = 4;
-    if (content.startsWith(this.yamlSep)) {
-      sepLen = 4;
-    } else if (content.startsWith("---\r\n")) {
-      sepLen = 5;
-    } else {
+    const openingMatch = /^---(?:\r\n|\n)/.exec(content);
+    if (!openingMatch) {
       return result;
     }
+    const sepLen = openingMatch[0].length;
     // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
-    let endIndex = content.indexOf("---", sepLen);
-    while (endIndex !== -1 && (
-      content[endIndex - 1] !== "\n" ||
-      !(endIndex + 3 === content.length || content[endIndex + 3] === "\n" ||
-        content.startsWith("\r\n", endIndex + 3))
-    )) {
-      endIndex = content.indexOf("---", endIndex + 3);
-    }
-    if (endIndex === -1) {
+    const closingMatch = /\r?\n---(?=\r?\n|$)/.exec(content.substring(sepLen));
+    if (!closingMatch) {
       return result;
     }
+    const endIndex = sepLen + closingMatch.index;
     const header = content.substring(sepLen, endIndex);
     const yamlData = parse(header);
 
@@ -128,6 +118,7 @@ export abstract class Collector {
       + "\n\n</details>";
   };
   protected abstract format(references: formatData[]): string;
+  private readonly yamlSep = "---\n";
   public writeHeader(properties: YamlHeaders): string {
     return this.yamlSep + stringify(properties) + this.yamlSep;
   }
