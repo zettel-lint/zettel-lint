@@ -45,8 +45,6 @@
       "args": [
         "test",
         "--",
-        "--runInBand",
-        "--watchAll=false"
       ]
     }
   ]

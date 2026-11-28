@@ -119,33 +119,4 @@ export abstract class Collector {
   public writeHeader(properties: YamlHeaders): string {
     return this.yamlSep + stringify(properties) + this.yamlSep;
   }
-
-		return result;
-	}
-	public extractData(ref: fileWikiLinks): formatData {
-		return {
-			...ref,
-			name: this.dataName,
-			data: ref.matchData[this.dataName],
-			bag: [],
-		};
-	}
-	public extractAll(files: fileWikiLinks[]): Map<string, formatData[]> {
-		return invertData(files?.map((ref) => this.extractData(ref)));
-	}
-	public formatter(references: fileWikiLinks[]): string {
-		return (
-			"## " +
-			this.dataName +
-			"\n\n<details>\n<summary>Show " +
-			this.dataName +
-			"</summary>\n\n" +
-			this.format(references.map((r) => this.extractData(r))) +
-			"\n\n</details>"
-		);
-	}
-	protected abstract format(references: formatData[]): string;
-	public writeHeader(properties: YamlHeaders): string {
-		return this.yamlSep + stringify(properties) + this.yamlSep;
-	}
 }
