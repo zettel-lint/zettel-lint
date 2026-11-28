@@ -1,8 +1,8 @@
-import { formatData, fileWikiLinks, invertData } from "../types.js";
-import { parse, stringify } from 'yaml';
+import { parse, stringify } from "yaml";
+import { type fileWikiLinks, type formatData, invertData } from "../types.js";
 
 export interface YamlHeaders {
-  [property: string]: string[] | undefined;
+	[property: string]: string[] | undefined;
 }
 
 export abstract class Collector {
@@ -177,9 +177,9 @@ export abstract class Collector {
     const header = content.substring(this.yamlSep.length, endIndex);
     const yamlData = parse(header);
 
-    if (!yamlData || typeof yamlData !== 'object') {
-      return result;
-    }
+		if (!yamlData || typeof yamlData !== "object") {
+			return result;
+		}
 
     // Performance optimization: Avoid Object.entries array allocations and map closures per property
     for (const key in yamlData) {
@@ -239,5 +239,4 @@ export abstract class Collector {
   public writeHeader(properties: YamlHeaders): string {
     return this.yamlSep + stringify(properties) + this.yamlSep;
   }
-
 }
