@@ -33,11 +33,10 @@ export abstract class Collector {
     }
 
     const mask = (quoted: string): string => quoted.replace(/[^\r\n]/g, " ");
-    const frontmatterMatch = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/;
-    const frontmatter = frontmatterMatch.exec(content);
-    const body = frontmatter ? content.slice(frontmatter[0].length) : content;
+    const frontmatter = this.findFrontmatter(content);
+    const body = frontmatter ? content.slice(frontmatter.end) : content;
     const strippedBody = this.stripQuotedBody(body, mask);
-    return frontmatter ? content.slice(0, frontmatter[0].length) + strippedBody : strippedBody;
+    return frontmatter ? content.slice(0, frontmatter.end) + strippedBody : strippedBody;
   }
 
   private stripQuotedBody(content: string, mask: (quoted: string) => string): string {
@@ -162,20 +161,28 @@ export abstract class Collector {
     }
     return "";
   }
-  private readonly yamlSep = "---\n";
+  protected findFrontmatter(content: string): { header: string; end: number } | undefined {
+    const openingMatch = /^---\r?\n/.exec(content);
+    if (!openingMatch) return undefined;
+
+    const sepLen = openingMatch[0].length;
+    // An empty header closes at the start of the slice, without another newline.
+    const closingMatch = /(?:^|\r?\n)---(?:\r?\n|$)/.exec(content.slice(sepLen));
+    if (!closingMatch) return undefined;
+
+    const closingStart = sepLen + closingMatch.index;
+    return {
+      header: content.slice(sepLen, closingStart),
+      end: closingStart + closingMatch[0].length,
+    };
+  }
+
   protected collectYaml(content: string) : YamlHeaders {
     const result: YamlHeaders = Object.create(null);
     result.tags = undefined;
-    if (!content.startsWith(this.yamlSep)){
-      return result;
-    }
-    // Performance optimization: Avoid executing YAML parser on unclosed or missing frontmatter
-    const endIndex = content.indexOf(this.yamlSep, this.yamlSep.length);
-    if (endIndex === -1) {
-      return result;
-    }
-    const header = content.substring(this.yamlSep.length, endIndex);
-    const yamlData = parse(header);
+    const frontmatter = this.findFrontmatter(content);
+    if (!frontmatter?.header) return result;
+    const yamlData = parse(frontmatter.header);
 
     if (!yamlData || typeof yamlData !== 'object') {
       return result;
@@ -236,6 +243,7 @@ export abstract class Collector {
       + "\n\n</details>";
   };
   protected abstract format(references: formatData[]): string;
+  private readonly yamlSep = "---\n";
   public writeHeader(properties: YamlHeaders): string {
     return this.yamlSep + stringify(properties) + this.yamlSep;
   }
