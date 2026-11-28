@@ -2,7 +2,7 @@ import { formatData, invertDictionary } from "../types.js";
 import { RegexCollector } from "./RegexCollector.js";
 
 // A root flow mapping or node property can hide keys from the line-based detector.
-const COMPLEX_YAML_ROOT = /^(?:[ \t]*(?:#[^\n]*)?\r?\n)*[ \t]*[{&!]/;
+const COMPLEX_YAML_ROOT = /^(?:[ \t]*(?:#[^\r\n]*)?\r?\n)*[ \t]*[{&!]/;
 
 function decodeDoubleQuotedYamlKey(key: string): string | undefined {
   if (key.length < 2 || key[0] !== '"' || key[key.length - 1] !== '"') {
