@@ -40,7 +40,7 @@ export class TagCollector extends RegexCollector {
       if (fmMatch) {
         const yaml = this.collectYaml(content);
         if (fmMatch[1].includes("tags") || fmMatch[1].includes("\\")) {
-          rawYamlTags = yaml.tags;
+          rawYamlTags = yaml?.tags;
         }
       }
     }

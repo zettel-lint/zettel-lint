@@ -76,9 +76,18 @@
 
 ## 2026-04-08 - Frontmatter Fast-Path Inspection in TagCollector & Cross-Platform Delimiters
 
-**Learning:** `TagCollector.collect` invoked `this.collectYaml(content)?.tags` on every processed note, triggering expensive `yaml.parse` calls even for notes where the frontmatter contained only titles, dates, or other non-tag fields (or no frontmatter at all). Fast-path inspecting the frontmatter section for `"tags"` using a module-scoped regex skips `yaml.parse` completely and speeds up tag collection on non-tag notes by >100x. When checking frontmatter boundaries, accounting for both LF and CRLF line endings (`---\r?\n`) ensures cross-platform reliability on Windows notes.
+**Learning:** `TagCollector.collect` invoked `this.collectYaml(content)?.tags`
+on every processed note, triggering expensive `yaml.parse` calls even for
+notes where the frontmatter contained only titles, dates, or other non-tag
+fields (or no frontmatter at all). Fast-path inspecting the frontmatter
+section for `"tags"` using a module-scoped regex skips `yaml.parse`
+completely and speeds up tag collection on non-tag notes by >100x. When
+checking frontmatter boundaries, accounting for both LF and CRLF line endings
+(`---\r?\n`) ensures cross-platform reliability on Windows notes.
 
-**Action:** In metadata-specific extraction passes, inspect delimiter-bound headers for target property keys before delegating to full YAML parsers, and always support CRLF line endings in boundary regexes.
+**Action:** In metadata-specific extraction passes, inspect delimiter-bound
+headers for target property keys before delegating to full YAML parsers, and
+always support CRLF line endings in boundary regexes.
 
 ## 2026-04-08 - Indexed Loop Accumulation for ViewProps References in Templator
 
