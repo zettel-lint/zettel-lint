@@ -32,10 +32,8 @@ export class TaskCollector extends RegexCollector {
 				}
 			}
 		}
-		if (this.programArgs?.taskDisplay === "by-priority") {
-			tasks.sort((a, b) => TaskCollector.compareTasks(a.content, b.content)
-				|| a.formatted.localeCompare(b.formatted));
-		}
+		tasks.sort((a, b) => TaskCollector.compareTasks(a.content, b.content)
+			|| a.formatted.localeCompare(b.formatted));
 		return tasks.map(task => task.formatted);
 	}
 
@@ -54,7 +52,7 @@ export class TaskCollector extends RegexCollector {
 
 	// Priority order: (A)-(Z) -> [ ] checklist -> unprioritized/other
 	// Within the same priority, sort by due:YYYY-MM-DD (earliest first, no due date last)
-	protected static compareTasks(a: string, b: string): number {
+	public static compareTasks(a: string, b: string): number {
 		const getPriorityRank = (t: string): string => {
 			const m = /^\(([A-Z])\)/.exec(t);
 			if (m) return `0_${m[1]}`;
@@ -67,13 +65,13 @@ export class TaskCollector extends RegexCollector {
 
 		const dueA = /due:(\d{4}-\d{2}-\d{2})/.exec(a)?.[1] ?? "9999-99-99";
 		const dueB = /due:(\d{4}-\d{2}-\d{2})/.exec(b)?.[1] ?? "9999-99-99";
-		if (dueA !== dueB) return dueA.localeCompare(dueB);
+		if (dueA !== dueB) return dueA < dueB ? -1 : 1;
 
 		return a.localeCompare(b);
 	}
 
 	protected formatSortByPriority(references: formatData[]): string {
-		const allTasks = this.getTasks(references).sort();
+		const allTasks = this.getTasks(references);
 		// Performance optimization: Direct string concatenation in indexed loop avoids .map() intermediate array allocation
 		let result = "";
 		for (let i = 0; i < allTasks.length; i++) {
